@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { anonymous } from "better-auth/plugins";
 
 import { db } from "@/db/client";
 import * as schema from "@/db/schemas/auth-schema";
@@ -12,8 +13,14 @@ export const auth = betterAuth({
     provider: "pg",
     schema,
   }),
-  plugins: [nextCookies()],
-  emailAndPassword: { enabled: true },
+  plugins: [
+    nextCookies(),
+    anonymous({
+      onLinkAccount: async () => {
+        // TODO: migrate spec sessions, mock data, whatever
+      },
+    }),
+  ],
   socialProviders: {
     github: {
       clientId: env.GITHUB_CLIENT_ID,
