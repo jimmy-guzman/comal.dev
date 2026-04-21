@@ -11,7 +11,7 @@ export default async function Home() {
   const recentWorkspaces = session?.user ? await listRecentWorkspacesForUser(session.user.id) : [];
 
   return (
-    <main className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-6 md:p-10">
+    <main className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 overflow-y-auto p-6 md:p-10">
       <section className="space-y-2">
         <h1 className="text-2xl font-semibold">Comal</h1>
         <p className="text-muted-foreground text-sm">

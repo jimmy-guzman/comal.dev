@@ -1,5 +1,5 @@
 import type { UIMessage } from "ai";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { maxBy } from "es-toolkit";
 import { nanoid } from "nanoid";
 
@@ -235,6 +235,103 @@ export async function assertWorkspaceWriteAccess(userId: string, workspaceId: st
   }
 
   return record;
+}
+
+export async function getWorkspaceSpecForUser(userId: string, workspaceId: string) {
+  const [row] = await db
+    .select({
+      content: workspaceSpec.content,
+      revisionNumber: workspaceSpec.revisionNumber,
+      format: workspaceSpec.format,
+      role: member.role,
+    })
+    .from(workspaceSpec)
+    .innerJoin(workspace, eq(workspaceSpec.workspaceId, workspace.id))
+    .innerJoin(
+      member,
+      and(eq(member.organizationId, workspace.organizationId), eq(member.userId, userId)),
+    )
+    .where(eq(workspace.id, workspaceId))
+    .limit(1);
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    content: row.content,
+    revisionNumber: row.revisionNumber,
+    format: row.format,
+    canEdit: row.role !== "viewer",
+  };
+}
+
+type UpdateWorkspaceSpecResult =
+  | { ok: true; revisionNumber: number }
+  | { ok: false; kind: "not_found" | "forbidden" | "conflict" };
+
+export async function updateWorkspaceSpecForUser({
+  userId,
+  workspaceId,
+  content,
+  expectedRevisionNumber,
+  changeSource = "editor",
+  messageId = null,
+}: {
+  userId: string;
+  workspaceId: string;
+  content: string;
+  expectedRevisionNumber: number;
+  changeSource?: "chat" | "editor";
+  messageId?: string | null;
+}): Promise<UpdateWorkspaceSpecResult> {
+  const access = await assertWorkspaceAccess(userId, workspaceId);
+
+  if (!access) {
+    return { ok: false, kind: "not_found" };
+  }
+
+  if (access.role === "viewer") {
+    return { ok: false, kind: "forbidden" };
+  }
+
+  const [updated] = await db
+    .update(workspaceSpec)
+    .set({
+      content,
+      updatedByUserId: userId,
+      updatedAt: new Date(),
+      revisionNumber: sql`${workspaceSpec.revisionNumber} + 1`,
+    })
+    .where(
+      and(
+        eq(workspaceSpec.workspaceId, workspaceId),
+        eq(workspaceSpec.revisionNumber, expectedRevisionNumber),
+      ),
+    )
+    .returning({
+      revisionNumber: workspaceSpec.revisionNumber,
+      content: workspaceSpec.content,
+    });
+
+  if (!updated) {
+    return { ok: false, kind: "conflict" };
+  }
+
+  await db.insert(workspaceSpecRevision).values({
+    id: nanoid(),
+    workspaceId,
+    revisionNumber: updated.revisionNumber,
+    content: updated.content,
+    changeSource,
+    messageId: messageId ?? null,
+    createdByUserId: userId,
+    createdAt: new Date(),
+  });
+
+  await db.update(workspace).set({ updatedAt: new Date() }).where(eq(workspace.id, workspaceId));
+
+  return { ok: true, revisionNumber: updated.revisionNumber };
 }
 
 export async function insertWorkspaceChatMessage({
