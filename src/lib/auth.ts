@@ -1,11 +1,12 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
-import { anonymous } from "better-auth/plugins";
+import { anonymous, organization } from "better-auth/plugins";
 
 import { db } from "@/db/client";
 import * as schema from "@/db/schemas/auth-schema";
 import { env } from "@/env";
+import { migrateAnonymousUserData } from "@/lib/studio";
 
 export const auth = betterAuth({
   basePath: "/auth",
@@ -15,9 +16,16 @@ export const auth = betterAuth({
   }),
   plugins: [
     nextCookies(),
+    organization({
+      allowUserToCreateOrganization: false,
+      creatorRole: "owner",
+    }),
     anonymous({
-      onLinkAccount: async () => {
-        // TODO: migrate spec sessions, mock data, whatever
+      onLinkAccount: async ({ anonymousUser, newUser }) => {
+        await migrateAnonymousUserData({
+          anonymousUserId: anonymousUser.user.id,
+          newUserId: newUser.user.id,
+        });
       },
     }),
   ],
