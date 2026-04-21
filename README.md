@@ -15,3 +15,15 @@ Three panes, one source of truth:
 - **Playground** — once your spec validates, a live mock server spins up. Every endpoint gets a generated UI you can hit. Responses come back with coherent data that stays consistent across requests: `GET /users/123` and `GET /orders?userId=123` return data about the same person. POST a resource and it's there when you GET it.
 
 When you're ready, eject. One command scaffolds a real project from your spec, with typed routes, validated I/O, and a schema inferred from your components. The mock data from your playground carries over as test fixtures, so the work you did while iterating becomes the seed for the real thing.
+
+## Local development
+
+1. Install dependencies: `pnpm install`
+2. Copy [`.env.example`](.env.example) to `.env` and set variables (see [`src/env.ts`](src/env.ts) for validation). You will need:
+   - a Postgres URL (for example [Neon](https://neon.tech))
+   - a [Better Auth](https://www.better-auth.com/) secrets and app URL
+   - a [GitHub OAuth app](https://github.com/settings/developers) for sign-in
+   - a app base URL as `NEXT_PUBLIC_APP_URL`
+   - a [OpenRouter](https://openrouter.ai/) API key for chat.
+3. Push the database schema: `pnpm db:push`
+4. Run the dev server: `pnpm dev`
