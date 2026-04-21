@@ -45,7 +45,3 @@ export function assignStudioPane(
   }
   return { left: current.left, right: pane };
 }
-
-export function swapStudioPanes(current: StudioPanePair): StudioPanePair {
-  return { left: current.right, right: current.left };
-}
