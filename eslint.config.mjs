@@ -6,7 +6,7 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
-  { ignores: ["**/components/{ui,ai-elements}/**"] },
+  { ignores: ["**/components/{ui,ai-elements}/**", ".agents/**", ".claude/**"] },
 ]);
 
 export default eslintConfig;
