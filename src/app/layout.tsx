@@ -26,9 +26,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("dark", "h-full", "antialiased", "font-mono", jetbrainsMono.variable)}
+      className={cn("dark", "min-h-svh", "antialiased", "font-mono", jetbrainsMono.variable)}
     >
-      <body className="flex min-h-full flex-col">
+      <body className="flex min-h-svh flex-col">
         <AnonymousSession />
         <NuqsAdapter>
           <div className="flex min-h-0 flex-1 flex-col">{children}</div>
