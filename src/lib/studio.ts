@@ -1,5 +1,6 @@
 import type { UIMessage } from "ai";
 import { and, asc, desc, eq } from "drizzle-orm";
+import { maxBy } from "es-toolkit";
 import { nanoid } from "nanoid";
 
 import { db } from "@/db/client";
@@ -18,7 +19,7 @@ info:
 paths: {}
 `;
 
-export async function getOrCreatePersonalOrganization(userId: string) {
+async function getOrCreatePersonalOrganization(userId: string) {
   const existingMembership = await db
     .select({
       organizationId: member.organizationId,
@@ -204,7 +205,7 @@ export async function listWorkspaceMessagesForUser(userId: string, workspaceId: 
   return messages;
 }
 
-export async function assertWorkspaceAccess(userId: string, workspaceId: string) {
+async function assertWorkspaceAccess(userId: string, workspaceId: string) {
   const record = await db
     .select({
       workspaceId: workspace.id,
@@ -271,6 +272,21 @@ const roleRank = {
   owner: 3,
 } as const;
 
+const getRoleRank = (role: string) => {
+  switch (role) {
+    case "viewer":
+      return roleRank.viewer;
+    case "member":
+      return roleRank.member;
+    case "admin":
+      return roleRank.admin;
+    case "owner":
+      return roleRank.owner;
+    default:
+      return -1;
+  }
+};
+
 export async function migrateAnonymousUserData({
   anonymousUserId,
   newUserId,
@@ -300,10 +316,11 @@ export async function migrateAnonymousUserData({
       continue;
     }
 
-    const incomingRank = roleRank[membership.role as keyof typeof roleRank] ?? 0;
-    const currentRank = roleRank[targetMembership.role as keyof typeof roleRank] ?? 0;
+    const winningRole = maxBy([membership.role, targetMembership.role], (role) =>
+      getRoleRank(role),
+    );
 
-    if (incomingRank > currentRank) {
+    if (winningRole === membership.role && membership.role !== targetMembership.role) {
       await db
         .update(member)
         .set({ role: membership.role })

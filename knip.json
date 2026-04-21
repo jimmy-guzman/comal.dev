@@ -1,5 +1,5 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "tags": ["-lintignore"],
-  "entry": ["src/components/ui/**", "src/components/ai-elements/**"]
+  "entry": ["src/components/ui/**", "src/components/ai-elements/**", "src/db/schemas/**"]
 }
