@@ -1,5 +1,6 @@
 "use client";
 
+import type { UIMessage } from "ai";
 import { ArrowLeftRightIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 
@@ -26,10 +27,23 @@ import {
   type StudioPanePair,
 } from "@/lib/studio-pane-ids";
 
-function StudioPaneBody({ id }: { id: StudioPaneId }) {
+type StudioShellProps = {
+  workspaceId: string;
+  initialMessages?: UIMessage[];
+};
+
+function StudioPaneBody({
+  id,
+  workspaceId,
+  initialMessages,
+}: {
+  id: StudioPaneId;
+  workspaceId: string;
+  initialMessages: UIMessage[];
+}) {
   switch (id) {
     case "chat": {
-      return <StudioChat />;
+      return <StudioChat initialMessages={initialMessages} workspaceId={workspaceId} />;
     }
     case "playground": {
       return <StudioPlaygroundPlaceholder />;
@@ -40,7 +54,7 @@ function StudioPaneBody({ id }: { id: StudioPaneId }) {
   }
 }
 
-export function StudioShell() {
+export function StudioShell({ workspaceId, initialMessages = [] }: StudioShellProps) {
   const [panes, setPanes] = useState<StudioPanePair>(DEFAULT_STUDIO_PANES);
 
   const setLeft = useCallback((pane: StudioPaneId) => {
@@ -77,7 +91,11 @@ export function StudioShell() {
           </Select>
         </header>
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3">
-          <StudioPaneBody id={panes.left} />
+          <StudioPaneBody
+            id={panes.left}
+            initialMessages={initialMessages}
+            workspaceId={workspaceId}
+          />
         </div>
       </section>
 
@@ -114,7 +132,11 @@ export function StudioShell() {
           </Select>
         </header>
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3">
-          <StudioPaneBody id={panes.right} />
+          <StudioPaneBody
+            id={panes.right}
+            initialMessages={initialMessages}
+            workspaceId={workspaceId}
+          />
         </div>
       </section>
     </div>

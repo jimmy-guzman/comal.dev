@@ -2,6 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import type { UIMessage } from "ai";
 import { ChevronDownIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -42,7 +43,12 @@ import {
   OPENROUTER_MODEL_STORAGE_KEY,
 } from "@/lib/openrouter-models";
 
-export function StudioChat() {
+type StudioChatProps = {
+  workspaceId: string;
+  initialMessages?: UIMessage[];
+};
+
+export function StudioChat({ workspaceId, initialMessages = [] }: StudioChatProps) {
   const [modelId, setModelId] = useState<string>(DEFAULT_OPENROUTER_MODEL.id);
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const [modelsHydrated, setModelsHydrated] = useState(false);
@@ -72,6 +78,7 @@ export function StudioChat() {
   }, [modelId, modelsHydrated]);
 
   const { messages, sendMessage, status, stop } = useChat({
+    messages: initialMessages,
     transport: new DefaultChatTransport({ api: "/api/chat" }),
     onError: (err) => {
       toast.error(err.message);
@@ -84,9 +91,14 @@ export function StudioChat() {
       if (!trimmed) {
         return;
       }
-      await sendMessage({ text: trimmed }, { body: { model: modelId } });
+      await sendMessage(
+        {
+          text: trimmed,
+        },
+        { body: { model: modelId, workspaceId } },
+      );
     },
-    [sendMessage, modelId],
+    [sendMessage, modelId, workspaceId],
   );
 
   return (
