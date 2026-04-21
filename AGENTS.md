@@ -43,6 +43,8 @@ When changing API client types or OpenAPI inputs, run `pnpm openapi-ts` and ensu
   Don't add config options, generic parameters, or extension points for use cases that don't exist yet. The right abstraction for a future need is almost never the one you'd guess before seeing it.
 - **Duplication is cheaper than the wrong abstraction.**
   Code that looks similar isn't necessarily the same thing. Deduping two unrelated pieces couples their futures; when one needs to change and the other doesn't, the abstraction has to grow conditionals or split back apart, both of which are worse than having kept them separate.
+- **Derive values, don't assemble them.**
+  Bindings should be the result of an expression at the point of declaration. Branching, trying, and looping that exists only to populate a binding is a function waiting to be extracted.
 
 ## Type discipline
 

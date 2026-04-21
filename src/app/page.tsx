@@ -1,3 +1,9 @@
+import { StudioShell } from "@/components/studio/studio-shell";
+
 export default function Home() {
-  return <h1>comal.dev</h1>;
+  return (
+    <main className="flex min-h-0 flex-1 flex-col">
+      <StudioShell />
+    </main>
+  );
 }
