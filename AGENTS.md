@@ -18,6 +18,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Lint:** ESLint with [`@jimmy.codes/eslint-config`](https://github.com/jimmy-guzman/eslint-config).
 - **Format:** [oxfmt](https://oxc.rs/docs/guide/usage/formatter.html) (`.oxfmtrc.json`).
 - **UI:** Tailwind CSS v4 and shadcn/ui (`package.json` dependencies).
+- **Utils:** Use [es-toolkit](https://es-toolkit.dev/llms-full.txt) for utility functions.
 
 When changing API client types or OpenAPI inputs, run `pnpm openapi-ts` and ensure `pnpm check` still passes.
 
