@@ -5,10 +5,8 @@ import { ArrowLeftRightIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { StudioChat } from "@/components/studio/studio-chat";
-import {
-  StudioPlaygroundPlaceholder,
-  StudioSpecPlaceholder,
-} from "@/components/studio/studio-placeholder-panes";
+import { StudioPlaygroundPlaceholder } from "@/components/studio/studio-placeholder-panes";
+import { StudioSpecEditor } from "@/components/studio/studio-spec-editor";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -27,19 +25,28 @@ import {
   type StudioPanePair,
 } from "@/lib/studio-pane-ids";
 
+type StudioShellInitialSpec = {
+  content: string;
+  revisionNumber: number;
+  canEdit: boolean;
+};
+
 type StudioShellProps = {
   workspaceId: string;
   initialMessages?: UIMessage[];
+  initialSpec: StudioShellInitialSpec;
 };
 
 function StudioPaneBody({
   id,
   workspaceId,
   initialMessages,
+  initialSpec,
 }: {
   id: StudioPaneId;
   workspaceId: string;
   initialMessages: UIMessage[];
+  initialSpec: StudioShellInitialSpec;
 }) {
   switch (id) {
     case "chat": {
@@ -49,12 +56,20 @@ function StudioPaneBody({
       return <StudioPlaygroundPlaceholder />;
     }
     case "spec": {
-      return <StudioSpecPlaceholder />;
+      return (
+        <StudioSpecEditor
+          key={workspaceId}
+          canEdit={initialSpec.canEdit}
+          initialContent={initialSpec.content}
+          initialRevisionNumber={initialSpec.revisionNumber}
+          workspaceId={workspaceId}
+        />
+      );
     }
   }
 }
 
-export function StudioShell({ workspaceId, initialMessages = [] }: StudioShellProps) {
+export function StudioShell({ workspaceId, initialMessages = [], initialSpec }: StudioShellProps) {
   const [panes, setPanes] = useState<StudioPanePair>(DEFAULT_STUDIO_PANES);
 
   const setLeft = useCallback((pane: StudioPaneId) => {
@@ -70,7 +85,7 @@ export function StudioShell({ workspaceId, initialMessages = [] }: StudioShellPr
   }, []);
 
   return (
-    <div className="bg-border flex min-h-0 flex-1 flex-row gap-px">
+    <div className="bg-border flex h-full min-h-0 min-w-0 flex-1 flex-row gap-px overflow-hidden">
       <section
         aria-label={`Left column: ${STUDIO_PANE_LABEL[panes.left]}`}
         className="bg-background flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
@@ -90,10 +105,11 @@ export function StudioShell({ workspaceId, initialMessages = [] }: StudioShellPr
             </SelectContent>
           </Select>
         </header>
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-3 pb-3">
           <StudioPaneBody
             id={panes.left}
             initialMessages={initialMessages}
+            initialSpec={initialSpec}
             workspaceId={workspaceId}
           />
         </div>
@@ -131,10 +147,11 @@ export function StudioShell({ workspaceId, initialMessages = [] }: StudioShellPr
             </SelectContent>
           </Select>
         </header>
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-3 pb-3">
           <StudioPaneBody
             id={panes.right}
             initialMessages={initialMessages}
+            initialSpec={initialSpec}
             workspaceId={workspaceId}
           />
         </div>
