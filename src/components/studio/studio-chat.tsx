@@ -43,8 +43,16 @@ import {
   OPENROUTER_MODELS,
   OPENROUTER_MODEL_STORAGE_KEY,
 } from "@/lib/openrouter-models";
+import type { StudioSpecChatContext } from "@/lib/studio-spec-chat-context";
 
-type UpdateSpecOutput = { ok?: boolean; revisionNumber?: number; error?: string };
+type UpdateSpecOutput = {
+  ok?: boolean;
+  revisionNumber?: number;
+  error?: string;
+  validationOk?: boolean;
+  validationSummary?: string;
+  spectralNoteCount?: number;
+};
 
 function renderAssistantPart(
   part: UIMessage["parts"][number],
@@ -92,10 +100,33 @@ function renderAssistantPart(
           case "output-available": {
             const out = part.output as UpdateSpecOutput;
             if (out.ok) {
+              const revision = out.revisionNumber;
+              if (out.validationOk === false) {
+                return (
+                  <div className="text-muted-foreground space-y-1 text-xs" key={key}>
+                    <p>
+                      Saved revision {revision}. Schema or lint issues remain—see summary below.
+                    </p>
+                    {out.validationSummary ? (
+                      <pre className="text-destructive max-h-32 overflow-y-auto font-mono text-[0.65rem] leading-snug whitespace-pre-wrap">
+                        {out.validationSummary}
+                      </pre>
+                    ) : null}
+                  </div>
+                );
+              }
               return (
-                <p className="text-muted-foreground text-xs" key={key}>
-                  Spec updated (revision {out.revisionNumber}).
-                </p>
+                <div className="text-muted-foreground space-y-1 text-xs" key={key}>
+                  <p>
+                    Spec updated (revision {revision}
+                    {out.validationOk === true &&
+                    out.spectralNoteCount != null &&
+                    out.spectralNoteCount > 0
+                      ? ` · ${out.spectralNoteCount} Spectral note${out.spectralNoteCount === 1 ? "" : "s"}`
+                      : ""}
+                    ).
+                  </p>
+                </div>
               );
             }
             return (
@@ -128,9 +159,14 @@ function renderAssistantPart(
 type StudioChatProps = {
   workspaceId: string;
   initialMessages?: UIMessage[];
+  getSpecChatContext?: () => StudioSpecChatContext;
 };
 
-export function StudioChat({ workspaceId, initialMessages = [] }: StudioChatProps) {
+export function StudioChat({
+  workspaceId,
+  initialMessages = [],
+  getSpecChatContext,
+}: StudioChatProps) {
   const router = useRouter();
   const [modelId, setModelId] = useState<string>(DEFAULT_OPENROUTER_MODEL.id);
   const [modelPickerOpen, setModelPickerOpen] = useState(false);
@@ -191,9 +227,21 @@ export function StudioChat({ workspaceId, initialMessages = [] }: StudioChatProp
       if (!trimmed) {
         return;
       }
-      void sendMessage({ text: trimmed }, { body: { model: modelId, workspaceId } });
+      const specCtx = getSpecChatContext?.() ?? null;
+      void sendMessage(
+        { text: trimmed },
+        {
+          body: {
+            model: modelId,
+            workspaceId,
+            ...(specCtx
+              ? { draftSpecYaml: specCtx.draftYaml, specValidating: specCtx.validating }
+              : {}),
+          },
+        },
+      );
     },
-    [sendMessage, modelId, workspaceId],
+    [sendMessage, modelId, workspaceId, getSpecChatContext],
   );
 
   return (
