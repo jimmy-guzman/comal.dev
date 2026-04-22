@@ -4,7 +4,7 @@ import type { UIMessage } from "ai";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { StudioChat } from "@/components/studio/studio-chat";
-import { StudioPlaygroundPlaceholder } from "@/components/studio/studio-placeholder-panes";
+import { StudioPlayground } from "@/components/studio/studio-playground";
 import { StudioSpecEditor } from "@/components/studio/studio-spec-editor";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import {
@@ -62,7 +62,12 @@ function StudioPaneBody({
       );
     }
     case "playground": {
-      return <StudioPlaygroundPlaceholder />;
+      return (
+        <StudioPlayground
+          specRevisionNumber={initialSpec.revisionNumber}
+          workspaceId={workspaceId}
+        />
+      );
     }
     case "spec": {
       return (
