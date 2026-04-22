@@ -18,12 +18,12 @@ When you're ready, eject. One command scaffolds a real project from your spec, w
 
 ## Local development
 
-1. Install dependencies: `pnpm install`
+1. Install dependencies: `bun install`
 2. Copy [`.env.example`](.env.example) to `.env` and set variables (see [`src/env.ts`](src/env.ts) for validation). You will need:
    - a Postgres URL (for example [Neon](https://neon.tech))
    - a [Better Auth](https://www.better-auth.com/) secrets and app URL
    - a [GitHub OAuth app](https://github.com/settings/developers) for sign-in
    - a app base URL as `NEXT_PUBLIC_APP_URL`
    - a [OpenRouter](https://openrouter.ai/) API key for chat.
-3. Push the database schema: `pnpm db:push`
-4. Run the dev server: `pnpm dev`
+3. Push the database schema: `bun run db:push`
+4. Run the dev server: `bun dev`
