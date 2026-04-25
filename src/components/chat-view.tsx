@@ -15,21 +15,17 @@ import {
 } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import {
-  ModelSelector,
-  ModelSelectorContent,
-  ModelSelectorEmpty,
-  ModelSelectorGroup,
-  ModelSelectorInput,
-  ModelSelectorItem,
-  ModelSelectorList,
-  ModelSelectorLogo,
-  ModelSelectorName,
-  ModelSelectorTrigger,
-} from "@/components/ai-elements/model-selector";
-import {
   PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputSelect,
+  PromptInputSelectContent,
+  PromptInputSelectItem,
+  PromptInputSelectTrigger,
+  PromptInputSelectValue,
   PromptInputSubmit,
   PromptInputTextarea,
+  PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
@@ -40,9 +36,6 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
-import { Button } from "@/components/ui/button";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-
 const MODELS = [
   {
     provider: "openai" as const,
@@ -84,14 +77,6 @@ const MODELS = [
   models: Array<{ id: string; name: string }>;
 }>;
 
-const getModelName = (modelId: string) => {
-  for (const group of MODELS) {
-    const found = group.models.find((m) => m.id === modelId);
-    if (found) return found.name;
-  }
-  return modelId;
-};
-
 const STARTER_SUGGESTIONS = [
   "What can you help me with?",
   "Search the web for the latest AI news",
@@ -105,39 +90,62 @@ interface Props {
   agentId: string;
 }
 
-const MessageParts = ({ message }: { message: UIMessage }) =>
-  message.parts.map((part, i) => {
-    if (part.type === "text") {
-      return (
-        <MessageResponse key={i} isAnimating={part.state === "streaming"}>
-          {part.text}
-        </MessageResponse>
-      );
-    }
+interface MessagePartsProps {
+  message: UIMessage;
+  isLastMessage: boolean;
+  isStreaming: boolean;
+}
 
-    if (part.type === "reasoning") {
-      return (
-        <Reasoning key={i} isStreaming={part.state === "streaming"}>
+const MessageParts = ({ message, isLastMessage, isStreaming }: MessagePartsProps) => {
+  const reasoningParts = message.parts.filter((part) => part.type === "reasoning");
+  const reasoningText = reasoningParts.map((part) => part.text).join("\n\n");
+  const hasReasoning = reasoningParts.length > 0;
+
+  const lastPart = message.parts.at(-1);
+  const isReasoningStreaming =
+    isLastMessage && isStreaming && lastPart?.type === "reasoning";
+
+  return (
+    <>
+      {hasReasoning && (
+        <Reasoning className="w-full" isStreaming={isReasoningStreaming}>
           <ReasoningTrigger />
-          <ReasoningContent>{part.text}</ReasoningContent>
+          <ReasoningContent>{reasoningText}</ReasoningContent>
         </Reasoning>
-      );
-    }
+      )}
+      {message.parts.map((part, i) => {
+        if (part.type === "text") {
+          return (
+            <MessageResponse key={i} isAnimating={part.state === "streaming"}>
+              {part.text}
+            </MessageResponse>
+          );
+        }
 
-    if (part.type === "dynamic-tool") {
-      return (
-        <Tool key={i}>
-          <ToolHeader type={part.type} state={part.state} toolName={part.toolName} />
-          <ToolContent>
-            <ToolInput input={part.input} />
-            <ToolOutput output={part.output} errorText={part.errorText} />
-          </ToolContent>
-        </Tool>
-      );
-    }
+        if (part.type === "dynamic-tool") {
+          const output =
+            typeof part.output === "string" ? (
+              <MessageResponse>{part.output}</MessageResponse>
+            ) : (
+              part.output
+            );
 
-    return null;
-  });
+          return (
+            <Tool key={i}>
+              <ToolHeader type={part.type} state={part.state} toolName={part.toolName} />
+              <ToolContent>
+                <ToolInput input={part.input} />
+                <ToolOutput output={output} errorText={part.errorText} />
+              </ToolContent>
+            </Tool>
+          );
+        }
+
+        return null;
+      })}
+    </>
+  );
+};
 
 export const ChatView = ({ conversationId, initialMessages, modelId: initialModelId }: Props) => {
   const [modelId, setModelId] = useState(initialModelId);
@@ -163,41 +171,10 @@ export const ChatView = ({ conversationId, initialMessages, modelId: initialMode
     void updateConversationModelAction({ conversationId, modelId: newModelId });
   };
 
+  const isStreaming = status === "streaming";
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-        <SidebarTrigger />
-        <div className="ml-auto">
-          <ModelSelector>
-            <ModelSelectorTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-1.5 text-xs">
-                {getModelName(modelId)}
-              </Button>
-            </ModelSelectorTrigger>
-            <ModelSelectorContent>
-              <ModelSelectorInput placeholder="Search models..." />
-              <ModelSelectorList>
-                <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
-                {MODELS.map((group) => (
-                  <ModelSelectorGroup key={group.provider} heading={group.label}>
-                    {group.models.map((model) => (
-                      <ModelSelectorItem
-                        key={model.id}
-                        value={model.id}
-                        onSelect={() => handleModelSelect(model.id)}
-                      >
-                        <ModelSelectorLogo provider={group.provider} />
-                        <ModelSelectorName>{model.name}</ModelSelectorName>
-                      </ModelSelectorItem>
-                    ))}
-                  </ModelSelectorGroup>
-                ))}
-              </ModelSelectorList>
-            </ModelSelectorContent>
-          </ModelSelector>
-        </div>
-      </header>
-
       <Conversation className="flex-1">
         <ConversationContent>
           {messages.length === 0 ? (
@@ -206,10 +183,14 @@ export const ChatView = ({ conversationId, initialMessages, modelId: initialMode
               description="Ask anything or pick a suggestion below."
             />
           ) : (
-            messages.map((message) => (
+            messages.map((message, index) => (
               <Message key={message.id} from={message.role}>
                 <MessageContent>
-                  <MessageParts message={message} />
+                  <MessageParts
+                    message={message}
+                    isLastMessage={index === messages.length - 1}
+                    isStreaming={isStreaming}
+                  />
                 </MessageContent>
               </Message>
             ))
@@ -229,8 +210,28 @@ export const ChatView = ({ conversationId, initialMessages, modelId: initialMode
         ) : null}
 
         <PromptInput onSubmit={handleSubmit}>
-          <PromptInputTextarea placeholder="Message..." />
-          <PromptInputSubmit status={status} onStop={stop} />
+          <PromptInputBody>
+            <PromptInputTextarea placeholder="Message..." />
+          </PromptInputBody>
+          <PromptInputFooter>
+            <PromptInputTools>
+              <PromptInputSelect value={modelId} onValueChange={handleModelSelect}>
+                <PromptInputSelectTrigger>
+                  <PromptInputSelectValue />
+                </PromptInputSelectTrigger>
+                <PromptInputSelectContent>
+                  {MODELS.flatMap((group) =>
+                    group.models.map((model) => (
+                      <PromptInputSelectItem key={model.id} value={model.id}>
+                        {model.name}
+                      </PromptInputSelectItem>
+                    ))
+                  )}
+                </PromptInputSelectContent>
+              </PromptInputSelect>
+            </PromptInputTools>
+            <PromptInputSubmit status={status} onStop={stop} />
+          </PromptInputFooter>
         </PromptInput>
       </div>
     </div>

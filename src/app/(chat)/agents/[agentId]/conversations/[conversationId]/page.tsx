@@ -1,8 +1,10 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { Effect } from "effect";
 
 import { getAgent } from "@/agents";
 import { ChatView } from "@/components/chat-view";
+import { DatabaseLive } from "@/db/service";
 import { auth } from "@/lib/auth";
 import { getConversationWithMessages, parseStoredMessages } from "@/lib/chat";
 
@@ -21,7 +23,12 @@ export default async function ConversationPage({ params }: Props) {
 
   if (!session?.user) notFound();
 
-  const conv = await getConversationWithMessages(session.user.id, conversationId);
+  const conv = await Effect.runPromise(
+    getConversationWithMessages(session.user.id, conversationId).pipe(
+      Effect.provide(DatabaseLive),
+      Effect.catchAll(() => Effect.succeed(null)),
+    ),
+  );
 
   if (!conv) notFound();
 

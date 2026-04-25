@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronRightIcon, PlusIcon } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -23,7 +24,7 @@ import {
 
 interface Conversation {
   id: string;
-  title: string;
+  title: string | null;
 }
 
 interface AgentWithConversations extends Pick<AgentConfig, "id" | "name"> {
@@ -42,8 +43,9 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
     <Sidebar>
       <SidebarHeader>
         <div className="px-1 py-1">
-          <Link href="/" className="text-sm font-semibold">
-            comal.dev
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/mascot.svg" alt="comal.dev mascot" width={32} height={32} />
+            <span className="text-sm font-semibold">comal.dev</span>
           </Link>
         </div>
       </SidebarHeader>
@@ -76,7 +78,7 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
                         <SidebarMenuItem key={c.id}>
                           <SidebarMenuButton asChild isActive={pathname === href}>
                             <Link href={href}>
-                              <span className="truncate">{c.title}</span>
+                              <span className="truncate">{c.title ?? "Untitled"}</span>
                             </Link>
                           </SidebarMenuButton>
                         </SidebarMenuItem>

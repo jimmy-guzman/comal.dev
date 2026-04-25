@@ -1,7 +1,12 @@
 import type { UIMessage } from "ai";
-import { count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
+import { Effect } from "effect";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+
+import { chatMessage, conversation } from "@/db/schemas/chat-schema";
+import { Database } from "@/db/service";
+import { DatabaseError, ForbiddenError, NotFoundError } from "@/lib/errors";
 
 const textPartSchema = z.object({
   type: z.literal("text"),
@@ -91,26 +96,39 @@ export const parseStoredMessages = (
     return result.success ? [result.data as UIMessage] : [];
   });
 
-import { and } from "drizzle-orm";
+export const listConversationsForAgent = (
+  userId: string,
+  agentId: string,
+): Effect.Effect<
+  Array<{
+    id: string;
+    title: string | null;
+    modelId: string;
+    createdAt: Date;
+  }>,
+  DatabaseError,
+  Database
+> =>
+  Effect.gen(function* () {
+    const db = yield* Database;
+    return yield* Effect.tryPromise({
+      try: () =>
+        db
+          .select({
+            id: conversation.id,
+            title: conversation.title,
+            modelId: conversation.modelId,
+            createdAt: conversation.createdAt,
+          })
+          .from(conversation)
+          .where(and(eq(conversation.userId, userId), eq(conversation.agentId, agentId)))
+          .orderBy(desc(conversation.createdAt))
+          .limit(20),
+      catch: (cause) => new DatabaseError({ cause }),
+    });
+  });
 
-import { db } from "@/db/client";
-import { chatMessage, conversation } from "@/db/schemas/chat-schema";
-
-export const listConversationsForAgent = async (userId: string, agentId: string) => {
-  return db
-    .select({
-      id: conversation.id,
-      title: conversation.title,
-      modelId: conversation.modelId,
-      createdAt: conversation.createdAt,
-    })
-    .from(conversation)
-    .where(and(eq(conversation.userId, userId), eq(conversation.agentId, agentId)))
-    .orderBy(desc(conversation.createdAt))
-    .limit(20);
-};
-
-export const createConversation = async ({
+export const createConversation = ({
   userId,
   agentId,
   title,
@@ -120,68 +138,157 @@ export const createConversation = async ({
   agentId: string;
   title: string;
   modelId: string;
-}) => {
-  const id = nanoid();
-  await db.insert(conversation).values({ id, userId, agentId, modelId, title });
-  return { id };
-};
+}): Effect.Effect<{ id: string }, DatabaseError, Database> =>
+  Effect.gen(function* () {
+    const db = yield* Database;
+    const id = nanoid();
+    yield* Effect.tryPromise({
+      try: () => db.insert(conversation).values({ id, userId, agentId, modelId, title }),
+      catch: (cause) => new DatabaseError({ cause }),
+    });
+    return { id };
+  });
 
-export const getConversationWithMessages = async (userId: string, conversationId: string) => {
-  const [conv] = await db
-    .select()
-    .from(conversation)
-    .where(eq(conversation.id, conversationId))
-    .limit(1);
+export const getConversationWithMessages = (
+  userId: string,
+  conversationId: string,
+): Effect.Effect<
+  typeof conversation.$inferSelect & { messages: (typeof chatMessage.$inferSelect)[] },
+  NotFoundError | ForbiddenError | DatabaseError,
+  Database
+> =>
+  Effect.gen(function* () {
+    const db = yield* Database;
 
-  if (!conv || conv.userId !== userId) return null;
+    const rows = yield* Effect.tryPromise({
+      try: () =>
+        db
+          .select()
+          .from(conversation)
+          .where(eq(conversation.id, conversationId))
+          .limit(1),
+      catch: (cause) => new DatabaseError({ cause }),
+    });
 
-  const messages = await db
-    .select()
-    .from(chatMessage)
-    .where(eq(chatMessage.conversationId, conversationId))
-    .orderBy(chatMessage.createdAt);
+    const conv = rows[0];
 
-  return { ...conv, messages };
-};
+    if (!conv) {
+      return yield* Effect.fail(new NotFoundError({ resource: "conversation" }));
+    }
 
-export const assertConversationAccess = async (userId: string, conversationId: string) => {
-  const [conv] = await db
-    .select({ userId: conversation.userId })
-    .from(conversation)
-    .where(eq(conversation.id, conversationId))
-    .limit(1);
+    if (conv.userId !== userId) {
+      return yield* Effect.fail(new ForbiddenError());
+    }
 
-  return conv?.userId === userId;
-};
+    const messages = yield* Effect.tryPromise({
+      try: () =>
+        db
+          .select()
+          .from(chatMessage)
+          .where(eq(chatMessage.conversationId, conversationId))
+          .orderBy(chatMessage.createdAt),
+      catch: (cause) => new DatabaseError({ cause }),
+    });
 
-export const getConversationAgent = async (conversationId: string) => {
-  const [conv] = await db
-    .select({ agentId: conversation.agentId, modelId: conversation.modelId })
-    .from(conversation)
-    .where(eq(conversation.id, conversationId))
-    .limit(1);
+    return { ...conv, messages };
+  });
 
-  return conv ?? null;
-};
+export const assertConversationAccess = (
+  userId: string,
+  conversationId: string,
+): Effect.Effect<void, ForbiddenError | DatabaseError, Database> =>
+  Effect.gen(function* () {
+    const db = yield* Database;
 
-export const updateConversationTitle = async (conversationId: string, title: string) => {
-  await db.update(conversation).set({ title }).where(eq(conversation.id, conversationId));
-};
+    const rows = yield* Effect.tryPromise({
+      try: () =>
+        db
+          .select({ userId: conversation.userId })
+          .from(conversation)
+          .where(eq(conversation.id, conversationId))
+          .limit(1),
+      catch: (cause) => new DatabaseError({ cause }),
+    });
 
-export const updateConversationModel = async (conversationId: string, modelId: string) => {
-  await db.update(conversation).set({ modelId }).where(eq(conversation.id, conversationId));
-};
+    if (rows[0]?.userId !== userId) {
+      return yield* Effect.fail(new ForbiddenError());
+    }
+  });
 
-export const getConversationMessageCount = async (conversationId: string) => {
-  const [result] = await db
-    .select({ count: count() })
-    .from(chatMessage)
-    .where(eq(chatMessage.conversationId, conversationId));
+export const getConversationAgent = (
+  conversationId: string,
+): Effect.Effect<
+  { agentId: string; modelId: string },
+  NotFoundError | DatabaseError,
+  Database
+> =>
+  Effect.gen(function* () {
+    const db = yield* Database;
 
-  return result?.count ?? 0;
-};
+    const rows = yield* Effect.tryPromise({
+      try: () =>
+        db
+          .select({ agentId: conversation.agentId, modelId: conversation.modelId })
+          .from(conversation)
+          .where(eq(conversation.id, conversationId))
+          .limit(1),
+      catch: (cause) => new DatabaseError({ cause }),
+    });
 
-export const insertChatMessage = async ({
+    const conv = rows[0];
+
+    if (!conv) {
+      return yield* Effect.fail(new NotFoundError({ resource: "conversation" }));
+    }
+
+    return conv;
+  });
+
+export const updateConversationTitle = (
+  conversationId: string,
+  title: string,
+): Effect.Effect<void, DatabaseError, Database> =>
+  Effect.gen(function* () {
+    const db = yield* Database;
+    yield* Effect.tryPromise({
+      try: () =>
+        db.update(conversation).set({ title }).where(eq(conversation.id, conversationId)),
+      catch: (cause) => new DatabaseError({ cause }),
+    });
+  });
+
+export const updateConversationModel = (
+  conversationId: string,
+  modelId: string,
+): Effect.Effect<void, DatabaseError, Database> =>
+  Effect.gen(function* () {
+    const db = yield* Database;
+    yield* Effect.tryPromise({
+      try: () =>
+        db.update(conversation).set({ modelId }).where(eq(conversation.id, conversationId)),
+      catch: (cause) => new DatabaseError({ cause }),
+    });
+  });
+
+export const getConversationMessageCount = (
+  conversationId: string,
+): Effect.Effect<number, DatabaseError, Database> =>
+  Effect.gen(function* () {
+    const db = yield* Database;
+
+    const rows = yield* Effect.tryPromise({
+      try: () =>
+        db
+          .select({ count: count() })
+          .from(chatMessage)
+          .where(eq(chatMessage.conversationId, conversationId)),
+      catch: (cause) => new DatabaseError({ cause }),
+    });
+
+    return rows[0]?.count ?? 0;
+  });
+
+export const insertChatMessage = ({
   id,
   conversationId,
   role,
@@ -193,15 +300,21 @@ export const insertChatMessage = async ({
   role: string;
   parts: unknown;
   modelId?: string | null;
-}) => {
-  await db.insert(chatMessage).values({
-    id: id ?? nanoid(),
-    conversationId,
-    role,
-    parts: parts as Record<string, unknown>,
-    modelId: modelId ?? null,
+}): Effect.Effect<void, DatabaseError, Database> =>
+  Effect.gen(function* () {
+    const db = yield* Database;
+    yield* Effect.tryPromise({
+      try: () =>
+        db.insert(chatMessage).values({
+          id: id ?? nanoid(),
+          conversationId,
+          role,
+          parts: parts as Record<string, unknown>,
+          modelId: modelId ?? null,
+        }),
+      catch: (cause) => new DatabaseError({ cause }),
+    });
   });
-};
 
 export const migrateAnonymousUserData = async ({
   anonymousUserId,
@@ -210,6 +323,7 @@ export const migrateAnonymousUserData = async ({
   anonymousUserId: string;
   newUserId: string;
 }) => {
+  const { db } = await import("@/db/client");
   await db
     .update(conversation)
     .set({ userId: newUserId })

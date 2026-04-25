@@ -2,8 +2,9 @@ import { headers } from "next/headers";
 
 import { AGENTS } from "@/agents";
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { auth } from "@/lib/auth";
+import { runWithDb } from "@/db/service";
 import { listConversationsForAgent } from "@/lib/chat";
 
 export default async function ChatLayout({ children }: { children: React.ReactNode }) {
@@ -15,15 +16,20 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
       id: agent.id,
       name: agent.name,
       conversations: session?.user
-        ? await listConversationsForAgent(session.user.id, agent.id)
+        ? await runWithDb(listConversationsForAgent(session.user.id, agent.id))
         : [],
     })),
   );
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <AppSidebar agents={agentsWithConversations} isSignedIn={isSignedIn} />
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset>
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+          <SidebarTrigger />
+        </header>
+        {children}
+      </SidebarInset>
     </SidebarProvider>
   );
 }

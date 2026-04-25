@@ -13,8 +13,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chat",
+  title: "comal.dev",
   description: "AI chat and agent starter.",
+  icons: { icon: "/mascot.svg" },
 };
 
 export default function RootLayout({

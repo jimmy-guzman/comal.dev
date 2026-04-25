@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="Comal mascot">
+  <!-- Handle -->
+  <rect x="72" y="45" width="22" height="10" rx="5" fill="#7A3B1E"/>
+  <!-- Pan body -->
+  <circle cx="46" cy="50" r="36" fill="#7A3B1E"/>
+  <!-- Pan surface -->
+  <circle cx="46" cy="50" r="30" fill="#C1622F"/>
+  <!-- Subtle highlight ring -->
+  <circle cx="46" cy="50" r="22" fill="#D4784A"/>
+  <!-- Steam wisps -->
+  <path d="M32 16 Q30 11 32 7" stroke="#C1622F" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <path d="M46 13 Q44 8 46 4" stroke="#C1622F" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <path d="M60 16 Q58 11 60 7" stroke="#C1622F" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <!-- Eyes -->
+  <circle cx="38" cy="46" r="3.5" fill="#7A3B1E"/>
+  <circle cx="54" cy="46" r="3.5" fill="#7A3B1E"/>
+  <!-- Eye shine -->
+  <circle cx="39.2" cy="44.8" r="1.2" fill="white" opacity="0.7"/>
+  <circle cx="55.2" cy="44.8" r="1.2" fill="white" opacity="0.7"/>
+  <!-- Smile -->
+  <path d="M38 55 Q46 62 54 55" stroke="#7A3B1E" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <!-- Rosy cheeks -->
+  <circle cx="33" cy="54" r="4" fill="#E8855A" opacity="0.45"/>
+  <circle cx="59" cy="54" r="4" fill="#E8855A" opacity="0.45"/>
+</svg>
