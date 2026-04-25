@@ -9,7 +9,7 @@ import { listConversationsForAgent } from "@/lib/chat";
 
 export default async function ChatLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
-  const isSignedIn = Boolean(session?.user) && !session.user.isAnonymous;
+  const isSignedIn = Boolean(session?.user) && !session?.user.isAnonymous;
 
   const agentsWithConversations = await Promise.all(
     AGENTS.map(async (agent) => {

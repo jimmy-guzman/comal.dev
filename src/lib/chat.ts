@@ -333,6 +333,21 @@ export const getConversationAgent = (
   });
 };
 
+export const deleteConversation = (
+  conversationId: string,
+): Effect.Effect<void, DatabaseError, Database> => {
+  return Effect.gen(function* () {
+    const db = yield* Database;
+
+    yield* Effect.tryPromise({
+      catch: (cause) => new DatabaseError({ cause }),
+      try: () => {
+        return db.delete(conversation).where(eq(conversation.id, conversationId));
+      },
+    });
+  });
+};
+
 export const updateConversationTitle = (
   conversationId: string,
   title: string,

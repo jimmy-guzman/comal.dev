@@ -1,14 +1,22 @@
 "use client";
 
-import { ChevronRightIcon, PlusIcon } from "lucide-react";
+import { ChevronRightIcon, MoreHorizontalIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import * as React from "react";
 
 import type { AgentConfig } from "@/agents/types";
 
+import { DeleteConversationButton } from "@/components/delete-conversation-button";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -18,6 +26,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
@@ -36,6 +45,60 @@ interface Props {
   agents: AgentWithConversations[];
   isSignedIn: boolean;
 }
+
+interface ConversationItemProps {
+  agentId: string;
+  conversationId: string;
+  isActive: boolean;
+  title: null | string;
+}
+
+const ConversationItem = ({
+  agentId,
+  conversationId,
+  isActive,
+  title,
+}: ConversationItemProps) => {
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const href = `/agents/${agentId}/conversations/${conversationId}` as const;
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={isActive}>
+        <Link href={href}>
+          <span className="truncate">{title ?? "Untitled"}</span>
+        </Link>
+      </SidebarMenuButton>
+      <DropdownMenu>
+        <SidebarMenuAction asChild showOnHover>
+          <DropdownMenuTrigger>
+            <MoreHorizontalIcon />
+            <span className="sr-only">More options</span>
+          </DropdownMenuTrigger>
+        </SidebarMenuAction>
+        <DropdownMenuContent align="start" side="right">
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onSelect={(e) => {
+              e.preventDefault();
+              setDeleteOpen(true);
+            }}
+          >
+            <Trash2Icon />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <DeleteConversationButton
+        agentId={agentId}
+        conversationId={conversationId}
+        onOpenChange={setDeleteOpen}
+        open={deleteOpen}
+        redirectAfter={isActive}
+      />
+    </SidebarMenuItem>
+  );
+};
 
 export const AppSidebar = ({ agents, isSignedIn }: Props) => {
   const pathname = usePathname();
@@ -78,15 +141,16 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
                     ) : (
                       agent.conversations.map((c) => {
                         const href = `/agents/${agent.id}/conversations/${c.id}` as const;
+                        const isActive = pathname === href;
 
                         return (
-                          <SidebarMenuItem key={c.id}>
-                            <SidebarMenuButton asChild isActive={pathname === href}>
-                              <Link href={href}>
-                                <span className="truncate">{c.title ?? "Untitled"}</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
+                          <ConversationItem
+                            agentId={agent.id}
+                            conversationId={c.id}
+                            isActive={isActive}
+                            key={c.id}
+                            title={c.title}
+                          />
                         );
                       })
                     )}

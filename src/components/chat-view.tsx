@@ -4,6 +4,7 @@ import type { DynamicToolUIPart, FileUIPart, ToolUIPart, UIMessage } from "ai";
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, getToolName, isToolUIPart, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
+import { Trash2Icon } from "lucide-react";
 import * as React from "react";
 import { useState } from "react";
 
@@ -47,6 +48,8 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
+import { DeleteConversationButton } from "@/components/delete-conversation-button";
+import { Button } from "@/components/ui/button";
 
 const MODELS = [
   {
@@ -96,6 +99,7 @@ const STARTER_SUGGESTIONS = [
 ];
 
 interface Props {
+  agentId: string;
   conversationId: string;
   initialMessages: UIMessage[];
   modelId: string;
@@ -226,7 +230,7 @@ const MessageParts = ({
   );
 };
 
-export const ChatView = ({ conversationId, initialMessages, modelId: initialModelId }: Props) => {
+export const ChatView = ({ agentId, conversationId, initialMessages, modelId: initialModelId }: Props) => {
   const [modelId, setModelId] = useState(initialModelId);
 
   const { addToolApprovalResponse, messages, sendMessage, status, stop } = useChat({
@@ -255,6 +259,19 @@ export const ChatView = ({ conversationId, initialMessages, modelId: initialMode
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex items-center justify-end border-b px-4 py-2">
+        <DeleteConversationButton
+          agentId={agentId}
+          conversationId={conversationId}
+          redirectAfter
+          trigger={
+            <Button className="text-muted-foreground hover:text-destructive" size="icon-sm" variant="ghost">
+              <Trash2Icon />
+              <span className="sr-only">Delete conversation</span>
+            </Button>
+          }
+        />
+      </div>
       <Conversation className="flex-1">
         <ConversationContent>
           {messages.length === 0 ? (

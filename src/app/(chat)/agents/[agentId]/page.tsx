@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getAgent } from "@/agents";
+import { ConversationList } from "@/components/conversation-list";
 import { Button } from "@/components/ui/button";
 import { runWithDb } from "@/db/service";
 import { auth } from "@/lib/auth";
@@ -40,23 +41,7 @@ export default async function AgentPage({ params }: Props) {
       {conversations.length === 0 ? (
         <p className="text-muted-foreground text-sm">No conversations yet. Start one above.</p>
       ) : (
-        <ul className="flex flex-col gap-1">
-          {conversations.map((c) => {
-            return (
-              <li key={c.id}>
-                <Link
-                  className="hover:bg-accent flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors"
-                  href={`/agents/${agentId}/conversations/${c.id}`}
-                >
-                  <span className="truncate">{c.title ?? "Untitled"}</span>
-                  <span className="text-muted-foreground ml-4 shrink-0 text-xs">
-                    {c.createdAt.toLocaleDateString()}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <ConversationList agentId={agentId} conversations={conversations} />
       )}
     </div>
   );
