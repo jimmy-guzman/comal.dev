@@ -419,13 +419,16 @@ export const insertChatMessage = ({
     yield* Effect.tryPromise({
       catch: (cause) => new DatabaseError({ cause }),
       try: () => {
-        return db.insert(chatMessage).values({
-          conversationId,
-          id: id ?? nanoid(),
-          modelId: modelId ?? null,
-          parts,
-          role,
-        }).onConflictDoNothing();
+        return db
+          .insert(chatMessage)
+          .values({
+            conversationId,
+            id: id ?? nanoid(),
+            modelId: modelId ?? null,
+            parts,
+            role,
+          })
+          .onConflictDoNothing();
       },
     });
   });

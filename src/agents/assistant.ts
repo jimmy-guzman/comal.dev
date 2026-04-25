@@ -1,25 +1,10 @@
-import { tool } from "ai";
-import { z } from "zod";
-
 import type { AgentConfig } from "./types";
 
+import { createWebSearch } from "./tools/search";
+import { tavilyProvider } from "./tools/search/tavily";
 import { webFetch } from "./tools/web-fetch";
 
-// TODO: replace the webSearch stub with a real provider (Tavily, Brave, etc.)
-const webSearch = tool({
-  description: "Search the web for current information.",
-  execute: ({ query }) => {
-    void query;
-
-    return {
-      note: "Web search is not yet configured. Wire up a provider in src/agents/assistant.ts.",
-      results: [],
-    };
-  },
-  inputSchema: z.object({
-    query: z.string().describe("The search query."),
-  }),
-});
+const webSearch = createWebSearch({ provider: tavilyProvider });
 
 export const assistant = {
   defaultModelId: "openai/gpt-4o-mini",

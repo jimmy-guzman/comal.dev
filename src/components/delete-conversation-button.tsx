@@ -5,17 +5,17 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { deleteConversationAction } from "@/actions/delete-conversation";
-import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   agentId: string;
@@ -63,32 +63,28 @@ export const DeleteConversationButton = ({
   };
 
   return (
-    <Dialog onOpenChange={setOpen} open={open}>
-      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-      <DialogContent showCloseButton={false}>
-        <DialogHeader>
-          <DialogTitle>Delete conversation?</DialogTitle>
-          <DialogDescription>
+    <AlertDialog onOpenChange={setOpen} open={open}>
+      {trigger ? <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger> : null}
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
+          <AlertDialogDescription>
             This conversation and all its messages will be permanently deleted. This cannot be
             undone.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button disabled={isPending} variant="outline">
-              Cancel
-            </Button>
-          </DialogClose>
-          <Button
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             disabled={isPending}
             onClick={() => void handleDelete()}
-            variant="destructive"
           >
             <Trash2Icon />
             {isPending ? "Deleting..." : "Delete"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };

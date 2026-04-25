@@ -8,7 +8,7 @@ A production-ready Next.js starter for building AI chat and agent applications.
 - **Tailwind CSS v4** + shadcn/ui (29 components)
 - **Better Auth** — anonymous sessions, GitHub OAuth, organization plugin. Start chatting right away; claim an account later to save history across devices.
 - **Drizzle ORM** + Neon Postgres — `conversation` and `chat_message` tables, persisted per organization.
-- **Vercel AI SDK** + OpenRouter — streaming chat with a `webSearch` tool stub and a `webFetch` tool that requires user approval before execution. Swap in Tavily, Brave, or any other provider.
+- **Vercel AI SDK** + OpenRouter — streaming chat with a `webSearch` tool (Tavily) and a `webFetch` tool that requires user approval before execution.
 - **next-safe-action** — typed, auth-aware server actions.
 - **@tanstack/react-form**, nuqs, zod, es-toolkit, sonner, motion.
 
@@ -34,18 +34,26 @@ A production-ready Next.js starter for building AI chat and agent applications.
    - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — [GitHub OAuth app](https://github.com/settings/developers)
    - `NEXT_PUBLIC_APP_URL` — same as `BETTER_AUTH_URL`
    - `OPENROUTER_API_KEY` — [OpenRouter](https://openrouter.ai/) key for chat
+   - `TAVILY_API_KEY` — [Tavily](https://tavily.com) key for web search
 3. Push the database schema: `bun run db:push`
 4. Run the dev server: `bun dev`
 
-## Wiring up web search
+## Web search
 
-The `webSearch` tool stub lives at `src/agents/tools/web-search.ts`. To activate it, replace the `execute` body with a real provider call.
+`webSearch` uses [Tavily](https://tavily.com) by default. The tool is built on a `SearchProvider` abstraction in `src/agents/tools/search/`:
+
+- `types.ts` — `SearchProvider` interface and result types
+- `tavily.ts` — Tavily implementation
+- `format.ts` — formats results as a markdown list for the model
+- `index.ts` — `createWebSearch({ provider, needsApproval? })` factory
+
+To swap providers, implement `SearchProvider` and pass it to `createWebSearch` in `src/agents/assistant.ts`.
 
 ## Tools and approval
 
 Tools live in `src/agents/tools/` and are registered per agent in `src/agents/`. Two patterns are supported:
 
-- **Auto-execute:** plain `tool({ execute })` runs immediately when the model calls it. See `web-search.ts`.
+- **Auto-execute:** plain `tool({ execute })` runs immediately when the model calls it. See `web-search.ts` (via `createWebSearch`).
 - **Approval-gated:** `tool({ needsApproval: true, execute })` pauses the stream, surfaces a confirmation UI, and only runs after the user approves. See `web-fetch.ts`.
 
 The approval flow uses the AI SDK's `approval-requested` / `approval-responded` part states. The chat client auto-resubmits after an approval response via `lastAssistantMessageIsCompleteWithApprovalResponses`. The server passes `originalMessages` to `toUIMessageStreamResponse` so the streaming state can match tool chunks against existing tool invocations.

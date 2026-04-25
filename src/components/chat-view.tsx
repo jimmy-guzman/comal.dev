@@ -3,7 +3,12 @@
 import type { DynamicToolUIPart, FileUIPart, ToolUIPart, UIMessage } from "ai";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, getToolName, isToolUIPart, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
+import {
+  DefaultChatTransport,
+  getToolName,
+  isToolUIPart,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+} from "ai";
 import { Trash2Icon } from "lucide-react";
 import * as React from "react";
 import { useState } from "react";
@@ -212,12 +217,7 @@ const MessageParts = ({
           } else if (isToolUIPart(part)) {
             acc.push({
               key: part.toolCallId,
-              node: (
-                <ToolPart
-                  addToolApprovalResponse={addToolApprovalResponse}
-                  part={part}
-                />
-              ),
+              node: <ToolPart addToolApprovalResponse={addToolApprovalResponse} part={part} />,
             });
           }
 
@@ -230,7 +230,12 @@ const MessageParts = ({
   );
 };
 
-export const ChatView = ({ agentId, conversationId, initialMessages, modelId: initialModelId }: Props) => {
+export const ChatView = ({
+  agentId,
+  conversationId,
+  initialMessages,
+  modelId: initialModelId,
+}: Props) => {
   const [modelId, setModelId] = useState(initialModelId);
 
   const { addToolApprovalResponse, messages, sendMessage, status, stop } = useChat({
@@ -265,7 +270,11 @@ export const ChatView = ({ agentId, conversationId, initialMessages, modelId: in
           conversationId={conversationId}
           redirectAfter
           trigger={
-            <Button className="text-muted-foreground hover:text-destructive" size="icon-sm" variant="ghost">
+            <Button
+              className="text-muted-foreground hover:text-destructive"
+              size="icon-sm"
+              variant="ghost"
+            >
               <Trash2Icon />
               <span className="sr-only">Delete conversation</span>
             </Button>

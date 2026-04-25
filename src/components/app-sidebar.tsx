@@ -53,12 +53,7 @@ interface ConversationItemProps {
   title: null | string;
 }
 
-const ConversationItem = ({
-  agentId,
-  conversationId,
-  isActive,
-  title,
-}: ConversationItemProps) => {
+const ConversationItem = ({ agentId, conversationId, isActive, title }: ConversationItemProps) => {
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const href = `/agents/${agentId}/conversations/${conversationId}` as const;
 
