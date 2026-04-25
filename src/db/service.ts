@@ -6,6 +6,6 @@ export class Database extends Context.Tag("Database")<Database, typeof db>() {}
 
 export const DatabaseLive = Layer.succeed(Database, db);
 
-export const runWithDb = <A, E>(
-  effect: Effect.Effect<A, E, Database>,
-): Promise<A> => Effect.runPromise(Effect.provide(effect, DatabaseLive));
+export const runWithDb = <A, E>(effect: Effect.Effect<A, E, Database>): Promise<A> => {
+  return Effect.runPromise(Effect.provide(effect, DatabaseLive));
+};

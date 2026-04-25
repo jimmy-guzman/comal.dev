@@ -18,9 +18,9 @@ export function SignInCard({ className, ...props }: React.ComponentProps<"div">)
 
     try {
       await authClient.signIn.social({
-        provider: "github",
         callbackURL: `${env.NEXT_PUBLIC_APP_URL}/`,
         errorCallbackURL: `${env.NEXT_PUBLIC_APP_URL}/sign-in?error=oauth`,
+        provider: "github",
       });
     } catch {
       toast.error("Couldn't start sign-in. Please try again.");

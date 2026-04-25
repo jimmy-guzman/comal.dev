@@ -1,8 +1,10 @@
 "use client";
 
-import { useChat } from "@ai-sdk/react";
 import type { FileUIPart, UIMessage } from "ai";
+
+import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import * as React from "react";
 import { useState } from "react";
 
 import { updateConversationModelAction } from "@/actions/update-conversation-model";
@@ -36,46 +38,47 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
+
 const MODELS = [
   {
-    provider: "openai" as const,
     label: "OpenAI",
     models: [
       { id: "openai/gpt-4o", name: "GPT-4o" },
       { id: "openai/gpt-4o-mini", name: "GPT-4o mini" },
       { id: "openai/o3-mini", name: "o3 mini" },
     ],
+    provider: "openai" as const,
   },
   {
-    provider: "anthropic" as const,
     label: "Anthropic",
     models: [
       { id: "anthropic/claude-3.5-sonnet", name: "Claude 3.5 Sonnet" },
       { id: "anthropic/claude-3.5-haiku", name: "Claude 3.5 Haiku" },
       { id: "anthropic/claude-3-7-sonnet", name: "Claude 3.7 Sonnet" },
     ],
+    provider: "anthropic" as const,
   },
   {
-    provider: "google" as const,
     label: "Google",
     models: [
       { id: "google/gemini-2.0-flash-001", name: "Gemini 2.0 Flash" },
       { id: "google/gemini-2.5-pro-preview-03-25", name: "Gemini 2.5 Pro" },
     ],
+    provider: "google" as const,
   },
   {
-    provider: "deepseek" as const,
     label: "DeepSeek",
     models: [
       { id: "deepseek/deepseek-chat-v3-0324", name: "DeepSeek V3" },
       { id: "deepseek/deepseek-r1", name: "DeepSeek R1" },
     ],
+    provider: "deepseek" as const,
   },
-] satisfies Array<{
-  provider: string;
+] satisfies {
   label: string;
-  models: Array<{ id: string; name: string }>;
-}>;
+  models: { id: string; name: string }[];
+  provider: string;
+}[];
 
 const STARTER_SUGGESTIONS = [
   "What can you help me with?",
@@ -87,23 +90,23 @@ interface Props {
   conversationId: string;
   initialMessages: UIMessage[];
   modelId: string;
-  agentId: string;
 }
 
 interface MessagePartsProps {
-  message: UIMessage;
   isLastMessage: boolean;
   isStreaming: boolean;
+  message: UIMessage;
 }
 
-const MessageParts = ({ message, isLastMessage, isStreaming }: MessagePartsProps) => {
-  const reasoningParts = message.parts.filter((part) => part.type === "reasoning");
+const MessageParts = ({ isLastMessage, isStreaming, message }: MessagePartsProps) => {
+  const reasoningParts = message.parts.filter((part) => {
+    return part.type === "reasoning";
+  });
   const reasoningText = reasoningParts.map((part) => part.text).join("\n\n");
   const hasReasoning = reasoningParts.length > 0;
 
   const lastPart = message.parts.at(-1);
-  const isReasoningStreaming =
-    isLastMessage && isStreaming && lastPart?.type === "reasoning";
+  const isReasoningStreaming = isLastMessage && isStreaming && lastPart?.type === "reasoning";
 
   return (
     <>
@@ -113,36 +116,48 @@ const MessageParts = ({ message, isLastMessage, isStreaming }: MessagePartsProps
           <ReasoningContent>{reasoningText}</ReasoningContent>
         </Reasoning>
       )}
-      {message.parts.map((part, i) => {
-        if (part.type === "text") {
-          return (
-            <MessageResponse key={i} isAnimating={part.state === "streaming"}>
-              {part.text}
-            </MessageResponse>
-          );
-        }
+      {message.parts
+        .reduce<{ key: string; node: React.ReactNode }[]>((acc, part) => {
+          if (part.type === "text") {
+            const textCount = acc.filter((x) => {
+              return x.key.startsWith(`${message.id}-text`);
+            }).length;
 
-        if (part.type === "dynamic-tool") {
-          const output =
-            typeof part.output === "string" ? (
-              <MessageResponse>{part.output}</MessageResponse>
-            ) : (
-              part.output
-            );
+            acc.push({
+              key: `${message.id}-text-${textCount}`,
+              node: (
+                <MessageResponse isAnimating={part.state === "streaming"}>
+                  {part.text}
+                </MessageResponse>
+              ),
+            });
+          } else if (part.type === "dynamic-tool") {
+            const output =
+              typeof part.output === "string" ? (
+                <MessageResponse>{part.output}</MessageResponse>
+              ) : (
+                part.output
+              );
 
-          return (
-            <Tool key={i}>
-              <ToolHeader type={part.type} state={part.state} toolName={part.toolName} />
-              <ToolContent>
-                <ToolInput input={part.input} />
-                <ToolOutput output={output} errorText={part.errorText} />
-              </ToolContent>
-            </Tool>
-          );
-        }
+            acc.push({
+              key: part.toolCallId,
+              node: (
+                <Tool>
+                  <ToolHeader state={part.state} toolName={part.toolName} type={part.type} />
+                  <ToolContent>
+                    <ToolInput input={part.input} />
+                    <ToolOutput errorText={part.errorText} output={output} />
+                  </ToolContent>
+                </Tool>
+              ),
+            });
+          }
 
-        return null;
-      })}
+          return acc;
+        }, [])
+        .map(({ key, node }) => {
+          return <React.Fragment key={key}>{node}</React.Fragment>;
+        })}
     </>
   );
 };
@@ -150,7 +165,7 @@ const MessageParts = ({ message, isLastMessage, isStreaming }: MessagePartsProps
 export const ChatView = ({ conversationId, initialMessages, modelId: initialModelId }: Props) => {
   const [modelId, setModelId] = useState(initialModelId);
 
-  const { messages, status, sendMessage, stop } = useChat({
+  const { messages, sendMessage, status, stop } = useChat({
     messages: initialMessages,
     transport: new DefaultChatTransport({
       api: "/api/chat",
@@ -158,7 +173,7 @@ export const ChatView = ({ conversationId, initialMessages, modelId: initialMode
     }),
   });
 
-  const handleSubmit = ({ text }: { text: string; files?: FileUIPart[] }) => {
+  const handleSubmit = ({ text }: { files?: FileUIPart[]; text: string }) => {
     void sendMessage({ text });
   };
 
@@ -179,33 +194,35 @@ export const ChatView = ({ conversationId, initialMessages, modelId: initialMode
         <ConversationContent>
           {messages.length === 0 ? (
             <ConversationEmptyState
-              title="Start a conversation"
               description="Ask anything or pick a suggestion below."
+              title="Start a conversation"
             />
           ) : (
-            messages.map((message, index) => (
-              <Message key={message.id} from={message.role}>
-                <MessageContent>
-                  <MessageParts
-                    message={message}
-                    isLastMessage={index === messages.length - 1}
-                    isStreaming={isStreaming}
-                  />
-                </MessageContent>
-              </Message>
-            ))
+            messages.map((message, index) => {
+              return (
+                <Message from={message.role} key={message.id}>
+                  <MessageContent>
+                    <MessageParts
+                      isLastMessage={index === messages.length - 1}
+                      isStreaming={isStreaming}
+                      message={message}
+                    />
+                  </MessageContent>
+                </Message>
+              );
+            })
           )}
         </ConversationContent>
-        <ConversationDownload messages={messages} filename={`conversation-${conversationId}.md`} />
+        <ConversationDownload filename={`conversation-${conversationId}.md`} messages={messages} />
         <ConversationScrollButton />
       </Conversation>
 
       <div className="flex flex-col gap-2 border-t p-4">
         {messages.length === 0 ? (
           <Suggestions>
-            {STARTER_SUGGESTIONS.map((s) => (
-              <Suggestion key={s} suggestion={s} onClick={handleSuggestion} />
-            ))}
+            {STARTER_SUGGESTIONS.map((s) => {
+              return <Suggestion key={s} onClick={handleSuggestion} suggestion={s} />;
+            })}
           </Suggestions>
         ) : null}
 
@@ -215,22 +232,24 @@ export const ChatView = ({ conversationId, initialMessages, modelId: initialMode
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>
-              <PromptInputSelect value={modelId} onValueChange={handleModelSelect}>
+              <PromptInputSelect onValueChange={handleModelSelect} value={modelId}>
                 <PromptInputSelectTrigger>
                   <PromptInputSelectValue />
                 </PromptInputSelectTrigger>
                 <PromptInputSelectContent>
-                  {MODELS.flatMap((group) =>
-                    group.models.map((model) => (
-                      <PromptInputSelectItem key={model.id} value={model.id}>
-                        {model.name}
-                      </PromptInputSelectItem>
-                    ))
-                  )}
+                  {MODELS.flatMap((group) => {
+                    return group.models.map((model) => {
+                      return (
+                        <PromptInputSelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </PromptInputSelectItem>
+                      );
+                    });
+                  })}
                 </PromptInputSelectContent>
               </PromptInputSelect>
             </PromptInputTools>
-            <PromptInputSubmit status={status} onStop={stop} />
+            <PromptInputSubmit onStop={stop} status={status} />
           </PromptInputFooter>
         </PromptInput>
       </div>

@@ -1,6 +1,6 @@
+import { Effect } from "effect";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { Effect } from "effect";
 
 import { getAgent } from "@/agents";
 import { ChatView } from "@/components/chat-view";
@@ -36,10 +36,10 @@ export default async function ConversationPage({ params }: Props) {
 
   return (
     <ChatView
+      agentId={agentId}
       conversationId={conversationId}
       initialMessages={initialMessages}
       modelId={conv.modelId}
-      agentId={agentId}
     />
   );
 }

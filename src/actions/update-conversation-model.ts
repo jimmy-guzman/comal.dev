@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { Effect, Exit } from "effect";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { DatabaseLive } from "@/db/service";
@@ -16,7 +16,7 @@ export const updateConversationModelAction = authClient
       modelId: z.string().min(1),
     }),
   )
-  .action(async ({ parsedInput, ctx }) => {
+  .action(async ({ ctx, parsedInput }) => {
     const program = Effect.gen(function* () {
       yield* assertConversationAccess(ctx.auth.user.id, parsedInput.conversationId);
       yield* updateConversationModel(parsedInput.conversationId, parsedInput.modelId);
@@ -25,10 +25,12 @@ export const updateConversationModelAction = authClient
     const exit = await Effect.runPromiseExit(program);
 
     if (Exit.isFailure(exit)) {
-      const cause = exit.cause;
+      const { cause } = exit;
+
       if (cause._tag === "Fail" && cause.error._tag === "ForbiddenError") {
         throw new ForbiddenError();
       }
+
       throw new Error("Failed to update conversation model.");
     }
 

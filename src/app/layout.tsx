@@ -1,5 +1,7 @@
 import "./globals.css";
+
 import type { Metadata } from "next";
+
 import { JetBrains_Mono } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
@@ -13,9 +15,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "comal.dev",
   description: "AI chat and agent starter.",
   icons: { icon: "/mascot.svg" },
+  title: "comal.dev",
 };
 
 export default function RootLayout({
@@ -25,8 +27,8 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
       className={cn("dark", "h-svh", "antialiased", "font-mono", jetbrainsMono.variable)}
+      lang="en"
     >
       <body className="flex h-full min-h-0 flex-col">
         <AnonymousSession />
