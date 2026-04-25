@@ -15,7 +15,7 @@ export default async function Page() {
           <Card>
             <CardHeader>
               <CardTitle>You&apos;re signed in</CardTitle>
-              <CardDescription>Your specs are being saved to your account.</CardDescription>
+              <CardDescription>Your conversations are being saved to your account.</CardDescription>
             </CardHeader>
           </Card>
         ) : (

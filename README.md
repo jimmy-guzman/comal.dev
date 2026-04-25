@@ -1,29 +1,42 @@
-# comal.dev
+# bot/agent chat starter
 
-An OpenAPI studio. Chat your way to a spec, play with it in a live mock, eject to real code.
+A production-ready Next.js starter for building AI chat and agent applications.
 
-## What it is
+## What's included
 
-Comal is a workshop for API design. Bring a spec, or start empty and describe what you want, and Comal becomes the surface where it gets shaped and refined before you write any implementation code.
+- **Next.js 16** with App Router and React 19
+- **Tailwind CSS v4** + shadcn/ui (29 components)
+- **Better Auth** — anonymous sessions, GitHub OAuth, organization plugin. Start chatting right away; claim an account later to save history across devices.
+- **Drizzle ORM** + Neon Postgres — `conversation` and `chat_message` tables, persisted per organization.
+- **Vercel AI SDK** + OpenRouter — streaming chat with a `webSearch` tool stub. Swap in Tavily, Brave, or any other provider.
+- **next-safe-action** — typed, auth-aware server actions.
+- **@tanstack/react-form**, nuqs, zod, es-toolkit, sonner, motion.
 
-Sign in is anonymous. Start working right away; claim an account later if you want your workspaces on another device.
+## Stack
 
-Three panes, one source of truth:
-
-- **Chat** — build and change your spec by talking to it. Add pagination to every list endpoint, rename a field everywhere, sketch an auth flow. The model edits the spec through structured operations, so your hand-edits stick.
-- **Spec editor** — Monaco with YAML, live validation, always in sync. Type directly or let the chat drive. Errors show up inline as you go.
-- **Playground** — once your spec validates, a live mock server spins up. Every endpoint gets a generated UI you can hit. Responses come back with coherent data that stays consistent across requests: `GET /users/123` and `GET /orders?userId=123` return data about the same person. POST a resource and it's there when you GET it.
-
-When you're ready, eject. One command scaffolds a real project from your spec, with typed routes, validated I/O, and a schema inferred from your components. The mock data from your playground carries over as test fixtures, so the work you did while iterating becomes the seed for the real thing.
+| Layer     | Choice                                  |
+| --------- | --------------------------------------- |
+| Framework | Next.js 16 (App Router)                 |
+| Language  | TypeScript (strict)                     |
+| UI        | Tailwind v4 + shadcn/ui                 |
+| Auth      | Better Auth (anonymous + GitHub + orgs) |
+| Database  | Drizzle ORM + Neon Postgres             |
+| AI        | Vercel AI SDK + OpenRouter              |
+| Runtime   | Bun                                     |
 
 ## Local development
 
 1. Install dependencies: `bun install`
-2. Copy [`.env.example`](.env.example) to `.env` and set variables (see [`src/env.ts`](src/env.ts) for validation). You will need:
-   - a Postgres URL (for example [Neon](https://neon.tech))
-   - a [Better Auth](https://www.better-auth.com/) secrets and app URL
-   - a [GitHub OAuth app](https://github.com/settings/developers) for sign-in
-   - a app base URL as `NEXT_PUBLIC_APP_URL`
-   - a [OpenRouter](https://openrouter.ai/) API key for chat.
+2. Copy [`.env.example`](.env.example) to `.env` and fill in values:
+   - `DATABASE_URL` — Postgres connection string (e.g. [Neon](https://neon.tech))
+   - `BETTER_AUTH_SECRET` — random secret for Better Auth
+   - `BETTER_AUTH_URL` — base URL of the app (e.g. `http://localhost:3000`)
+   - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — [GitHub OAuth app](https://github.com/settings/developers)
+   - `NEXT_PUBLIC_APP_URL` — same as `BETTER_AUTH_URL`
+   - `OPENROUTER_API_KEY` — [OpenRouter](https://openrouter.ai/) key for chat
 3. Push the database schema: `bun run db:push`
 4. Run the dev server: `bun dev`
+
+## Wiring up web search
+
+The `/api/chat` route includes a `webSearch` tool stub. To activate it, open `src/app/api/chat/route.ts` and replace the `execute` body with a real provider call.

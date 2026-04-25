@@ -6,7 +6,7 @@ import { anonymous, organization } from "better-auth/plugins";
 import { db } from "@/db/client";
 import * as schema from "@/db/schemas/auth-schema";
 import { env } from "@/env";
-import { migrateAnonymousUserData } from "@/lib/studio";
+import { migrateAnonymousUserData } from "@/lib/chat";
 
 export const auth = betterAuth({
   basePath: "/auth",
