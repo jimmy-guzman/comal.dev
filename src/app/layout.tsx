@@ -13,9 +13,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Comal",
-  description:
-    "An OpenAPI studio. Chat your way to a spec, play with it in a live mock, eject to real code.",
+  title: "Chat",
+  description: "AI chat and agent starter.",
 };
 
 export default function RootLayout({

@@ -20,7 +20,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **UI:** Tailwind CSS v4 and shadcn/ui (`package.json` dependencies).
 - **Utils:** Use [es-toolkit](https://es-toolkit.dev/llms-full.txt) for utility functions.
 
-When changing API client types or OpenAPI-related code, run `bun run lint` and `bun run build`; use `bunx` for one-off CLIs where needed.
+When changing API client types or AI SDK-related code, run `bun run lint` and `bun run build`; use `bunx` for one-off CLIs where needed.
 
 ## Code style & structure
 
