@@ -3,11 +3,12 @@ import type { UIMessage } from "ai";
 import {
   convertToModelMessages,
   generateText,
+  isToolUIPart,
   safeValidateUIMessages,
   stepCountIs,
   streamText,
 } from "ai";
-import { Effect, Exit } from "effect";
+import { Effect, Logger } from "effect";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { after } from "next/server";
@@ -33,6 +34,10 @@ const postBodySchema = z.object({
   messages: z.array(z.unknown()).min(1),
 });
 
+const logError = (message: string, error: unknown): void => {
+  Effect.runSync(Effect.logError(message, error).pipe(Effect.provide(Logger.pretty)));
+};
+
 const errorToResponse = (
   error: DatabaseError | ForbiddenError | NotFoundError | UnauthorizedError | ValidationError,
 ): Response => {
@@ -53,6 +58,24 @@ const errorToResponse = (
   }
 
   return Response.json({ error: "Internal server error." }, { status: 500 });
+};
+
+const stripDeniedToolCalls = <T extends Omit<UIMessage, "id">>(messages: T[]): T[] => {
+  return messages.flatMap((msg) => {
+    if (msg.role !== "assistant") return [msg];
+
+    const parts = msg.parts.filter((part) => {
+      if (!isToolUIPart(part)) return true;
+
+      if (part.state !== "approval-responded") return true;
+
+      return part.approval.approved;
+    });
+
+    if (parts.length === 0) return [];
+
+    return [{ ...msg, parts }];
+  });
 };
 
 const persistAfterStream = (
@@ -181,12 +204,19 @@ export async function POST(req: Request) {
 
     const modelMessages = yield* Effect.tryPromise({
       catch: (cause) => new DatabaseError({ cause }),
-      try: () => convertToModelMessages(messagesWithoutIds),
+      try: () => {
+        return convertToModelMessages(stripDeniedToolCalls(messagesWithoutIds), {
+          ignoreIncompleteToolCalls: true,
+        });
+      },
     });
 
     const result = streamText({
       messages: modelMessages,
       model: openrouter(conv.modelId),
+      onError: ({ error }) => {
+        logError("streamText error", error);
+      },
       stopWhen: stepCountIs(8),
       system: agent.systemPrompt,
       tools: agent.tools,
@@ -207,20 +237,27 @@ export async function POST(req: Request) {
     });
 
     return result.toUIMessageStreamResponse({
+      onError: (error) => {
+        logError("UI message stream error", error);
+
+        return error instanceof Error ? error.message : "An error occurred during streaming.";
+      },
       onFinish: ({ responseMessage }) => {
         resolveFinish(responseMessage);
       },
+      originalMessages: validation.data,
     });
   }) satisfies Effect.Effect<Response, ChatError>;
 
-  const exit = await Effect.runPromiseExit(program);
+  const exit = await Effect.runPromise(
+    program.pipe(
+      Effect.tapError((error) => Effect.logError("Chat error", error)),
+      Effect.tapDefect((defect) => Effect.logError("Unexpected defect", defect)),
+      Effect.map((response) => response),
+      Effect.catchAll((error) => Effect.succeed(errorToResponse(error))),
+      Effect.provide(Logger.pretty),
+    ),
+  );
 
-  return Exit.match(exit, {
-    onFailure: (cause) => {
-      const error = cause._tag === "Fail" ? cause.error : new DatabaseError({ cause });
-
-      return errorToResponse(error);
-    },
-    onSuccess: (response) => response,
-  });
+  return exit;
 }

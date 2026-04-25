@@ -11,7 +11,8 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/react": "3.0.170",
@@ -58,6 +59,7 @@
     "streamdown": "2.5.0",
     "tailwind-merge": "3.5.0",
     "tokenlens": "1.3.1",
+    "turndown": "7.2.4",
     "tw-animate-css": "1.4.0",
     "use-stick-to-bottom": "1.1.3",
     "zod": "4.3.6"
@@ -68,6 +70,7 @@
     "@types/node": "25.6.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@types/turndown": "5.0.6",
     "babel-plugin-react-compiler": "1.0.0",
     "drizzle-kit": "0.31.10",
     "eslint": "9",

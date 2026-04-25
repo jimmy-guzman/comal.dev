@@ -1,7 +1,7 @@
 import type { UIMessage } from "ai";
 
 import { and, count, desc, eq } from "drizzle-orm";
-import { Effect } from "effect";
+import { Effect, Logger } from "effect";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 
@@ -25,23 +25,74 @@ const stepStartPartSchema = z.object({
   type: z.literal("step-start"),
 });
 
-const toolStateSchema = z.enum([
-  "input-streaming",
-  "input-available",
-  "approval-requested",
-  "output-available",
-  "output-error",
-]);
-
-const dynamicToolPartSchema = z.object({
-  errorText: z.string().optional(),
-  input: z.unknown().optional(),
-  output: z.unknown().optional(),
-  state: toolStateSchema,
-  toolCallId: z.string(),
-  toolName: z.string(),
-  type: z.literal("dynamic-tool"),
+const approvalSchema = z.object({
+  approved: z.boolean().optional(),
+  id: z.string(),
+  reason: z.string().optional(),
 });
+
+const dynamicToolPartSchema = z.discriminatedUnion("state", [
+  z.object({
+    approval: z.never().optional(),
+    errorText: z.never().optional(),
+    input: z.unknown().optional(),
+    output: z.never().optional(),
+    state: z.literal("input-streaming"),
+    toolCallId: z.string(),
+    toolName: z.string(),
+    type: z.literal("dynamic-tool"),
+  }),
+  z.object({
+    approval: z.never().optional(),
+    errorText: z.never().optional(),
+    input: z.unknown().optional(),
+    output: z.never().optional(),
+    state: z.literal("input-available"),
+    toolCallId: z.string(),
+    toolName: z.string(),
+    type: z.literal("dynamic-tool"),
+  }),
+  z.object({
+    approval: approvalSchema,
+    errorText: z.never().optional(),
+    input: z.unknown(),
+    output: z.never().optional(),
+    state: z.literal("approval-requested"),
+    toolCallId: z.string(),
+    toolName: z.string(),
+    type: z.literal("dynamic-tool"),
+  }),
+  z.object({
+    approval: approvalSchema,
+    errorText: z.never().optional(),
+    input: z.unknown(),
+    output: z.never().optional(),
+    state: z.literal("approval-responded"),
+    toolCallId: z.string(),
+    toolName: z.string(),
+    type: z.literal("dynamic-tool"),
+  }),
+  z.object({
+    approval: approvalSchema.optional(),
+    errorText: z.never().optional(),
+    input: z.unknown(),
+    output: z.unknown(),
+    state: z.literal("output-available"),
+    toolCallId: z.string(),
+    toolName: z.string(),
+    type: z.literal("dynamic-tool"),
+  }),
+  z.object({
+    approval: approvalSchema.optional(),
+    errorText: z.string(),
+    input: z.unknown(),
+    output: z.never().optional(),
+    state: z.literal("output-error"),
+    toolCallId: z.string(),
+    toolName: z.string(),
+    type: z.literal("dynamic-tool"),
+  }),
+]);
 
 const filePartSchema = z.object({
   filename: z.string().optional(),
@@ -89,13 +140,41 @@ const uiMessageSchema = z.object({
   role: z.enum(["system", "user", "assistant"]),
 });
 
+const KNOWN_PART_TYPES = new Set([
+  "dynamic-tool",
+  "file",
+  "reasoning",
+  "source-url",
+  "step-start",
+  "text",
+  "tool-call",
+  "tool-result",
+]);
+
+const logUnknownStaticToolPart = (part: { type: string }): void => {
+  if (KNOWN_PART_TYPES.has(part.type) || !part.type.startsWith("tool-")) return;
+
+  Effect.runSync(
+    Effect.logWarning("Unrecognized static tool part fell through to loose schema", {
+      part,
+      type: part.type,
+    }).pipe(Effect.provide(Logger.pretty)),
+  );
+};
+
 export const parseStoredMessages = (
   rows: { id: string; parts: unknown; role: string }[],
 ): UIMessage[] => {
   return rows.flatMap((row) => {
     const result = uiMessageSchema.safeParse(row);
 
-    return result.success ? [result.data as UIMessage] : [];
+    if (!result.success) return [];
+
+    for (const part of result.data.parts) {
+      logUnknownStaticToolPart(part);
+    }
+
+    return [result.data as UIMessage];
   });
 };
 
@@ -331,7 +410,7 @@ export const insertChatMessage = ({
           modelId: modelId ?? null,
           parts,
           role,
-        });
+        }).onConflictDoNothing();
       },
     });
   });

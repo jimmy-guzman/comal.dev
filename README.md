@@ -8,7 +8,7 @@ A production-ready Next.js starter for building AI chat and agent applications.
 - **Tailwind CSS v4** + shadcn/ui (29 components)
 - **Better Auth** — anonymous sessions, GitHub OAuth, organization plugin. Start chatting right away; claim an account later to save history across devices.
 - **Drizzle ORM** + Neon Postgres — `conversation` and `chat_message` tables, persisted per organization.
-- **Vercel AI SDK** + OpenRouter — streaming chat with a `webSearch` tool stub. Swap in Tavily, Brave, or any other provider.
+- **Vercel AI SDK** + OpenRouter — streaming chat with a `webSearch` tool stub and a `webFetch` tool that requires user approval before execution. Swap in Tavily, Brave, or any other provider.
 - **next-safe-action** — typed, auth-aware server actions.
 - **@tanstack/react-form**, nuqs, zod, es-toolkit, sonner, motion.
 
@@ -39,4 +39,13 @@ A production-ready Next.js starter for building AI chat and agent applications.
 
 ## Wiring up web search
 
-The `/api/chat` route includes a `webSearch` tool stub. To activate it, open `src/app/api/chat/route.ts` and replace the `execute` body with a real provider call.
+The `webSearch` tool stub lives at `src/agents/tools/web-search.ts`. To activate it, replace the `execute` body with a real provider call.
+
+## Tools and approval
+
+Tools live in `src/agents/tools/` and are registered per agent in `src/agents/`. Two patterns are supported:
+
+- **Auto-execute:** plain `tool({ execute })` runs immediately when the model calls it. See `web-search.ts`.
+- **Approval-gated:** `tool({ needsApproval: true, execute })` pauses the stream, surfaces a confirmation UI, and only runs after the user approves. See `web-fetch.ts`.
+
+The approval flow uses the AI SDK's `approval-requested` / `approval-responded` part states. The chat client auto-resubmits after an approval response via `lastAssistantMessageIsCompleteWithApprovalResponses`. The server passes `originalMessages` to `toUIMessageStreamResponse` so the streaming state can match tool chunks against existing tool invocations.

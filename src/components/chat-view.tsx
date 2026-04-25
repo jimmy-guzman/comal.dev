@@ -1,13 +1,22 @@
 "use client";
 
-import type { FileUIPart, UIMessage } from "ai";
+import type { DynamicToolUIPart, FileUIPart, ToolUIPart, UIMessage } from "ai";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, getToolName, isToolUIPart, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
 import * as React from "react";
 import { useState } from "react";
 
 import { updateConversationModelAction } from "@/actions/update-conversation-model";
+import {
+  Confirmation,
+  ConfirmationAccepted,
+  ConfirmationAction,
+  ConfirmationActions,
+  ConfirmationRejected,
+  ConfirmationRequest,
+  ConfirmationTitle,
+} from "@/components/ai-elements/confirmation";
 import {
   Conversation,
   ConversationContent,
@@ -92,13 +101,78 @@ interface Props {
   modelId: string;
 }
 
+interface ToolPartProps {
+  addToolApprovalResponse: (response: { approved: boolean; id: string }) => void;
+  part: DynamicToolUIPart | ToolUIPart;
+}
+
+const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
+  const approvalId = part.approval?.id ?? "";
+  const toolName = getToolName(part);
+  const output =
+    typeof part.output === "string" ? (
+      <MessageResponse>{part.output}</MessageResponse>
+    ) : (
+      part.output
+    );
+
+  return (
+    <>
+      <Confirmation approval={part.approval} state={part.state}>
+        <ConfirmationTitle>
+          Allow <strong>{toolName}</strong>?
+        </ConfirmationTitle>
+        <ConfirmationRequest>
+          The assistant wants to run <strong>{toolName}</strong>. Do you want to allow this?
+        </ConfirmationRequest>
+        <ConfirmationAccepted>Approved</ConfirmationAccepted>
+        <ConfirmationRejected>Rejected</ConfirmationRejected>
+        <ConfirmationActions>
+          <ConfirmationAction
+            onClick={() => {
+              addToolApprovalResponse({ approved: false, id: approvalId });
+            }}
+            variant="outline"
+          >
+            Reject
+          </ConfirmationAction>
+          <ConfirmationAction
+            onClick={() => {
+              addToolApprovalResponse({ approved: true, id: approvalId });
+            }}
+          >
+            Approve
+          </ConfirmationAction>
+        </ConfirmationActions>
+      </Confirmation>
+      <Tool>
+        {part.type === "dynamic-tool" ? (
+          <ToolHeader state={part.state} toolName={toolName} type={part.type} />
+        ) : (
+          <ToolHeader state={part.state} type={part.type} />
+        )}
+        <ToolContent>
+          <ToolInput input={part.input} />
+          <ToolOutput errorText={part.errorText} output={output} />
+        </ToolContent>
+      </Tool>
+    </>
+  );
+};
+
 interface MessagePartsProps {
+  addToolApprovalResponse: (response: { approved: boolean; id: string }) => void;
   isLastMessage: boolean;
   isStreaming: boolean;
   message: UIMessage;
 }
 
-const MessageParts = ({ isLastMessage, isStreaming, message }: MessagePartsProps) => {
+const MessageParts = ({
+  addToolApprovalResponse,
+  isLastMessage,
+  isStreaming,
+  message,
+}: MessagePartsProps) => {
   const reasoningParts = message.parts.filter((part) => {
     return part.type === "reasoning";
   });
@@ -131,24 +205,14 @@ const MessageParts = ({ isLastMessage, isStreaming, message }: MessagePartsProps
                 </MessageResponse>
               ),
             });
-          } else if (part.type === "dynamic-tool") {
-            const output =
-              typeof part.output === "string" ? (
-                <MessageResponse>{part.output}</MessageResponse>
-              ) : (
-                part.output
-              );
-
+          } else if (isToolUIPart(part)) {
             acc.push({
               key: part.toolCallId,
               node: (
-                <Tool>
-                  <ToolHeader state={part.state} toolName={part.toolName} type={part.type} />
-                  <ToolContent>
-                    <ToolInput input={part.input} />
-                    <ToolOutput errorText={part.errorText} output={output} />
-                  </ToolContent>
-                </Tool>
+                <ToolPart
+                  addToolApprovalResponse={addToolApprovalResponse}
+                  part={part}
+                />
               ),
             });
           }
@@ -165,8 +229,9 @@ const MessageParts = ({ isLastMessage, isStreaming, message }: MessagePartsProps
 export const ChatView = ({ conversationId, initialMessages, modelId: initialModelId }: Props) => {
   const [modelId, setModelId] = useState(initialModelId);
 
-  const { messages, sendMessage, status, stop } = useChat({
+  const { addToolApprovalResponse, messages, sendMessage, status, stop } = useChat({
     messages: initialMessages,
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: { conversationId },
@@ -203,6 +268,7 @@ export const ChatView = ({ conversationId, initialMessages, modelId: initialMode
                 <Message from={message.role} key={message.id}>
                   <MessageContent>
                     <MessageParts
+                      addToolApprovalResponse={addToolApprovalResponse}
                       isLastMessage={index === messages.length - 1}
                       isStreaming={isStreaming}
                       message={message}
