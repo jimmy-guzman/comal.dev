@@ -40,6 +40,7 @@ export default async function ConversationPage({ params }: Props) {
       conversationId={conversationId}
       initialMessages={initialMessages}
       modelId={conv.modelId}
+      suggestions={agent.suggestions ?? []}
     />
   );
 }

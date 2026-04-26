@@ -6,6 +6,7 @@ export interface AgentConfig {
   /** Stable slug used as the agentId FK in conversations and as the URL segment. */
   id: string;
   name: string;
+  suggestions?: string[];
   systemPrompt: string;
   tools: Record<string, Tool>;
 }
