@@ -32,7 +32,24 @@ import { openrouter } from "@/lib/openrouter";
 const postBodySchema = z.object({
   conversationId: z.string().min(1),
   messages: z.array(z.unknown()).min(1),
-  timezone: z.string().optional(),
+  timezone: z
+    .string()
+    .trim()
+    .max(64)
+    .regex(/^(?:UTC|GMT|[A-Za-z_]+(?:\/[\w+-]+)+)$/, "Invalid IANA timezone")
+    .refine(
+      (tz) => {
+        try {
+          return Intl.supportedValuesOf("timeZone").includes(tz);
+        } catch {
+          return false;
+        }
+      },
+      { message: "Unsupported timezone" },
+    )
+    .optional()
+    // eslint-disable-next-line unicorn/prefer-top-level-await -- Zod's .catch(), not a Promise.catch()
+    .catch(undefined),
 });
 
 const logError = (message: string, error: unknown): void => {
