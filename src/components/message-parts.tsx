@@ -4,11 +4,14 @@ import type { UIMessage } from "ai";
 
 import { isToolUIPart } from "ai";
 
+import type {ErrorPartData} from "@/components/error-part";
+
 import {
   Reasoning,
   ReasoningContent,
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
+import { ErrorPart  } from "@/components/error-part";
 import { TextPart } from "@/components/text-part";
 import { ToolPart } from "@/components/tool-part";
 
@@ -17,16 +20,25 @@ interface MessagePartsProps {
     approved: boolean;
     id: string;
   }) => void;
+  canRetry: boolean;
   isLastMessage: boolean;
   isStreaming: boolean;
   message: UIMessage;
+  onRetry?: () => void;
 }
+
+const isErrorDataPart = (part: UIMessage["parts"][number]): part is UIMessage["parts"][number] & {
+  data: ErrorPartData;
+  type: "data-error";
+} => part.type === "data-error";
 
 export const MessageParts = ({
   addToolApprovalResponse,
+  canRetry,
   isLastMessage,
   isStreaming,
   message,
+  onRetry,
 }: MessagePartsProps) => {
   const reasoningParts = message.parts.filter((part) => {
     return part.type === "reasoning";
@@ -58,6 +70,17 @@ export const MessageParts = ({
               addToolApprovalResponse={addToolApprovalResponse}
               key={part.toolCallId}
               part={part}
+            />
+          );
+        }
+
+        if (isErrorDataPart(part)) {
+          return (
+            <ErrorPart
+              canRetry={canRetry && isLastMessage}
+              data={part.data}
+              key={part.id ?? `${message.id}-error-${index.toString()}`}
+              onRetry={onRetry}
             />
           );
         }

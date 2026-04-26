@@ -5,7 +5,10 @@ import type { FileUIPart, UIMessage } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
 import { Trash2Icon } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
+
+import type {ChatErrorInfo, ChatErrorKind} from "@/lib/chat/errors";
 
 import { updateConversationModelAction } from "@/actions/update-conversation-model";
 import {
@@ -33,6 +36,7 @@ import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { DeleteConversationButton } from "@/components/delete-conversation-button";
 import { MessageParts } from "@/components/message-parts";
 import { Button } from "@/components/ui/button";
+import {  chatErrorCopyFor, classifyChatError } from "@/lib/chat/errors";
 
 const MODELS = [
   {
@@ -75,6 +79,72 @@ const MODELS = [
   provider: string;
 }[];
 
+interface ServerErrorEnvelope {
+  kind?: string;
+  message?: string;
+  retryable?: boolean;
+  statusCode?: number;
+  suggestModelSwitch?: boolean;
+}
+
+const parseServerError = (raw: string): null | ServerErrorEnvelope => {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+
+    if (parsed === null || typeof parsed !== "object") return null;
+
+    const envelope = parsed as Record<string, unknown>;
+    const result: ServerErrorEnvelope = {};
+
+    if (typeof envelope.kind === "string") result.kind = envelope.kind;
+
+    if (typeof envelope.message === "string") result.message = envelope.message;
+
+    if (typeof envelope.statusCode === "number") result.statusCode = envelope.statusCode;
+
+    if (typeof envelope.retryable === "boolean") result.retryable = envelope.retryable;
+
+    if (typeof envelope.suggestModelSwitch === "boolean") {
+      result.suggestModelSwitch = envelope.suggestModelSwitch;
+    }
+
+    return result;
+  } catch {
+    return null;
+  }
+};
+
+const KNOWN_KINDS = new Set<ChatErrorKind>([
+  "auth",
+  "context-length",
+  "model-unavailable",
+  "network",
+  "rate-limit",
+  "unknown",
+]);
+
+const isChatErrorKind = (value: unknown): value is ChatErrorKind => {
+  return typeof value === "string" && KNOWN_KINDS.has(value as ChatErrorKind);
+};
+
+const errorToInfo = (error: Error): ChatErrorInfo => {
+  const envelope = parseServerError(error.message);
+
+  if (envelope === null) return classifyChatError(error);
+
+  const base = isChatErrorKind(envelope.kind)
+    ? chatErrorCopyFor(envelope.kind)
+    : classifyChatError(error);
+
+  return {
+    ...base,
+    message: envelope.message ?? base.message,
+    retryable: envelope.retryable ?? base.retryable,
+    statusCode: envelope.statusCode ?? base.statusCode,
+    suggestModelSwitch: envelope.suggestModelSwitch ?? base.suggestModelSwitch,
+  } satisfies ChatErrorInfo;
+};
+
 interface Props {
   agentId: string;
   conversationId: string;
@@ -91,15 +161,56 @@ export const ChatView = ({
   suggestions,
 }: Props) => {
   const [modelId, setModelId] = useState(initialModelId);
+  const userInteractedRef = useRef(false);
 
-  const { addToolApprovalResponse, messages, sendMessage, status, stop } = useChat({
+  const sendAutomaticallyWhen = useCallback(
+    (options: { messages: UIMessage[] }) => {
+      if (!userInteractedRef.current) {
+        return false;
+      }
+
+      return lastAssistantMessageIsCompleteWithApprovalResponses(options);
+    },
+    [],
+  );
+
+  const {
+    addToolApprovalResponse: addToolApprovalResponseRaw,
+    messages,
+    regenerate,
+    sendMessage: sendMessageRaw,
+    status,
+    stop,
+  } = useChat({
     messages: initialMessages,
-    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+    onError: (error) => {
+      const info = errorToInfo(error);
+
+      toast.error(info.title, { description: info.message });
+    },
+    sendAutomaticallyWhen,
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: { conversationId, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
     }),
   });
+
+  const sendMessage: typeof sendMessageRaw = (...args) => {
+    userInteractedRef.current = true;
+
+    return sendMessageRaw(...args);
+  };
+
+  const addToolApprovalResponse: typeof addToolApprovalResponseRaw = (...args) => {
+    userInteractedRef.current = true;
+
+    return addToolApprovalResponseRaw(...args);
+  };
+
+  const handleRetry = useCallback(() => {
+    userInteractedRef.current = true;
+    void regenerate();
+  }, [regenerate]);
 
   const handleSubmit = ({ text }: { files?: FileUIPart[]; text: string }) => {
     void sendMessage({ text });
@@ -115,6 +226,7 @@ export const ChatView = ({
   };
 
   const isStreaming = status === "streaming";
+  const canRetry = status === "ready" || status === "error";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -149,9 +261,11 @@ export const ChatView = ({
                   <MessageContent>
                     <MessageParts
                       addToolApprovalResponse={addToolApprovalResponse}
+                      canRetry={canRetry}
                       isLastMessage={index === messages.length - 1}
                       isStreaming={isStreaming}
                       message={message}
+                      onRetry={handleRetry}
                     />
                   </MessageContent>
                 </Message>

@@ -10,6 +10,7 @@ import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import { createContext, memo, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Streamdown } from "streamdown";
 
+import { LinkSafetyModal } from "@/components/ai-elements/link-safety-modal";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -273,10 +274,16 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 const streamdownPlugins = { cjk, code, math, mermaid };
 
+const streamdownLinkSafety = {
+  enabled: true,
+  renderModal: (props) => <LinkSafetyModal {...props} />,
+} satisfies ComponentProps<typeof Streamdown>["linkSafety"];
+
 export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (
     <Streamdown
       className={cn("size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0", className)}
+      linkSafety={streamdownLinkSafety}
       plugins={streamdownPlugins}
       {...props}
     />

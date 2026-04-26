@@ -6,7 +6,8 @@ import { getAgent } from "@/agents";
 import { ChatView } from "@/components/chat-view";
 import { DatabaseLive } from "@/db/service";
 import { auth } from "@/lib/auth";
-import { getConversationWithMessages, parseStoredMessages } from "@/lib/chat";
+import { projectMessages } from "@/lib/chat/projector";
+import { getConversationWithEvents } from "@/lib/chat/store";
 
 interface Props {
   params: Promise<{ agentId: string; conversationId: string }>;
@@ -24,7 +25,7 @@ export default async function ConversationPage({ params }: Props) {
   if (!session?.user) notFound();
 
   const conv = await Effect.runPromise(
-    getConversationWithMessages(session.user.id, conversationId).pipe(
+    getConversationWithEvents(session.user.id, conversationId).pipe(
       Effect.provide(DatabaseLive),
       Effect.catchAll(() => Effect.succeed(null)),
     ),
@@ -32,7 +33,7 @@ export default async function ConversationPage({ params }: Props) {
 
   if (!conv) notFound();
 
-  const initialMessages = parseStoredMessages(conv.messages);
+  const initialMessages = projectMessages(conv.events);
 
   return (
     <ChatView
