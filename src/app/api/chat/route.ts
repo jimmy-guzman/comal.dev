@@ -24,7 +24,7 @@ import { updateConversationTitle } from "@/lib/chat";
 import { classifyChatError } from "@/lib/chat/errors";
 import { persistChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
 import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
-import { DatabaseError, LLMError, NotFoundError, ValidationError } from "@/lib/errors";
+import { DatabaseError, LLMError, MessageConversionError, NotFoundError, ValidationError } from "@/lib/errors";
 import { openrouter } from "@/lib/openrouter";
 
 const postBodySchema = z.object({
@@ -55,10 +55,20 @@ const logError = (message: string, error: unknown): void => {
 };
 
 const errorToResponse = (
-  error: DatabaseError | ForbiddenError | NotFoundError | UnauthorizedError | ValidationError,
+  error:
+    | DatabaseError
+    | ForbiddenError
+    | MessageConversionError
+    | NotFoundError
+    | UnauthorizedError
+    | ValidationError,
 ): Response => {
   if (error._tag === "ValidationError") {
     return Response.json({ error: error.message }, { status: 400 });
+  }
+
+  if (error._tag === "MessageConversionError") {
+    return Response.json({ error: "Failed to convert messages." }, { status: 400 });
   }
 
   if (error._tag === "UnauthorizedError") {
@@ -164,7 +174,12 @@ export async function POST(req: Request) {
 
   const { user } = session;
 
-  type ChatError = DatabaseError | ForbiddenError | NotFoundError | ValidationError;
+  type ChatError =
+    | DatabaseError
+    | ForbiddenError
+    | MessageConversionError
+    | NotFoundError
+    | ValidationError;
 
   const program = Effect.gen(function* () {
     const conv = yield* Effect.provide(
@@ -209,7 +224,9 @@ export async function POST(req: Request) {
     });
 
     const validation = yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
+      catch: (cause) => {
+        return new ValidationError({ cause, message: "Failed to validate messages." });
+      },
       try: () => safeValidateUIMessages({ messages: incomingMessages }),
     });
 
@@ -270,7 +287,7 @@ export async function POST(req: Request) {
     }
 
     const modelMessages = yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
+      catch: (cause) => new MessageConversionError({ cause }),
       try: () => {
         return convertToModelMessages(validation.data, { ignoreIncompleteToolCalls: true });
       },

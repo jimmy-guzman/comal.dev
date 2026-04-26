@@ -8,6 +8,10 @@ export class LLMError extends Data.TaggedError("LLMError")<{
   cause: unknown;
 }> {}
 
+export class MessageConversionError extends Data.TaggedError("MessageConversionError")<{
+  cause: unknown;
+}> {}
+
 export class NotFoundError extends Data.TaggedError("NotFoundError")<{
   resource: string;
 }> {}
@@ -17,5 +21,6 @@ export class UnauthorizedError extends Data.TaggedError("UnauthorizedError") {}
 export class ForbiddenError extends Data.TaggedError("ForbiddenError") {}
 
 export class ValidationError extends Data.TaggedError("ValidationError")<{
+  cause?: unknown;
   message: string;
 }> {}
