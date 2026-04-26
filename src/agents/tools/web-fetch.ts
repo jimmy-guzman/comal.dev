@@ -75,10 +75,13 @@ export const webFetch = tool({
     if (format === "html") return { content: body, contentType, url };
 
     if (format === "text") {
-      return { content: contentType.includes("text/html") ? toText(body) : body, contentType, url };
+      return {
+        content: contentType.includes("text/html") ? toText(body) : body,
+        contentType,
+        url,
+      };
     }
 
-    // markdown (default)
     return {
       content: contentType.includes("text/html") ? turndown.turndown(body) : body,
       contentType,

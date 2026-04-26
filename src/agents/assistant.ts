@@ -1,5 +1,6 @@
 import type { AgentConfig } from "./types";
 
+import { getCurrentTime } from "./tools/get-current-time";
 import { createWebSearch } from "./tools/search";
 import { tavilyProvider } from "./tools/search/tavily";
 import { webFetch } from "./tools/web-fetch";
@@ -14,5 +15,5 @@ export const assistant = {
   name: "Assistant",
   systemPrompt:
     "You are a helpful AI assistant. You can search the web for up-to-date information and fetch the content of web pages when needed.",
-  tools: { webFetch, webSearch },
+  tools: { getCurrentTime, webFetch, webSearch },
 } satisfies AgentConfig;

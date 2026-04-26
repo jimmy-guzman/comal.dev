@@ -32,6 +32,24 @@ import { openrouter } from "@/lib/openrouter";
 const postBodySchema = z.object({
   conversationId: z.string().min(1),
   messages: z.array(z.unknown()).min(1),
+  timezone: z
+    .string()
+    .trim()
+    .max(64)
+    .regex(/^(?:UTC|GMT|[A-Za-z_]+(?:\/[\w+-]+)+)$/, "Invalid IANA timezone")
+    .refine(
+      (tz) => {
+        try {
+          return Intl.supportedValuesOf("timeZone").includes(tz);
+        } catch {
+          return false;
+        }
+      },
+      { message: "Unsupported timezone" },
+    )
+    .optional()
+    // eslint-disable-next-line unicorn/prefer-top-level-await -- Zod's .catch(), not a Promise.catch()
+    .catch(undefined),
 });
 
 const logError = (message: string, error: unknown): void => {
@@ -148,7 +166,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const { conversationId } = parsed.data;
+  const { conversationId, timezone } = parsed.data;
 
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
@@ -211,6 +229,10 @@ export async function POST(req: Request) {
       },
     });
 
+    const systemPrompt = timezone
+      ? `${agent.systemPrompt}\n\nThe user's local timezone is ${timezone}.`
+      : agent.systemPrompt;
+
     const result = streamText({
       messages: modelMessages,
       model: openrouter(conv.modelId),
@@ -218,7 +240,7 @@ export async function POST(req: Request) {
         logError("streamText error", error);
       },
       stopWhen: stepCountIs(8),
-      system: agent.systemPrompt,
+      system: systemPrompt,
       tools: agent.tools,
     });
 
