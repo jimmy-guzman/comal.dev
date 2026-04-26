@@ -3,29 +3,47 @@
 import type { UIMessage } from "ai";
 import { ArrowDownIcon, DownloadIcon } from "lucide-react";
 import type { ComponentProps } from "react";
-import { useCallback } from "react";
-import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
+import { createContext, useCallback, useContext } from "react";
+import { useStickToBottom } from "use-stick-to-bottom";
 
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-export type ConversationProps = ComponentProps<typeof StickToBottom>;
+type StickContext = ReturnType<typeof useStickToBottom>;
 
-export const Conversation = ({ className, ...props }: ConversationProps) => (
-  <StickToBottom
-    className={cn("relative flex-1 overflow-y-hidden", className)}
-    initial="smooth"
-    resize="smooth"
-    role="log"
-    {...props}
-  />
-);
+const ConversationContext = createContext<StickContext | null>(null);
 
-export type ConversationContentProps = ComponentProps<typeof StickToBottom.Content>;
+const useConversationContext = () => {
+  const ctx = useContext(ConversationContext);
+  if (!ctx) {
+    throw new Error("Conversation parts must be rendered inside <Conversation>");
+  }
+  return ctx;
+};
 
-export const ConversationContent = ({ className, ...props }: ConversationContentProps) => (
-  <StickToBottom.Content className={cn("flex flex-col gap-8 p-4", className)} {...props} />
-);
+export type ConversationProps = ComponentProps<"div">;
+
+export const Conversation = ({ className, children, ...props }: ConversationProps) => {
+  const stick = useStickToBottom({ initial: "smooth", resize: "smooth" });
+
+  return (
+    <ConversationContext.Provider value={stick}>
+      <div className={cn("relative min-h-0 flex-1", className)} role="log" {...props}>
+        <ScrollArea className="h-full" viewportRef={stick.scrollRef}>
+          {children}
+        </ScrollArea>
+      </div>
+    </ConversationContext.Provider>
+  );
+};
+
+export type ConversationContentProps = ComponentProps<"div">;
+
+export const ConversationContent = ({ className, ...props }: ConversationContentProps) => {
+  const { contentRef } = useConversationContext();
+  return <div ref={contentRef} className={cn("flex flex-col gap-8 p-4", className)} {...props} />;
+};
 
 export type ConversationEmptyStateProps = ComponentProps<"div"> & {
   title?: string;
@@ -66,32 +84,32 @@ export const ConversationScrollButton = ({
   className,
   ...props
 }: ConversationScrollButtonProps) => {
-  const { isAtBottom, scrollToBottom } = useStickToBottomContext();
+  const { isAtBottom, scrollToBottom } = useConversationContext();
 
   const handleScrollToBottom = useCallback(() => {
-    scrollToBottom();
+    void scrollToBottom();
   }, [scrollToBottom]);
 
+  if (isAtBottom) return null;
+
   return (
-    !isAtBottom && (
-      <Button
-        className={cn(
-          "absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full dark:bg-background dark:hover:bg-muted",
-          className,
-        )}
-        onClick={handleScrollToBottom}
-        size="icon"
-        type="button"
-        variant="outline"
-        {...props}
-      >
-        <ArrowDownIcon className="size-4" />
-      </Button>
-    )
+    <Button
+      className={cn(
+        "absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full dark:bg-background dark:hover:bg-muted",
+        className,
+      )}
+      onClick={handleScrollToBottom}
+      size="icon"
+      type="button"
+      variant="outline"
+      {...props}
+    >
+      <ArrowDownIcon className="size-4" />
+    </Button>
   );
 };
 
-const getMessageText = (message: UIMessage): string =>
+const getMessageText = (message: UIMessage) =>
   message.parts
     .filter((part) => part.type === "text")
     .map((part) => part.text)
@@ -103,7 +121,7 @@ export type ConversationDownloadProps = Omit<ComponentProps<typeof Button>, "onC
   formatMessage?: (message: UIMessage, index: number) => string;
 };
 
-const defaultFormatMessage = (message: UIMessage): string => {
+const defaultFormatMessage = (message: UIMessage) => {
   const roleLabel = message.role.charAt(0).toUpperCase() + message.role.slice(1);
   return `**${roleLabel}:** ${getMessageText(message)}`;
 };
@@ -111,7 +129,7 @@ const defaultFormatMessage = (message: UIMessage): string => {
 export const messagesToMarkdown = (
   messages: UIMessage[],
   formatMessage: (message: UIMessage, index: number) => string = defaultFormatMessage,
-): string => messages.map((msg, i) => formatMessage(msg, i)).join("\n\n");
+) => messages.map((msg, i) => formatMessage(msg, i)).join("\n\n");
 
 export const ConversationDownload = ({
   messages,

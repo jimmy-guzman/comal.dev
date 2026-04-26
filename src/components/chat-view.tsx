@@ -243,7 +243,7 @@ export const ChatView = ({
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     transport: new DefaultChatTransport({
       api: "/api/chat",
-      body: { conversationId },
+      body: { conversationId, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
     }),
   });
 
