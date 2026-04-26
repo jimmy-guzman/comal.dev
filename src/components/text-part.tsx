@@ -9,7 +9,5 @@ interface TextPartProps {
 }
 
 export const TextPart = ({ part }: TextPartProps) => {
-  return (
-    <MessageResponse isAnimating={part.state === "streaming"}>{part.text}</MessageResponse>
-  );
+  return <MessageResponse isAnimating={part.state === "streaming"}>{part.text}</MessageResponse>;
 };

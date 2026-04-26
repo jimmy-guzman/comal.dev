@@ -223,15 +223,19 @@ describe("mapStreamPartToEvent", () => {
 
   it("should stringify non-Error error payloads in turn-error message", () => {
     expect(map({ error: "boom", type: "error" })?.payload).toMatchObject({ message: "boom" });
-    expect(map({ error: null, type: "error" })?.payload).toMatchObject({ message: "Unknown error" });
+    expect(map({ error: null, type: "error" })?.payload).toMatchObject({
+      message: "Unknown error",
+    });
     expect(map({ error: { a: 1 }, type: "error" })?.payload).toMatchObject({ message: '{"a":1}' });
   });
 
   it("should emit file event only when url and mediaType are strings", () => {
-    expect(map({ file: { mediaType: "image/png", url: "https://x" }, type: "file" })).toMatchObject({
-      eventType: "file",
-      payload: { mediaType: "image/png", url: "https://x" },
-    });
+    expect(map({ file: { mediaType: "image/png", url: "https://x" }, type: "file" })).toMatchObject(
+      {
+        eventType: "file",
+        payload: { mediaType: "image/png", url: "https://x" },
+      },
+    );
 
     expect(map({ file: { mediaType: "image/png" }, type: "file" })).toBeNull();
     expect(map({ file: { url: "https://x" }, type: "file" })).toBeNull();

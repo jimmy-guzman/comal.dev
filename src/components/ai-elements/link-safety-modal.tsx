@@ -24,7 +24,7 @@ export const LinkSafetyModal = ({ isOpen, onClose, onConfirm, url }: LinkSafetyM
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Open external link?</AlertDialogTitle>
-          <AlertDialogDescription className="break-all font-mono text-xs">
+          <AlertDialogDescription className="font-mono text-xs break-all">
             {url}
           </AlertDialogDescription>
         </AlertDialogHeader>

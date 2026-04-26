@@ -24,7 +24,13 @@ import { updateConversationTitle } from "@/lib/chat";
 import { classifyChatError } from "@/lib/chat/errors";
 import { persistChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
 import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
-import { DatabaseError, LLMError, MessageConversionError, NotFoundError, ValidationError } from "@/lib/errors";
+import {
+  DatabaseError,
+  LLMError,
+  MessageConversionError,
+  NotFoundError,
+  ValidationError,
+} from "@/lib/errors";
 import { openrouter } from "@/lib/openrouter";
 
 const postBodySchema = z.object({
@@ -121,9 +127,7 @@ const extractApprovalResponses = (messages: UIMessage[]): ApprovalResponseEvent[
 };
 
 const stringifyText = (parts: UIMessage["parts"]): string => {
-  return parts
-    .flatMap((part) => (part.type === "text" ? [part.text] : []))
-    .join(" ");
+  return parts.flatMap((part) => (part.type === "text" ? [part.text] : [])).join(" ");
 };
 
 const generateTitleEffect = (
@@ -298,8 +302,7 @@ export async function POST(req: Request) {
       : agent.systemPrompt;
 
     const lastMessage = validation.data.at(-1);
-    const assistantMessageId =
-      lastMessage?.role === "assistant" ? lastMessage.id : nanoid();
+    const assistantMessageId = lastMessage?.role === "assistant" ? lastMessage.id : nanoid();
 
     const result = streamText({
       messages: modelMessages,

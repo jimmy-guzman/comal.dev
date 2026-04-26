@@ -4,7 +4,9 @@ import type { ChatEventRow } from "./projector";
 
 import { projectMessages } from "./projector";
 
-const event = (overrides: Partial<ChatEventRow> & Pick<ChatEventRow, "eventType" | "payload">): ChatEventRow => {
+const event = (
+  overrides: Partial<ChatEventRow> & Pick<ChatEventRow, "eventType" | "payload">,
+): ChatEventRow => {
   return {
     messageId: "msg-1",
     role: "assistant",
@@ -79,7 +81,13 @@ describe("projectMessages", () => {
 
     expect(result[0]?.parts).toHaveLength(1);
 
-    const part = result[0]?.parts[0] as { input: unknown; output: unknown; state: string; toolCallId: string; type: string };
+    const part = result[0]?.parts[0] as {
+      input: unknown;
+      output: unknown;
+      state: string;
+      toolCallId: string;
+      type: string;
+    };
 
     expect(part.type).toBe("dynamic-tool");
     expect(part.state).toBe("output-available");
@@ -219,7 +227,12 @@ describe("projectMessages", () => {
       }),
     ]);
 
-    expect(result.map((m) => `${m.role}:${m.id}`)).toStrictEqual(["user:u1", "assistant:a1", "user:u2", "assistant:a2"]);
+    expect(result.map((m) => `${m.role}:${m.id}`)).toStrictEqual([
+      "user:u1",
+      "assistant:a1",
+      "user:u2",
+      "assistant:a2",
+    ]);
   });
 
   it("should drop empty assistant messages", () => {
@@ -246,7 +259,10 @@ describe("projectMessages", () => {
       }),
     ]);
 
-    expect(result[0]?.parts.map((p) => (p as { text: string }).text)).toStrictEqual(["first ", "second"]);
+    expect(result[0]?.parts.map((p) => (p as { text: string }).text)).toStrictEqual([
+      "first ",
+      "second",
+    ]);
   });
 
   it("should coalesce tool lifecycle across split messageIds into the originating bubble", () => {
@@ -258,7 +274,12 @@ describe("projectMessages", () => {
         role: "user",
         sequence: 1,
       }),
-      event({ eventType: "assistant-turn-start", messageId: "a1", payload: { modelId: null }, sequence: 2 }),
+      event({
+        eventType: "assistant-turn-start",
+        messageId: "a1",
+        payload: { modelId: null },
+        sequence: 2,
+      }),
       event({
         eventType: "tool-input-complete",
         messageId: "a1",
@@ -288,7 +309,12 @@ describe("projectMessages", () => {
         },
         sequence: 6,
       }),
-      event({ eventType: "assistant-turn-start", messageId: "a2", payload: { modelId: null }, sequence: 7 }),
+      event({
+        eventType: "assistant-turn-start",
+        messageId: "a2",
+        payload: { modelId: null },
+        sequence: 7,
+      }),
       event({
         eventType: "tool-output-available",
         messageId: "a2",

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS='--no-async-context-frame' next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -21,7 +21,7 @@
     "@ai-sdk/react": "3.0.170",
     "@neondatabase/serverless": "1.1.0",
     "@next-safe-action/adapter-better-auth": "0.1.6",
-    "@openrouter/ai-sdk-provider": "2.8.0",
+    "@openrouter/ai-sdk-provider": "2.8.1",
     "@radix-ui/react-use-controllable-state": "1.2.2",
     "@rive-app/react-webgl2": "4.28.2",
     "@streamdown/cjk": "1.0.3",
@@ -81,7 +81,7 @@
     "eslint": "9",
     "knip": "6.7.0",
     "oxfmt": "0.46.0",
-    "postcss": "8.5.10",
+    "postcss": "8.5.12",
     "tailwindcss": "4.2.4",
     "typescript": "5.9.3",
     "vitest": "4.1.5"
