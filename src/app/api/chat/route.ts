@@ -9,6 +9,7 @@ import {
   streamText,
 } from "ai";
 import { Effect, Logger } from "effect";
+import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { after } from "next/server";
@@ -19,13 +20,10 @@ import type { ForbiddenError, UnauthorizedError } from "@/lib/errors";
 import { getAgent } from "@/agents";
 import { DatabaseLive } from "@/db/service";
 import { auth } from "@/lib/auth";
-import {
-  assertConversationAccess,
-  getConversationAgent,
-  getConversationMessageCount,
-  insertChatMessage,
-  updateConversationTitle,
-} from "@/lib/chat";
+import { updateConversationTitle } from "@/lib/chat";
+import { classifyChatError } from "@/lib/chat/errors";
+import { persistChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
+import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
 import { DatabaseError, NotFoundError, ValidationError } from "@/lib/errors";
 import { openrouter } from "@/lib/openrouter";
 
@@ -78,76 +76,66 @@ const errorToResponse = (
   return Response.json({ error: "Internal server error." }, { status: 500 });
 };
 
-const stripDeniedToolCalls = <T extends Omit<UIMessage, "id">>(messages: T[]): T[] => {
+interface ApprovalResponseEvent {
+  approval: { approved: boolean; id: string; reason?: string };
+  messageId: string;
+  toolCallId: string;
+  toolName: string;
+}
+
+const extractApprovalResponses = (messages: UIMessage[]): ApprovalResponseEvent[] => {
   return messages.flatMap((msg) => {
-    if (msg.role !== "assistant") return [msg];
+    if (msg.role !== "assistant") return [];
 
-    const parts = msg.parts.filter((part) => {
-      if (!isToolUIPart(part)) return true;
+    return msg.parts.flatMap((part): ApprovalResponseEvent[] => {
+      if (!isToolUIPart(part)) return [];
 
-      if (part.state !== "approval-responded") return true;
+      if (part.state !== "approval-responded") return [];
 
-      return part.approval.approved;
+      if (typeof part.approval.approved !== "boolean") return [];
+
+      return [
+        {
+          approval: {
+            approved: part.approval.approved,
+            id: part.approval.id,
+            reason: part.approval.reason,
+          },
+          messageId: msg.id,
+          toolCallId: part.toolCallId,
+          toolName: part.type === "dynamic-tool" ? part.toolName : part.type.replace(/^tool-/, ""),
+        },
+      ];
     });
-
-    if (parts.length === 0) return [];
-
-    return [{ ...msg, parts }];
   });
 };
 
-const persistAfterStream = (
-  responseMessage: UIMessage,
-  userMessage: UIMessage | undefined,
+const stringifyText = (parts: UIMessage["parts"]): string => {
+  return parts
+    .filter((part) => part.type === "text")
+    .map((part) => (part as { text: string }).text)
+    .join(" ");
+};
+
+const generateTitleEffect = (
   conversationId: string,
   modelId: string,
+  userText: string,
 ): Effect.Effect<void, DatabaseError> => {
   return Effect.gen(function* () {
-    const responseMessageId = responseMessage.id.trim();
+    const { text: title } = yield* Effect.tryPromise({
+      catch: (cause) => new DatabaseError({ cause }),
+      try: () => {
+        return generateText({
+          model: openrouter(modelId),
+          prompt: `Summarize the following user message in 4 to 6 words. Return only the title, no punctuation, no quotes.\n\nUser: ${userText}`,
+        });
+      },
+    });
 
-    yield* Effect.provide(
-      insertChatMessage({
-        conversationId,
-        id: responseMessageId && responseMessageId.length > 0 ? responseMessageId : undefined,
-        modelId,
-        parts: responseMessage.parts,
-        role: responseMessage.role,
-      }),
-      DatabaseLive,
-    );
+    yield* Effect.provide(updateConversationTitle(conversationId, title.trim()), DatabaseLive);
 
-    const messageCount = yield* Effect.provide(
-      getConversationMessageCount(conversationId),
-      DatabaseLive,
-    );
-
-    if (messageCount === 2) {
-      const userText =
-        userMessage?.parts
-          .filter((p) => p.type === "text")
-          .map((p) => (p as { text: string; type: "text" }).text)
-          .join(" ") ?? "";
-
-      const assistantText = responseMessage.parts
-        .filter((p) => p.type === "text")
-        .map((p) => (p as { text: string; type: "text" }).text)
-        .join(" ")
-        .slice(0, 500);
-
-      const { text: title } = yield* Effect.tryPromise({
-        catch: (cause) => new DatabaseError({ cause }),
-        try: () => {
-          return generateText({
-            model: openrouter(modelId),
-            prompt: `Summarize the following conversation exchange in 4 to 6 words. Return only the title, no punctuation, no quotes.\n\nUser: ${userText}\n\nAssistant: ${assistantText}`,
-          });
-        },
-      });
-
-      yield* Effect.provide(updateConversationTitle(conversationId, title.trim()), DatabaseLive);
-
-      revalidatePath("/", "layout");
-    }
+    revalidatePath("/", "layout");
   });
 };
 
@@ -180,9 +168,10 @@ export async function POST(req: Request) {
   type ChatError = DatabaseError | ForbiddenError | NotFoundError | ValidationError;
 
   const program = Effect.gen(function* () {
-    yield* Effect.provide(assertConversationAccess(user.id, conversationId), DatabaseLive);
-
-    const conv = yield* Effect.provide(getConversationAgent(conversationId), DatabaseLive);
+    const conv = yield* Effect.provide(
+      getConversationWithEvents(user.id, conversationId),
+      DatabaseLive,
+    );
 
     const agent = getAgent(conv.agentId);
 
@@ -190,9 +179,31 @@ export async function POST(req: Request) {
       return yield* Effect.fail(new NotFoundError({ resource: "agent" }));
     }
 
+    const persistedUserMessageIds = new Set<string>();
+
+    for (const event of conv.events) {
+      if (event.eventType === "user-message" && event.messageId !== null) {
+        persistedUserMessageIds.add(event.messageId);
+      }
+    }
+
+    const persistedApprovalToolCallIds = new Set(
+      conv.events
+        .filter((event) => event.eventType === "tool-approval-responded")
+        .map((event) => (event.payload as { toolCallId: string }).toolCallId),
+    );
+
+    const incomingMessages = parsed.data.messages.filter((msg) => {
+      if (typeof msg !== "object" || msg === null) return true;
+
+      const { parts } = msg as { parts?: unknown };
+
+      return !Array.isArray(parts) || parts.length > 0;
+    });
+
     const validation = yield* Effect.tryPromise({
       catch: (cause) => new DatabaseError({ cause }),
-      try: () => safeValidateUIMessages({ messages: parsed.data.messages }),
+      try: () => safeValidateUIMessages({ messages: incomingMessages }),
     });
 
     if (!validation.success) {
@@ -203,35 +214,68 @@ export async function POST(req: Request) {
       return m.role === "user";
     });
 
-    if (userMessage) {
-      yield* Effect.provide(
-        insertChatMessage({
-          conversationId,
-          id: userMessage.id,
-          modelId: conv.modelId,
-          parts: userMessage.parts,
-          role: userMessage.role,
-        }),
-        DatabaseLive,
-      );
+    const isFirstTurn =
+      (yield* Effect.provide(countAssistantTurns(conversationId), DatabaseLive)) === 0;
+
+    if (userMessage && !persistedUserMessageIds.has(userMessage.id)) {
+      yield* Effect.tryPromise({
+        catch: (cause) => new DatabaseError({ cause }),
+        try: () => {
+          return persistChatEvent({
+            conversationId,
+            event: {
+              eventType: "user-message",
+              messageId: userMessage.id,
+              payload: { parts: userMessage.parts },
+              role: "user",
+            },
+            modelId: conv.modelId,
+          });
+        },
+      });
     }
 
-    const messagesWithoutIds = validation.data.map((msg) => {
-      return Object.fromEntries(Object.entries(msg).filter(([k]) => k !== "id"));
-    }) as Omit<(typeof validation.data)[number], "id">[];
+    const approvalResponses = extractApprovalResponses(validation.data).filter((approval) => {
+      return !persistedApprovalToolCallIds.has(approval.toolCallId);
+    });
+
+    for (const approval of approvalResponses) {
+      yield* Effect.tryPromise({
+        catch: (cause) => new DatabaseError({ cause }),
+        try: () => {
+          return persistChatEvent({
+            conversationId,
+            event: {
+              eventType: "tool-approval-responded",
+              messageId: approval.messageId,
+              payload: {
+                approval: approval.approval,
+                approved: approval.approval.approved,
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
+              },
+              role: "assistant",
+            },
+            modelId: conv.modelId,
+          });
+        },
+      });
+    }
 
     const modelMessages = yield* Effect.tryPromise({
       catch: (cause) => new DatabaseError({ cause }),
       try: () => {
-        return convertToModelMessages(stripDeniedToolCalls(messagesWithoutIds), {
-          ignoreIncompleteToolCalls: true,
-        });
+        return convertToModelMessages(validation.data, { ignoreIncompleteToolCalls: true });
       },
     });
 
     const systemPrompt = timezone
       ? `${agent.systemPrompt}\n\nThe user's local timezone is ${timezone}.`
       : agent.systemPrompt;
+
+    const lastMessage = validation.data.at(-1);
+    const assistantMessageId =
+      lastMessage?.role === "assistant" ? lastMessage.id : nanoid();
 
     const result = streamText({
       messages: modelMessages,
@@ -244,42 +288,58 @@ export async function POST(req: Request) {
       tools: agent.tools,
     });
 
-    let resolveFinish!: (msg: UIMessage) => void;
-
-    const finishPromise = new Promise<UIMessage>((res) => {
-      resolveFinish = res;
-    });
-
     after(async () => {
-      const exit = await Effect.runPromiseExit(
-        persistAfterStream(await finishPromise, userMessage, conversationId, conv.modelId),
-      );
+      try {
+        await persistChatStream({
+          conversationId,
+          fullStream: result.fullStream,
+          messageId: assistantMessageId,
+          modelId: conv.modelId,
+          onEventError: (error, event) => {
+            logError(`persistChatStream event error (${event.eventType})`, error);
+          },
+        });
 
-      void exit;
+        if (isFirstTurn && userMessage) {
+          const userText = stringifyText(userMessage.parts).slice(0, 500);
+
+          await Effect.runPromise(
+            generateTitleEffect(conversationId, conv.modelId, userText).pipe(
+              Effect.tapError((error) => {
+                return Effect.logError("Title generation failed", error);
+              }),
+              Effect.catchAll(() => Effect.void),
+              Effect.provide(Logger.pretty),
+            ),
+          );
+        }
+      } catch (error) {
+        logError("after() persistence failed", error);
+      }
     });
 
     return result.toUIMessageStreamResponse({
       onError: (error) => {
         logError("UI message stream error", error);
 
-        return error instanceof Error ? error.message : "An error occurred during streaming.";
-      },
-      onFinish: ({ responseMessage }) => {
-        resolveFinish(responseMessage);
+        const info = classifyChatError(error);
+
+        return JSON.stringify({
+          kind: info.kind,
+          message: info.message,
+          statusCode: info.statusCode,
+        });
       },
       originalMessages: validation.data,
     });
   }) satisfies Effect.Effect<Response, ChatError>;
 
-  const exit = await Effect.runPromise(
+  return await Effect.runPromise(
     program.pipe(
       Effect.tapError((error) => Effect.logError("Chat error", error)),
       Effect.tapDefect((defect) => Effect.logError("Unexpected defect", defect)),
-      Effect.map((response) => response),
       Effect.catchAll((error) => Effect.succeed(errorToResponse(error))),
       Effect.provide(Logger.pretty),
     ),
   );
-
-  return exit;
 }

@@ -5,7 +5,10 @@ import type { FileUIPart, UIMessage } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
 import { Trash2Icon } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
+
+import type {ChatErrorInfo} from "@/lib/chat/errors";
 
 import { updateConversationModelAction } from "@/actions/update-conversation-model";
 import {
@@ -33,6 +36,7 @@ import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { DeleteConversationButton } from "@/components/delete-conversation-button";
 import { MessageParts } from "@/components/message-parts";
 import { Button } from "@/components/ui/button";
+import {  classifyChatError } from "@/lib/chat/errors";
 
 const MODELS = [
   {
@@ -75,6 +79,38 @@ const MODELS = [
   provider: string;
 }[];
 
+interface ServerErrorEnvelope {
+  kind?: string;
+  message?: string;
+  statusCode?: number;
+}
+
+const parseServerError = (raw: string): null | ServerErrorEnvelope => {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+
+    if (parsed === null || typeof parsed !== "object") return null;
+
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const errorToInfo = (error: Error): ChatErrorInfo => {
+  const envelope = parseServerError(error.message);
+
+  if (envelope === null) return classifyChatError(error);
+
+  const fallback = classifyChatError(error);
+
+  return {
+    ...fallback,
+    message: envelope.message ?? fallback.message,
+    statusCode: envelope.statusCode ?? fallback.statusCode,
+  } satisfies ChatErrorInfo;
+};
+
 interface Props {
   agentId: string;
   conversationId: string;
@@ -91,15 +127,56 @@ export const ChatView = ({
   suggestions,
 }: Props) => {
   const [modelId, setModelId] = useState(initialModelId);
+  const userInteractedRef = useRef(false);
 
-  const { addToolApprovalResponse, messages, sendMessage, status, stop } = useChat({
+  const sendAutomaticallyWhen = useCallback(
+    (options: { messages: UIMessage[] }) => {
+      if (!userInteractedRef.current) {
+        return false;
+      }
+
+      return lastAssistantMessageIsCompleteWithApprovalResponses(options);
+    },
+    [],
+  );
+
+  const {
+    addToolApprovalResponse: addToolApprovalResponseRaw,
+    messages,
+    regenerate,
+    sendMessage: sendMessageRaw,
+    status,
+    stop,
+  } = useChat({
     messages: initialMessages,
-    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+    onError: (error) => {
+      const info = errorToInfo(error);
+
+      toast.error(info.title, { description: info.message });
+    },
+    sendAutomaticallyWhen,
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: { conversationId, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
     }),
   });
+
+  const sendMessage: typeof sendMessageRaw = (...args) => {
+    userInteractedRef.current = true;
+
+    return sendMessageRaw(...args);
+  };
+
+  const addToolApprovalResponse: typeof addToolApprovalResponseRaw = (...args) => {
+    userInteractedRef.current = true;
+
+    return addToolApprovalResponseRaw(...args);
+  };
+
+  const handleRetry = useCallback(() => {
+    userInteractedRef.current = true;
+    void regenerate();
+  }, [regenerate]);
 
   const handleSubmit = ({ text }: { files?: FileUIPart[]; text: string }) => {
     void sendMessage({ text });
@@ -115,6 +192,7 @@ export const ChatView = ({
   };
 
   const isStreaming = status === "streaming";
+  const canRetry = status === "ready" || status === "error";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -149,9 +227,11 @@ export const ChatView = ({
                   <MessageContent>
                     <MessageParts
                       addToolApprovalResponse={addToolApprovalResponse}
+                      canRetry={canRetry}
                       isLastMessage={index === messages.length - 1}
                       isStreaming={isStreaming}
                       message={message}
+                      onRetry={handleRetry}
                     />
                   </MessageContent>
                 </Message>

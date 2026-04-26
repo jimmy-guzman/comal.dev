@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, json, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { bigserial, index, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
 import { user } from "./auth-schema";
 
@@ -28,37 +28,41 @@ export const conversation = pgTable(
   },
 );
 
-export const chatMessage = pgTable(
-  "chat_message",
+export const chatEvent = pgTable(
+  "chat_event",
   {
     conversationId: text("conversation_id")
       .notNull()
       .references(() => conversation.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    id: text("id").primaryKey(),
+    eventType: text("event_type").notNull(),
+    messageId: text("message_id"),
     modelId: text("model_id"),
-    parts: json("parts").notNull(),
+    payload: jsonb("payload").notNull(),
     role: text("role").notNull(),
+    sequence: bigserial("sequence", { mode: "number" }).notNull(),
   },
   (table) => {
     return [
-      index("chat_message_conversationId_idx").on(table.conversationId),
-      index("chat_message_createdAt_idx").on(table.createdAt),
+      primaryKey({ columns: [table.conversationId, table.sequence] }),
+      index("chat_event_conversationId_sequence_idx").on(table.conversationId, table.sequence),
+      index("chat_event_messageId_idx").on(table.messageId),
+      index("chat_event_createdAt_idx").on(table.createdAt),
     ];
   },
 );
 
 export const conversationRelations = relations(conversation, ({ many, one }) => {
   return {
-    messages: many(chatMessage),
+    events: many(chatEvent),
     user: one(user, { fields: [conversation.userId], references: [user.id] }),
   };
 });
 
-export const chatMessageRelations = relations(chatMessage, ({ one }) => {
+export const chatEventRelations = relations(chatEvent, ({ one }) => {
   return {
     conversation: one(conversation, {
-      fields: [chatMessage.conversationId],
+      fields: [chatEvent.conversationId],
       references: [conversation.id],
     }),
   };
