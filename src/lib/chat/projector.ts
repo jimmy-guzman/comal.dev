@@ -1,4 +1,4 @@
-import type { UIMessage } from "ai";
+import type { DynamicToolUIPart, UIMessage } from "ai";
 
 import type { ChatEventPayload, ChatEventType } from "./events";
 
@@ -54,8 +54,98 @@ const TOOL_STATE_RANK: Record<ToolPartState["state"], number> = {
   "output-error": 5,
 };
 
-const toolPartFromState = (state: ToolPartState): AssistantPart => {
-  return { ...state, type: "dynamic-tool" } as AssistantPart;
+const toolPartFromState = (state: ToolPartState): DynamicToolUIPart => {
+  const base = {
+    toolCallId: state.toolCallId,
+    toolName: state.toolName,
+    type: "dynamic-tool",
+  } as const;
+
+  switch (state.state) {
+    case "approval-requested": {
+      return {
+        ...base,
+        approval: { id: state.approval?.id ?? "" },
+        input: state.input,
+        state: "approval-requested",
+      };
+    }
+    case "approval-responded": {
+      return {
+        ...base,
+        approval: {
+          approved: state.approval?.approved ?? false,
+          id: state.approval?.id ?? "",
+          reason: state.approval?.reason,
+        },
+        input: state.input,
+        state: "approval-responded",
+      };
+    }
+    case "input-available": {
+      return { ...base, input: state.input, state: "input-available" };
+    }
+    case "input-streaming": {
+      return { ...base, input: state.input, state: "input-streaming" };
+    }
+    case "output-available": {
+      const approved =
+        state.approval?.approved === true
+          ? {
+              approval: {
+                approved: true as const,
+                id: state.approval.id,
+                reason: state.approval.reason,
+              },
+            }
+          : {};
+
+      return {
+        ...base,
+        ...approved,
+        input: state.input,
+        output: state.output,
+        state: "output-available",
+      };
+    }
+    case "output-denied": {
+      return {
+        ...base,
+        approval: {
+          approved: false,
+          id: state.approval?.id ?? "",
+          reason: state.approval?.reason,
+        },
+        input: state.input,
+        state: "output-denied",
+      };
+    }
+    case "output-error": {
+      const approved =
+        state.approval?.approved === true
+          ? {
+              approval: {
+                approved: true as const,
+                id: state.approval.id,
+                reason: state.approval.reason,
+              },
+            }
+          : {};
+
+      return {
+        ...base,
+        ...approved,
+        errorText: state.errorText ?? "",
+        input: state.input,
+        state: "output-error",
+      };
+    }
+    default: {
+      const exhaustive: never = state.state;
+
+      throw new Error(`Unhandled tool part state: ${String(exhaustive)}`);
+    }
+  }
 };
 
 const advanceToolState = (prev: ToolPartState, next: ToolPartState): ToolPartState => {

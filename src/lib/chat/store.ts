@@ -7,6 +7,8 @@ import { DatabaseError, ForbiddenError, NotFoundError } from "@/lib/errors";
 
 import type { ChatEventRow } from "./projector";
 
+import { CHAT_EVENT_ROLES, CHAT_EVENT_TYPES } from "./events";
+
 interface ConversationWithEvents {
   agentId: string;
   events: ChatEventRow[];
@@ -61,14 +63,20 @@ export const getConversationWithEvents = (
       },
     });
 
-    const events = eventRows.map((row): ChatEventRow => {
-      return {
-        eventType: row.eventType as ChatEventRow["eventType"],
-        messageId: row.messageId,
-        payload: row.payload,
-        role: row.role as ChatEventRow["role"],
-        sequence: row.sequence,
-      };
+    const events = eventRows.flatMap((row): ChatEventRow[] => {
+      if (!CHAT_EVENT_TYPES.has(row.eventType as ChatEventRow["eventType"])) return [];
+
+      if (!CHAT_EVENT_ROLES.has(row.role as ChatEventRow["role"])) return [];
+
+      return [
+        {
+          eventType: row.eventType as ChatEventRow["eventType"],
+          messageId: row.messageId,
+          payload: row.payload,
+          role: row.role as ChatEventRow["role"],
+          sequence: row.sequence,
+        },
+      ];
     });
 
     return {

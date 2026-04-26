@@ -45,7 +45,6 @@ export const chatEvent = pgTable(
   (table) => {
     return [
       primaryKey({ columns: [table.conversationId, table.sequence] }),
-      index("chat_event_conversationId_sequence_idx").on(table.conversationId, table.sequence),
       index("chat_event_messageId_idx").on(table.messageId),
       index("chat_event_createdAt_idx").on(table.createdAt),
     ];

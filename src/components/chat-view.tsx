@@ -8,7 +8,7 @@ import { Trash2Icon } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import type {ChatErrorInfo} from "@/lib/chat/errors";
+import type {ChatErrorInfo, ChatErrorKind} from "@/lib/chat/errors";
 
 import { updateConversationModelAction } from "@/actions/update-conversation-model";
 import {
@@ -36,7 +36,7 @@ import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { DeleteConversationButton } from "@/components/delete-conversation-button";
 import { MessageParts } from "@/components/message-parts";
 import { Button } from "@/components/ui/button";
-import {  classifyChatError } from "@/lib/chat/errors";
+import {  chatErrorCopyFor, classifyChatError } from "@/lib/chat/errors";
 
 const MODELS = [
   {
@@ -82,7 +82,9 @@ const MODELS = [
 interface ServerErrorEnvelope {
   kind?: string;
   message?: string;
+  retryable?: boolean;
   statusCode?: number;
+  suggestModelSwitch?: boolean;
 }
 
 const parseServerError = (raw: string): null | ServerErrorEnvelope => {
@@ -91,10 +93,38 @@ const parseServerError = (raw: string): null | ServerErrorEnvelope => {
 
     if (parsed === null || typeof parsed !== "object") return null;
 
-    return parsed;
+    const envelope = parsed as Record<string, unknown>;
+    const result: ServerErrorEnvelope = {};
+
+    if (typeof envelope.kind === "string") result.kind = envelope.kind;
+
+    if (typeof envelope.message === "string") result.message = envelope.message;
+
+    if (typeof envelope.statusCode === "number") result.statusCode = envelope.statusCode;
+
+    if (typeof envelope.retryable === "boolean") result.retryable = envelope.retryable;
+
+    if (typeof envelope.suggestModelSwitch === "boolean") {
+      result.suggestModelSwitch = envelope.suggestModelSwitch;
+    }
+
+    return result;
   } catch {
     return null;
   }
+};
+
+const KNOWN_KINDS = new Set<ChatErrorKind>([
+  "auth",
+  "context-length",
+  "model-unavailable",
+  "network",
+  "rate-limit",
+  "unknown",
+]);
+
+const isChatErrorKind = (value: unknown): value is ChatErrorKind => {
+  return typeof value === "string" && KNOWN_KINDS.has(value as ChatErrorKind);
 };
 
 const errorToInfo = (error: Error): ChatErrorInfo => {
@@ -102,12 +132,16 @@ const errorToInfo = (error: Error): ChatErrorInfo => {
 
   if (envelope === null) return classifyChatError(error);
 
-  const fallback = classifyChatError(error);
+  const base = isChatErrorKind(envelope.kind)
+    ? chatErrorCopyFor(envelope.kind)
+    : classifyChatError(error);
 
   return {
-    ...fallback,
-    message: envelope.message ?? fallback.message,
-    statusCode: envelope.statusCode ?? fallback.statusCode,
+    ...base,
+    message: envelope.message ?? base.message,
+    retryable: envelope.retryable ?? base.retryable,
+    statusCode: envelope.statusCode ?? base.statusCode,
+    suggestModelSwitch: envelope.suggestModelSwitch ?? base.suggestModelSwitch,
   } satisfies ChatErrorInfo;
 };
 

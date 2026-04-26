@@ -122,6 +122,12 @@ const EVENT_PAYLOAD_SCHEMAS = {
 
 export type ChatEventType = keyof typeof EVENT_PAYLOAD_SCHEMAS;
 
+export const CHAT_EVENT_TYPES = new Set(Object.keys(EVENT_PAYLOAD_SCHEMAS)) as ReadonlySet<ChatEventType>;
+
+export const CHAT_EVENT_ROLES = new Set(["assistant", "system", "user"] as const);
+
+export type ChatEventRole = "assistant" | "system" | "user";
+
 export type ChatEventPayload<T extends ChatEventType> = z.infer<(typeof EVENT_PAYLOAD_SCHEMAS)[T]>;
 
 export interface ChatEventInput<T extends ChatEventType = ChatEventType> {

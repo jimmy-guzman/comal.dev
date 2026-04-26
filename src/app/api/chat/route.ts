@@ -24,7 +24,7 @@ import { updateConversationTitle } from "@/lib/chat";
 import { classifyChatError } from "@/lib/chat/errors";
 import { persistChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
 import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
-import { DatabaseError, NotFoundError, ValidationError } from "@/lib/errors";
+import { DatabaseError, LLMError, NotFoundError, ValidationError } from "@/lib/errors";
 import { openrouter } from "@/lib/openrouter";
 
 const postBodySchema = z.object({
@@ -112,8 +112,7 @@ const extractApprovalResponses = (messages: UIMessage[]): ApprovalResponseEvent[
 
 const stringifyText = (parts: UIMessage["parts"]): string => {
   return parts
-    .filter((part) => part.type === "text")
-    .map((part) => (part as { text: string }).text)
+    .flatMap((part) => (part.type === "text" ? [part.text] : []))
     .join(" ");
 };
 
@@ -121,10 +120,10 @@ const generateTitleEffect = (
   conversationId: string,
   modelId: string,
   userText: string,
-): Effect.Effect<void, DatabaseError> => {
+): Effect.Effect<void, DatabaseError | LLMError> => {
   return Effect.gen(function* () {
     const { text: title } = yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
+      catch: (cause) => new LLMError({ cause }),
       try: () => {
         return generateText({
           model: openrouter(modelId),
@@ -187,11 +186,19 @@ export async function POST(req: Request) {
       }
     }
 
-    const persistedApprovalToolCallIds = new Set(
-      conv.events
-        .filter((event) => event.eventType === "tool-approval-responded")
-        .map((event) => (event.payload as { toolCallId: string }).toolCallId),
-    );
+    const persistedApprovalToolCallIds = new Set<string>();
+
+    for (const event of conv.events) {
+      if (event.eventType !== "tool-approval-responded") continue;
+
+      if (typeof event.payload !== "object" || event.payload === null) continue;
+
+      const { toolCallId } = event.payload as { toolCallId?: unknown };
+
+      if (typeof toolCallId === "string") {
+        persistedApprovalToolCallIds.add(toolCallId);
+      }
+    }
 
     const incomingMessages = parsed.data.messages.filter((msg) => {
       if (typeof msg !== "object" || msg === null) return true;
@@ -327,7 +334,9 @@ export async function POST(req: Request) {
         return JSON.stringify({
           kind: info.kind,
           message: info.message,
+          retryable: info.retryable,
           statusCode: info.statusCode,
+          suggestModelSwitch: info.suggestModelSwitch,
         });
       },
       originalMessages: validation.data,
