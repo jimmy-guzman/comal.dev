@@ -1,4 +1,4 @@
-export interface SearchResult {
+interface SearchResult {
   snippet: string;
   title: string;
   url: string;

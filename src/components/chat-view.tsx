@@ -1,28 +1,13 @@
 "use client";
 
-import type { DynamicToolUIPart, FileUIPart, ToolUIPart, UIMessage } from "ai";
+import type { FileUIPart, UIMessage } from "ai";
 
 import { useChat } from "@ai-sdk/react";
-import {
-  DefaultChatTransport,
-  getToolName,
-  isToolUIPart,
-  lastAssistantMessageIsCompleteWithApprovalResponses,
-} from "ai";
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
 import { Trash2Icon } from "lucide-react";
-import * as React from "react";
 import { useState } from "react";
 
 import { updateConversationModelAction } from "@/actions/update-conversation-model";
-import {
-  Confirmation,
-  ConfirmationAccepted,
-  ConfirmationAction,
-  ConfirmationActions,
-  ConfirmationRejected,
-  ConfirmationRequest,
-  ConfirmationTitle,
-} from "@/components/ai-elements/confirmation";
 import {
   Conversation,
   ConversationContent,
@@ -30,7 +15,7 @@ import {
   ConversationEmptyState,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
   PromptInput,
   PromptInputBody,
@@ -44,16 +29,9 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
-import {
-  Tool,
-  ToolContent,
-  ToolHeader,
-  ToolInput,
-  ToolOutput,
-} from "@/components/ai-elements/tool";
 import { DeleteConversationButton } from "@/components/delete-conversation-button";
+import { MessageParts } from "@/components/message-parts";
 import { Button } from "@/components/ui/button";
 
 const MODELS = [
@@ -97,144 +75,20 @@ const MODELS = [
   provider: string;
 }[];
 
-const STARTER_SUGGESTIONS = [
-  "What can you help me with?",
-  "Search the web for the latest AI news",
-  "Explain how you work",
-];
-
 interface Props {
   agentId: string;
   conversationId: string;
   initialMessages: UIMessage[];
   modelId: string;
+  suggestions: string[];
 }
-
-interface ToolPartProps {
-  addToolApprovalResponse: (response: { approved: boolean; id: string }) => void;
-  part: DynamicToolUIPart | ToolUIPart;
-}
-
-const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
-  const approvalId = part.approval?.id ?? "";
-  const toolName = getToolName(part);
-  const output =
-    typeof part.output === "string" ? (
-      <MessageResponse>{part.output}</MessageResponse>
-    ) : (
-      part.output
-    );
-
-  return (
-    <>
-      <Confirmation approval={part.approval} state={part.state}>
-        <ConfirmationTitle>
-          Allow <strong>{toolName}</strong>?
-        </ConfirmationTitle>
-        <ConfirmationRequest>
-          The assistant wants to run <strong>{toolName}</strong>. Do you want to allow this?
-        </ConfirmationRequest>
-        <ConfirmationAccepted>Approved</ConfirmationAccepted>
-        <ConfirmationRejected>Rejected</ConfirmationRejected>
-        <ConfirmationActions>
-          <ConfirmationAction
-            onClick={() => {
-              addToolApprovalResponse({ approved: false, id: approvalId });
-            }}
-            variant="outline"
-          >
-            Reject
-          </ConfirmationAction>
-          <ConfirmationAction
-            onClick={() => {
-              addToolApprovalResponse({ approved: true, id: approvalId });
-            }}
-          >
-            Approve
-          </ConfirmationAction>
-        </ConfirmationActions>
-      </Confirmation>
-      <Tool>
-        {part.type === "dynamic-tool" ? (
-          <ToolHeader state={part.state} toolName={toolName} type={part.type} />
-        ) : (
-          <ToolHeader state={part.state} type={part.type} />
-        )}
-        <ToolContent>
-          <ToolInput input={part.input} />
-          <ToolOutput errorText={part.errorText} output={output} />
-        </ToolContent>
-      </Tool>
-    </>
-  );
-};
-
-interface MessagePartsProps {
-  addToolApprovalResponse: (response: { approved: boolean; id: string }) => void;
-  isLastMessage: boolean;
-  isStreaming: boolean;
-  message: UIMessage;
-}
-
-const MessageParts = ({
-  addToolApprovalResponse,
-  isLastMessage,
-  isStreaming,
-  message,
-}: MessagePartsProps) => {
-  const reasoningParts = message.parts.filter((part) => {
-    return part.type === "reasoning";
-  });
-  const reasoningText = reasoningParts.map((part) => part.text).join("\n\n");
-  const hasReasoning = reasoningParts.length > 0;
-
-  const lastPart = message.parts.at(-1);
-  const isReasoningStreaming = isLastMessage && isStreaming && lastPart?.type === "reasoning";
-
-  return (
-    <>
-      {hasReasoning && (
-        <Reasoning className="w-full" isStreaming={isReasoningStreaming}>
-          <ReasoningTrigger />
-          <ReasoningContent>{reasoningText}</ReasoningContent>
-        </Reasoning>
-      )}
-      {message.parts
-        .reduce<{ key: string; node: React.ReactNode }[]>((acc, part) => {
-          if (part.type === "text") {
-            const textCount = acc.filter((x) => {
-              return x.key.startsWith(`${message.id}-text`);
-            }).length;
-
-            acc.push({
-              key: `${message.id}-text-${textCount}`,
-              node: (
-                <MessageResponse isAnimating={part.state === "streaming"}>
-                  {part.text}
-                </MessageResponse>
-              ),
-            });
-          } else if (isToolUIPart(part)) {
-            acc.push({
-              key: part.toolCallId,
-              node: <ToolPart addToolApprovalResponse={addToolApprovalResponse} part={part} />,
-            });
-          }
-
-          return acc;
-        }, [])
-        .map(({ key, node }) => {
-          return <React.Fragment key={key}>{node}</React.Fragment>;
-        })}
-    </>
-  );
-};
 
 export const ChatView = ({
   agentId,
   conversationId,
   initialMessages,
   modelId: initialModelId,
+  suggestions,
 }: Props) => {
   const [modelId, setModelId] = useState(initialModelId);
 
@@ -312,7 +166,7 @@ export const ChatView = ({
       <div className="flex flex-col gap-2 border-t p-4">
         {messages.length === 0 ? (
           <Suggestions>
-            {STARTER_SUGGESTIONS.map((s) => {
+            {suggestions.map((s) => {
               return <Suggestion key={s} onClick={handleSuggestion} suggestion={s} />;
             })}
           </Suggestions>
