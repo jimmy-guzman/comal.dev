@@ -15,22 +15,16 @@ import { headers } from "next/headers";
 import { after } from "next/server";
 import { z } from "zod";
 
-import type { ForbiddenError, UnauthorizedError } from "@/lib/errors";
+import type { ForbiddenError, NotFoundError, UnauthorizedError } from "@/lib/errors";
 
-import { getAgent } from "@/agents";
+import { loadAgent } from "@/agents";
 import { DatabaseLive } from "@/db/service";
 import { auth } from "@/lib/auth";
 import { updateConversationTitle } from "@/lib/chat";
 import { classifyChatError } from "@/lib/chat/errors";
 import { persistChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
 import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
-import {
-  DatabaseError,
-  LLMError,
-  MessageConversionError,
-  NotFoundError,
-  ValidationError,
-} from "@/lib/errors";
+import { DatabaseError, LLMError, MessageConversionError, ValidationError } from "@/lib/errors";
 import { openrouter } from "@/lib/openrouter";
 
 const postBodySchema = z.object({
@@ -191,11 +185,7 @@ export async function POST(req: Request) {
       DatabaseLive,
     );
 
-    const agent = getAgent(conv.agentId);
-
-    if (!agent) {
-      return yield* Effect.fail(new NotFoundError({ resource: "agent" }));
-    }
+    const agent = yield* Effect.provide(loadAgent(conv.agentId, user.id), DatabaseLive);
 
     const persistedUserMessageIds = new Set<string>();
 

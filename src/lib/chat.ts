@@ -2,9 +2,48 @@ import { and, desc, eq } from "drizzle-orm";
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
 
+import { agent } from "@/db/schemas/agent-schema";
 import { conversation } from "@/db/schemas/chat-schema";
 import { Database } from "@/db/service";
 import { DatabaseError, ForbiddenError, NotFoundError } from "@/lib/errors";
+
+export const listRecentConversationsForUser = (
+  userId: string,
+  limit: number,
+): Effect.Effect<
+  {
+    agentId: string;
+    agentName: string;
+    createdAt: Date;
+    id: string;
+    title: string;
+  }[],
+  DatabaseError,
+  Database
+> => {
+  return Effect.gen(function* () {
+    const db = yield* Database;
+
+    return yield* Effect.tryPromise({
+      catch: (cause) => new DatabaseError({ cause }),
+      try: () => {
+        return db
+          .select({
+            agentId: conversation.agentId,
+            agentName: agent.name,
+            createdAt: conversation.createdAt,
+            id: conversation.id,
+            title: conversation.title,
+          })
+          .from(conversation)
+          .innerJoin(agent, eq(agent.id, conversation.agentId))
+          .where(eq(conversation.userId, userId))
+          .orderBy(desc(conversation.createdAt))
+          .limit(limit);
+      },
+    });
+  });
+};
 
 export const listConversationsForAgent = (
   userId: string,

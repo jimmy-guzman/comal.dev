@@ -32,72 +32,78 @@ const toText = (html: string) => {
     .trim();
 };
 
-export const webFetch = tool({
-  description:
-    "Fetch the content of a URL and return it as markdown, plain text, or raw HTML. Always ask for user confirmation before fetching.",
-  execute: async ({ format, timeout, url }) => {
-    if (!url.startsWith("http://") && !url.startsWith("https://")) {
-      throw new Error("URL must start with http:// or https://");
-    }
+interface WebFetchOptions {
+  needsApproval?: boolean;
+}
 
-    const timeoutMs = Math.min((timeout ?? DEFAULT_TIMEOUT_MS / 1000) * 1000, MAX_TIMEOUT_MS);
+export const createWebFetch = ({ needsApproval = true }: WebFetchOptions = {}) => {
+  return tool({
+    description:
+      "Fetch the content of a URL and return it as markdown, plain text, or raw HTML. Always ask for user confirmation before fetching.",
+    execute: async ({ format, timeout, url }) => {
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        throw new Error("URL must start with http:// or https://");
+      }
 
-    const response = await fetch(url, {
-      headers: {
-        Accept: acceptHeader[format],
-        "Accept-Language": "en-US,en;q=0.9",
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
-      },
-      signal: AbortSignal.timeout(timeoutMs),
-    });
+      const timeoutMs = Math.min((timeout ?? DEFAULT_TIMEOUT_MS / 1000) * 1000, MAX_TIMEOUT_MS);
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status.toString()}: ${response.statusText}`);
-    }
+      const response = await fetch(url, {
+        headers: {
+          Accept: acceptHeader[format],
+          "Accept-Language": "en-US,en;q=0.9",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        },
+        signal: AbortSignal.timeout(timeoutMs),
+      });
 
-    const contentLength = response.headers.get("content-length");
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status.toString()}: ${response.statusText}`);
+      }
 
-    if (contentLength && Number.parseInt(contentLength, 10) > MAX_RESPONSE_SIZE) {
-      throw new Error("Response too large (exceeds 5MB limit)");
-    }
+      const contentLength = response.headers.get("content-length");
 
-    const buffer = await response.arrayBuffer();
+      if (contentLength && Number.parseInt(contentLength, 10) > MAX_RESPONSE_SIZE) {
+        throw new Error("Response too large (exceeds 5MB limit)");
+      }
 
-    if (buffer.byteLength > MAX_RESPONSE_SIZE) {
-      throw new Error("Response too large (exceeds 5MB limit)");
-    }
+      const buffer = await response.arrayBuffer();
 
-    const contentType = response.headers.get("content-type") ?? "";
-    const { TextDecoder } = await import("node:util");
-    const body = new TextDecoder().decode(buffer);
+      if (buffer.byteLength > MAX_RESPONSE_SIZE) {
+        throw new Error("Response too large (exceeds 5MB limit)");
+      }
 
-    if (format === "html") return { content: body, contentType, url };
+      const contentType = response.headers.get("content-type") ?? "";
+      const { TextDecoder } = await import("node:util");
+      const body = new TextDecoder().decode(buffer);
 
-    if (format === "text") {
+      if (format === "html") return { content: body, contentType, url };
+
+      if (format === "text") {
+        return {
+          content: contentType.includes("text/html") ? toText(body) : body,
+          contentType,
+          url,
+        };
+      }
+
       return {
-        content: contentType.includes("text/html") ? toText(body) : body,
+        content: contentType.includes("text/html") ? turndown.turndown(body) : body,
         contentType,
         url,
       };
-    }
-
-    return {
-      content: contentType.includes("text/html") ? turndown.turndown(body) : body,
-      contentType,
-      url,
-    };
-  },
-  inputSchema: z.object({
-    format: z
-      .enum(["markdown", "text", "html"])
-      .default("markdown")
-      .describe("The format to return the content in. Defaults to markdown."),
-    timeout: z
-      .number()
-      .optional()
-      .describe("Optional timeout in seconds (max 120). Defaults to 30."),
-    url: z.string().describe("The URL to fetch. Must start with http:// or https://."),
-  }),
-  needsApproval: true,
-});
+    },
+    inputSchema: z.object({
+      format: z
+        .enum(["markdown", "text", "html"])
+        .default("markdown")
+        .describe("The format to return the content in. Defaults to markdown."),
+      timeout: z
+        .number()
+        .optional()
+        .describe("Optional timeout in seconds (max 120). Defaults to 30."),
+      url: z.string().describe("The URL to fetch. Must start with http:// or https://."),
+    }),
+    needsApproval,
+  });
+};
