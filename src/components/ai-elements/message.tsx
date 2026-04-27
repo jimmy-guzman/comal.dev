@@ -1,15 +1,33 @@
 "use client";
 
 import { cjk } from "@streamdown/cjk";
-import { code } from "@streamdown/code";
 import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
 import type { UIMessage } from "ai";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
-import { createContext, memo, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import type { ComponentProps, HTMLAttributes, ReactElement, ReactNode } from "react";
+import {
+  createContext,
+  isValidElement,
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import type { BundledLanguage } from "shiki";
+import { bundledLanguages } from "shiki";
 import { Streamdown } from "streamdown";
 
+import {
+  CodeBlock,
+  CodeBlockActions,
+  CodeBlockCopyButton,
+  CodeBlockFilename,
+  CodeBlockHeader,
+  CodeBlockTitle,
+} from "@/components/ai-elements/code-block";
 import { LinkSafetyModal } from "@/components/ai-elements/link-safety-modal";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
@@ -272,17 +290,81 @@ export const MessageBranchPage = ({ className, ...props }: MessageBranchPageProp
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
-const streamdownPlugins = { cjk, code, math, mermaid };
+const streamdownPlugins = { cjk, math, mermaid };
 
 const streamdownLinkSafety = {
   enabled: true,
   renderModal: (props) => <LinkSafetyModal {...props} />,
 } satisfies ComponentProps<typeof Streamdown>["linkSafety"];
 
+const LANGUAGE_PATTERN = /language-([^\s]+)/;
+
+const FALLBACK_LANGUAGE = "text" as BundledLanguage;
+
+const isBundledLanguage = (value: string): value is BundledLanguage => {
+  return Object.hasOwn(bundledLanguages, value);
+};
+
+const resolveLanguage = (className: string | undefined): BundledLanguage => {
+  const candidate = className?.match(LANGUAGE_PATTERN)?.[1];
+
+  if (candidate !== undefined && isBundledLanguage(candidate)) return candidate;
+
+  return FALLBACK_LANGUAGE;
+};
+
+const extractCodeText = (children: ReactNode): string => {
+  if (typeof children === "string") return children;
+  if (Array.isArray(children)) return children.map(extractCodeText).join("");
+  if (isValidElement<{ children?: ReactNode }>(children) && children.props.children !== undefined) {
+    return extractCodeText(children.props.children);
+  }
+  return "";
+};
+
+type MarkdownCodeProps = ComponentProps<"code"> & { node?: unknown };
+
+const InlineCode = ({ children, className, node: _node, ...props }: MarkdownCodeProps) => (
+  <code
+    className={cn("rounded bg-muted px-1.5 py-0.5 font-mono text-sm", className)}
+    data-streamdown="inline-code"
+    {...props}
+  >
+    {children}
+  </code>
+);
+
+const MarkdownCodeBlock = ({ className, children }: MarkdownCodeProps) => {
+  const language = resolveLanguage(className);
+  const code = extractCodeText(children);
+
+  return (
+    <CodeBlock className="my-4" code={code} language={language}>
+      <CodeBlockHeader>
+        <CodeBlockTitle>
+          <CodeBlockFilename>{language}</CodeBlockFilename>
+        </CodeBlockTitle>
+        <CodeBlockActions>
+          <CodeBlockCopyButton />
+        </CodeBlockActions>
+      </CodeBlockHeader>
+    </CodeBlock>
+  );
+};
+
+const streamdownComponents = {
+  code: MarkdownCodeBlock,
+  inlineCode: InlineCode,
+} satisfies ComponentProps<typeof Streamdown>["components"];
+
+const streamdownControls = { code: false } satisfies ComponentProps<typeof Streamdown>["controls"];
+
 export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (
     <Streamdown
       className={cn("size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0", className)}
+      components={streamdownComponents}
+      controls={streamdownControls}
       linkSafety={streamdownLinkSafety}
       plugins={streamdownPlugins}
       {...props}

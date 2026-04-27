@@ -6,9 +6,9 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
 import { Trash2Icon } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import { toast } from "sonner";
 
-import type {ChatErrorInfo, ChatErrorKind} from "@/lib/chat/errors";
+import type { ModelId } from "@/config/models";
+import type { ChatErrorInfo, ChatErrorKind } from "@/lib/chat/errors";
 
 import { updateConversationModelAction } from "@/actions/update-conversation-model";
 import {
@@ -23,61 +23,26 @@ import {
   PromptInput,
   PromptInputBody,
   PromptInputFooter,
-  PromptInputSelect,
-  PromptInputSelectContent,
-  PromptInputSelectItem,
-  PromptInputSelectTrigger,
-  PromptInputSelectValue,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
+import { ChatModelPicker } from "@/components/chat-model-picker";
 import { DeleteConversationButton } from "@/components/delete-conversation-button";
+import { ErrorPart } from "@/components/error-part";
 import { MessageParts } from "@/components/message-parts";
 import { Button } from "@/components/ui/button";
-import {  chatErrorCopyFor, classifyChatError } from "@/lib/chat/errors";
+import { chatErrorCopyFor, classifyChatError } from "@/lib/chat/errors";
 
-const MODELS = [
-  {
-    label: "OpenAI",
-    models: [
-      { id: "openai/gpt-4o", name: "GPT-4o" },
-      { id: "openai/gpt-4o-mini", name: "GPT-4o mini" },
-      { id: "openai/o3-mini", name: "o3 mini" },
-    ],
-    provider: "openai" as const,
-  },
-  {
-    label: "Anthropic",
-    models: [
-      { id: "anthropic/claude-3.5-sonnet", name: "Claude 3.5 Sonnet" },
-      { id: "anthropic/claude-3.5-haiku", name: "Claude 3.5 Haiku" },
-      { id: "anthropic/claude-3-7-sonnet", name: "Claude 3.7 Sonnet" },
-    ],
-    provider: "anthropic" as const,
-  },
-  {
-    label: "Google",
-    models: [
-      { id: "google/gemini-2.0-flash-001", name: "Gemini 2.0 Flash" },
-      { id: "google/gemini-2.5-pro-preview-03-25", name: "Gemini 2.5 Pro" },
-    ],
-    provider: "google" as const,
-  },
-  {
-    label: "DeepSeek",
-    models: [
-      { id: "deepseek/deepseek-chat-v3-0324", name: "DeepSeek V3" },
-      { id: "deepseek/deepseek-r1", name: "DeepSeek R1" },
-    ],
-    provider: "deepseek" as const,
-  },
-] satisfies {
-  label: string;
-  models: { id: string; name: string }[];
-  provider: string;
-}[];
+const KNOWN_KINDS = new Set<ChatErrorKind>([
+  "auth",
+  "context-length",
+  "model-unavailable",
+  "network",
+  "rate-limit",
+  "unknown",
+]);
 
 interface ServerErrorEnvelope {
   kind?: string;
@@ -86,6 +51,10 @@ interface ServerErrorEnvelope {
   statusCode?: number;
   suggestModelSwitch?: boolean;
 }
+
+const isChatErrorKind = (value: unknown): value is ChatErrorKind => {
+  return typeof value === "string" && KNOWN_KINDS.has(value as ChatErrorKind);
+};
 
 const parseServerError = (raw: string): null | ServerErrorEnvelope => {
   try {
@@ -114,19 +83,6 @@ const parseServerError = (raw: string): null | ServerErrorEnvelope => {
   }
 };
 
-const KNOWN_KINDS = new Set<ChatErrorKind>([
-  "auth",
-  "context-length",
-  "model-unavailable",
-  "network",
-  "rate-limit",
-  "unknown",
-]);
-
-const isChatErrorKind = (value: unknown): value is ChatErrorKind => {
-  return typeof value === "string" && KNOWN_KINDS.has(value as ChatErrorKind);
-};
-
 const errorToInfo = (error: Error): ChatErrorInfo => {
   const envelope = parseServerError(error.message);
 
@@ -143,6 +99,14 @@ const errorToInfo = (error: Error): ChatErrorInfo => {
     statusCode: envelope.statusCode ?? base.statusCode,
     suggestModelSwitch: envelope.suggestModelSwitch ?? base.suggestModelSwitch,
   } satisfies ChatErrorInfo;
+};
+
+const lastMessageHasErrorPart = (messages: UIMessage[]): boolean => {
+  const last = messages.at(-1);
+
+  if (last === undefined) return false;
+
+  return last.parts.some((part) => part.type === "data-error");
 };
 
 interface Props {
@@ -163,19 +127,17 @@ export const ChatView = ({
   const [modelId, setModelId] = useState(initialModelId);
   const userInteractedRef = useRef(false);
 
-  const sendAutomaticallyWhen = useCallback(
-    (options: { messages: UIMessage[] }) => {
-      if (!userInteractedRef.current) {
-        return false;
-      }
+  const sendAutomaticallyWhen = useCallback((options: { messages: UIMessage[] }) => {
+    if (!userInteractedRef.current) {
+      return false;
+    }
 
-      return lastAssistantMessageIsCompleteWithApprovalResponses(options);
-    },
-    [],
-  );
+    return lastAssistantMessageIsCompleteWithApprovalResponses(options);
+  }, []);
 
   const {
     addToolApprovalResponse: addToolApprovalResponseRaw,
+    error,
     messages,
     regenerate,
     sendMessage: sendMessageRaw,
@@ -183,11 +145,6 @@ export const ChatView = ({
     stop,
   } = useChat({
     messages: initialMessages,
-    onError: (error) => {
-      const info = errorToInfo(error);
-
-      toast.error(info.title, { description: info.message });
-    },
     sendAutomaticallyWhen,
     transport: new DefaultChatTransport({
       api: "/api/chat",
@@ -220,13 +177,15 @@ export const ChatView = ({
     void sendMessage({ text: suggestion });
   };
 
-  const handleModelSelect = (newModelId: string) => {
+  const handleModelSelect = (newModelId: ModelId) => {
     setModelId(newModelId);
     void updateConversationModelAction({ conversationId, modelId: newModelId });
   };
 
   const isStreaming = status === "streaming";
   const canRetry = status === "ready" || status === "error";
+  const liveErrorInfo =
+    error !== undefined && !lastMessageHasErrorPart(messages) ? errorToInfo(error) : null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -272,6 +231,9 @@ export const ChatView = ({
               );
             })
           )}
+          {liveErrorInfo === null ? null : (
+            <ErrorPart canRetry={canRetry} data={liveErrorInfo} onRetry={handleRetry} />
+          )}
         </ConversationContent>
         <ConversationDownload filename={`conversation-${conversationId}.md`} messages={messages} />
         <ConversationScrollButton />
@@ -292,22 +254,7 @@ export const ChatView = ({
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>
-              <PromptInputSelect onValueChange={handleModelSelect} value={modelId}>
-                <PromptInputSelectTrigger>
-                  <PromptInputSelectValue />
-                </PromptInputSelectTrigger>
-                <PromptInputSelectContent>
-                  {MODELS.flatMap((group) => {
-                    return group.models.map((model) => {
-                      return (
-                        <PromptInputSelectItem key={model.id} value={model.id}>
-                          {model.name}
-                        </PromptInputSelectItem>
-                      );
-                    });
-                  })}
-                </PromptInputSelectContent>
-              </PromptInputSelect>
+              <ChatModelPicker onValueChange={handleModelSelect} value={modelId} />
             </PromptInputTools>
             <PromptInputSubmit onStop={stop} status={status} />
           </PromptInputFooter>

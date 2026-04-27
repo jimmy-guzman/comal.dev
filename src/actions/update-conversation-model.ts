@@ -4,6 +4,7 @@ import { Effect, Exit } from "effect";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { MODEL_IDS } from "@/config/models";
 import { DatabaseLive } from "@/db/service";
 import { assertConversationAccess, updateConversationModel } from "@/lib/chat";
 import { ForbiddenError } from "@/lib/errors";
@@ -13,7 +14,7 @@ export const updateConversationModelAction = authClient
   .inputSchema(
     z.object({
       conversationId: z.string().min(1),
-      modelId: z.string().min(1),
+      modelId: z.enum(MODEL_IDS),
     }),
   )
   .action(async ({ ctx, parsedInput }) => {

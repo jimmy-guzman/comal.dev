@@ -19,6 +19,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Format:** [oxfmt](https://oxc.rs/docs/guide/usage/formatter.html) (`.oxfmtrc.json`).
 - **UI:** Tailwind CSS v4 and shadcn/ui (`package.json` dependencies).
 - **Utils:** Use [es-toolkit](https://es-toolkit.dev/llms-full.txt) for utility functions.
+- **Chat code blocks:** Rendered by AI Elements `CodeBlock` (`src/components/ai-elements/code-block.tsx`) wired into `<Streamdown>` via `components.code` and `components.inlineCode` in `src/components/ai-elements/message.tsx`. Streamdown's built-in code toolbar is disabled (`controls={{ code: false }}`); do not re-enable it. The `@streamdown/code` plugin is intentionally not used (AI Elements does its own shiki highlighting).
 
 When changing API client types or AI SDK-related code, run `bun run lint` and `bun run build`; use `bunx` for one-off CLIs where needed.
 

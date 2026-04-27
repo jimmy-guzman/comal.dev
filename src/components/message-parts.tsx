@@ -4,22 +4,15 @@ import type { UIMessage } from "ai";
 
 import { isToolUIPart } from "ai";
 
-import type {ErrorPartData} from "@/components/error-part";
+import type { ErrorPartData } from "@/components/error-part";
 
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from "@/components/ai-elements/reasoning";
-import { ErrorPart  } from "@/components/error-part";
+import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
+import { ErrorPart } from "@/components/error-part";
 import { TextPart } from "@/components/text-part";
 import { ToolPart } from "@/components/tool-part";
 
 interface MessagePartsProps {
-  addToolApprovalResponse: (response: {
-    approved: boolean;
-    id: string;
-  }) => void;
+  addToolApprovalResponse: (response: { approved: boolean; id: string }) => void;
   canRetry: boolean;
   isLastMessage: boolean;
   isStreaming: boolean;
@@ -27,7 +20,9 @@ interface MessagePartsProps {
   onRetry?: () => void;
 }
 
-const isErrorDataPart = (part: UIMessage["parts"][number]): part is UIMessage["parts"][number] & {
+const isErrorDataPart = (
+  part: UIMessage["parts"][number],
+): part is UIMessage["parts"][number] & {
   data: ErrorPartData;
   type: "data-error";
 } => part.type === "data-error";
@@ -47,8 +42,7 @@ export const MessageParts = ({
   const hasReasoning = reasoningParts.length > 0;
 
   const lastPart = message.parts.at(-1);
-  const isReasoningStreaming =
-    isLastMessage && isStreaming && lastPart?.type === "reasoning";
+  const isReasoningStreaming = isLastMessage && isStreaming && lastPart?.type === "reasoning";
 
   return (
     <>
