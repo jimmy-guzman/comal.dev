@@ -17,6 +17,7 @@ import {
   useState,
 } from "react";
 import type { BundledLanguage } from "shiki";
+import { bundledLanguages } from "shiki";
 import { Streamdown } from "streamdown";
 
 import {
@@ -298,6 +299,20 @@ const streamdownLinkSafety = {
 
 const LANGUAGE_PATTERN = /language-([^\s]+)/;
 
+const FALLBACK_LANGUAGE = "text" as BundledLanguage;
+
+const isBundledLanguage = (value: string): value is BundledLanguage => {
+  return Object.hasOwn(bundledLanguages, value);
+};
+
+const resolveLanguage = (className: string | undefined): BundledLanguage => {
+  const candidate = className?.match(LANGUAGE_PATTERN)?.[1];
+
+  if (candidate !== undefined && isBundledLanguage(candidate)) return candidate;
+
+  return FALLBACK_LANGUAGE;
+};
+
 const extractCodeText = (children: ReactNode): string => {
   if (typeof children === "string") return children;
   if (Array.isArray(children)) return children.map(extractCodeText).join("");
@@ -320,8 +335,7 @@ const InlineCode = ({ children, className, node: _node, ...props }: MarkdownCode
 );
 
 const MarkdownCodeBlock = ({ className, children }: MarkdownCodeProps) => {
-  const match = className?.match(LANGUAGE_PATTERN);
-  const language = (match?.[1] ?? "text") as BundledLanguage;
+  const language = resolveLanguage(className);
   const code = extractCodeText(children);
 
   return (

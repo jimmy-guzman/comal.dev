@@ -7,7 +7,7 @@ import { webFetch } from "./tools/web-fetch";
 const readGitHubFiles = createReadGitHubFiles({ provider: rawGitHubProvider });
 
 export const codeCompanion = {
-  defaultModelId: "anthropic/claude-sonnet-4-5",
+  defaultModelId: "anthropic/claude-sonnet-4.5",
   description:
     "A code-focused assistant that can read files directly from public GitHub repositories, explain code, and suggest improvements.",
   id: "code-companion",

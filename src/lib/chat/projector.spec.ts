@@ -4,15 +4,13 @@ import type { ChatEventRow } from "./projector";
 
 import { projectMessages } from "./projector";
 
-const event = (
-  overrides: Partial<ChatEventRow> & Pick<ChatEventRow, "eventType" | "payload">,
-): ChatEventRow => {
+const event = (overrides: Partial<ChatEventRow> & Pick<ChatEventRow, "eventType" | "payload">) => {
   return {
     messageId: "msg-1",
     role: "assistant",
     sequence: 1,
     ...overrides,
-  };
+  } satisfies ChatEventRow;
 };
 
 describe("projectMessages", () => {
@@ -81,18 +79,12 @@ describe("projectMessages", () => {
 
     expect(result[0]?.parts).toHaveLength(1);
 
-    const part = result[0]?.parts[0] as {
-      input: unknown;
-      output: unknown;
-      state: string;
-      toolCallId: string;
-      type: string;
-    };
-
-    expect(part.type).toBe("dynamic-tool");
-    expect(part.state).toBe("output-available");
-    expect(part.input).toStrictEqual({ q: "weather" });
-    expect(part.output).toStrictEqual({ result: "sunny" });
+    expect(result[0]?.parts[0]).toMatchObject({
+      input: { q: "weather" },
+      output: { result: "sunny" },
+      state: "output-available",
+      type: "dynamic-tool",
+    });
   });
 
   it("should fold approval lifecycle preserving approval object", () => {
@@ -125,17 +117,12 @@ describe("projectMessages", () => {
       }),
     ]);
 
-    const part = result[0]?.parts[0] as {
-      approval: { approved: boolean; id: string };
-      input: unknown;
-      output: unknown;
-      state: string;
-    };
-
-    expect(part.state).toBe("output-available");
-    expect(part.output).toBe("ok");
-    expect(part.input).toStrictEqual({ cmd: "rm -rf /" });
-    expect(part.approval).toMatchObject({ approved: true, id: "appr-1" });
+    expect(result[0]?.parts[0]).toMatchObject({
+      approval: { approved: true, id: "appr-1" },
+      input: { cmd: "rm -rf /" },
+      output: "ok",
+      state: "output-available",
+    });
   });
 
   it("should not regress tool state when out-of-order events arrive", () => {
@@ -153,11 +140,11 @@ describe("projectMessages", () => {
       }),
     ]);
 
-    const part = result[0]?.parts[0] as { input: unknown; output: unknown; state: string };
-
-    expect(part.state).toBe("output-available");
-    expect(part.output).toBe("done");
-    expect(part.input).toStrictEqual({ a: 1 });
+    expect(result[0]?.parts[0]).toMatchObject({
+      input: { a: 1 },
+      output: "done",
+      state: "output-available",
+    });
   });
 
   it("should collapse consecutive step-boundary events", () => {
@@ -259,10 +246,9 @@ describe("projectMessages", () => {
       }),
     ]);
 
-    expect(result[0]?.parts.map((p) => (p as { text: string }).text)).toStrictEqual([
-      "first ",
-      "second",
-    ]);
+    expect(
+      result[0]?.parts.flatMap((p) => (p.type === "text" ? [p.text] : [])),
+    ).toStrictEqual(["first ", "second"]);
   });
 
   it("should coalesce tool lifecycle across split messageIds into the originating bubble", () => {
@@ -328,18 +314,12 @@ describe("projectMessages", () => {
     expect(assistant).toHaveLength(1);
     expect(assistant[0]?.id).toBe("a1");
 
-    const part = assistant[0]?.parts[0] as {
-      input: unknown;
-      output: unknown;
-      state: string;
-      toolCallId: string;
-      type: string;
-    };
-
-    expect(part.type).toBe("dynamic-tool");
-    expect(part.toolCallId).toBe("call-x");
-    expect(part.state).toBe("output-available");
-    expect(part.input).toStrictEqual({ url: "x" });
-    expect(part.output).toStrictEqual({ ok: true });
+    expect(assistant[0]?.parts[0]).toMatchObject({
+      input: { url: "x" },
+      output: { ok: true },
+      state: "output-available",
+      toolCallId: "call-x",
+      type: "dynamic-tool",
+    });
   });
 });
