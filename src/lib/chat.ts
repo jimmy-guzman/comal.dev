@@ -36,7 +36,7 @@ export const listRecentConversationsForUser = (
             title: conversation.title,
           })
           .from(conversation)
-          .innerJoin(agent, eq(agent.id, conversation.agentId))
+          .innerJoin(agent, and(eq(agent.id, conversation.agentId), eq(agent.userId, userId)))
           .where(eq(conversation.userId, userId))
           .orderBy(desc(conversation.createdAt))
           .limit(limit);

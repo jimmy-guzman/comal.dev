@@ -22,7 +22,9 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
     <SidebarProvider defaultOpen={false}>
       <AppSidebar
         agents={agents.map((a) => ({ id: a.id, name: a.name }))}
-        conversations={conversations}
+        conversations={conversations.map((c) => {
+          return { agentId: c.agentId, agentName: c.agentName, id: c.id, title: c.title };
+        })}
         isSignedIn={isSignedIn}
       />
       <SidebarInset>

@@ -38,12 +38,7 @@ const toolEntrySchema = z
         ctx.addIssue({
           code: "custom",
           message: issue.message,
-          path: [
-            "config",
-            ...(issue.path?.map((p) => {
-              return typeof p === "object" ? p.key : p;
-            }) ?? []),
-          ],
+          path: ["config", ...(issue.path?.map((p) => (typeof p === "object" ? p.key : p)) ?? [])],
         });
       }
     }
@@ -56,5 +51,3 @@ export const agentInputSchema = z.object({
   systemPrompt: z.string().trim().min(1).max(20_000),
   tools: z.array(toolEntrySchema),
 });
-
-export type AgentFormInput = z.infer<typeof agentInputSchema>;

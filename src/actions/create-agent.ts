@@ -1,6 +1,6 @@
 "use server";
 
-import { Effect, Exit } from "effect";
+import { Cause, Effect, Exit } from "effect";
 import { revalidatePath } from "next/cache";
 
 import { DatabaseLive } from "@/db/service";
@@ -16,7 +16,7 @@ export const createAgentAction = authClient
     const exit = await Effect.runPromiseExit(program);
 
     if (Exit.isFailure(exit)) {
-      throw new Error("Failed to create agent.");
+      throw new Error("Failed to create agent.", { cause: Cause.squash(exit.cause) });
     }
 
     revalidatePath("/", "layout");

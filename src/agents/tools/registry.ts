@@ -10,7 +10,7 @@ import { createWebSearch } from "./search";
 import { tavilyProvider } from "./search/tavily";
 import { createWebFetch } from "./web-fetch";
 
-export interface ToolDefinition<TConfig = unknown> {
+interface ToolDefinition<TConfig = unknown> {
   build: (config: TConfig) => Tool;
   /** Validates the per-agent config. Output type must match TConfig. */
   configSchema: StandardSchemaV1<unknown, TConfig>;
@@ -25,7 +25,7 @@ const noConfigSchema = z.object({}).strict();
 type NoConfig = z.infer<typeof noConfigSchema>;
 
 const approvalConfigSchema = z.object({
-  needsApproval: z.boolean().default(false),
+  needsApproval: z.boolean(),
 });
 
 type ApprovalConfig = z.infer<typeof approvalConfigSchema>;

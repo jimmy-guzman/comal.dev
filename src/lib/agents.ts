@@ -3,15 +3,16 @@ import { Effect } from "effect";
 import { nanoid } from "nanoid";
 
 import { agent, agentTool } from "@/db/schemas/agent-schema";
+import { conversation } from "@/db/schemas/chat-schema";
 import { Database } from "@/db/service";
 import { DatabaseError, ForbiddenError, NotFoundError } from "@/lib/errors";
 
-export interface AgentToolInput {
+interface AgentToolInput {
   config: unknown;
   toolId: string;
 }
 
-export interface AgentInput {
+interface AgentInput {
   defaultModelId: string;
   description?: string;
   name: string;
@@ -175,7 +176,10 @@ export const deleteAgent = (agentId: string) => {
 
     yield* Effect.tryPromise({
       catch: (cause) => new DatabaseError({ cause }),
-      try: () => db.delete(agent).where(eq(agent.id, agentId)),
+      try: async () => {
+        await db.delete(conversation).where(eq(conversation.agentId, agentId));
+        await db.delete(agent).where(eq(agent.id, agentId));
+      },
     });
   });
 };

@@ -38,14 +38,16 @@ interface WebFetchOptions {
 
 export const createWebFetch = ({ needsApproval = true }: WebFetchOptions = {}) => {
   return tool({
-    description:
-      "Fetch the content of a URL and return it as markdown, plain text, or raw HTML. Always ask for user confirmation before fetching.",
+    description: needsApproval
+      ? "Fetch the content of a URL and return it as markdown, plain text, or raw HTML. Always ask for user confirmation before fetching."
+      : "Fetch the content of a URL and return it as markdown, plain text, or raw HTML.",
     execute: async ({ format, timeout, url }) => {
       if (!url.startsWith("http://") && !url.startsWith("https://")) {
         throw new Error("URL must start with http:// or https://");
       }
 
-      const timeoutMs = Math.min((timeout ?? DEFAULT_TIMEOUT_MS / 1000) * 1000, MAX_TIMEOUT_MS);
+      const timeoutSeconds = timeout ?? DEFAULT_TIMEOUT_MS / 1000;
+      const timeoutMs = Math.min(timeoutSeconds * 1000, MAX_TIMEOUT_MS);
 
       const response = await fetch(url, {
         headers: {
@@ -100,6 +102,8 @@ export const createWebFetch = ({ needsApproval = true }: WebFetchOptions = {}) =
         .describe("The format to return the content in. Defaults to markdown."),
       timeout: z
         .number()
+        .positive()
+        .max(120)
         .optional()
         .describe("Optional timeout in seconds (max 120). Defaults to 30."),
       url: z.string().describe("The URL to fetch. Must start with http:// or https://."),

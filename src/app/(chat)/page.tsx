@@ -13,7 +13,11 @@ export default async function HomePage() {
   const agents = session?.user ? await runWithDb(listAgentsForUser(session.user.id)) : [];
 
   const ctaHref = session?.user ? "/agents/new" : "/sign-in";
-  const ctaLabel = agents.length === 0 ? "Create your first agent" : "Create an agent";
+  const ctaLabel = session?.user
+    ? agents.length === 0
+      ? "Create your first agent"
+      : "Create an agent"
+    : "Sign in to get started";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-12 p-8">

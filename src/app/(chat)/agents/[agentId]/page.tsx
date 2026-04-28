@@ -4,8 +4,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { ConversationList } from "@/components/conversation-list";
+import { DeleteAgentButton } from "@/components/delete-agent-button";
 import { Button } from "@/components/ui/button";
-import { DatabaseLive, runWithDb } from "@/db/service";
+import { runWithDb } from "@/db/service";
 import { getAgentForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 import { listConversationsForAgent } from "@/lib/chat";
@@ -21,10 +22,9 @@ export default async function AgentPage({ params }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const agent = await Effect.runPromise(
+  const agent = await runWithDb(
     getAgentForUser(agentId, session.user.id).pipe(
-      Effect.provide(DatabaseLive),
-      Effect.catchAll(() => Effect.succeed(null)),
+      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
     ),
   );
 
@@ -40,6 +40,7 @@ export default async function AgentPage({ params }: Props) {
           <p className="text-muted-foreground text-sm">{agent.description ?? "No description"}</p>
         </div>
         <div className="flex gap-2">
+          <DeleteAgentButton agentId={agentId} agentName={agent.name} />
           <Button asChild variant="outline">
             <Link href={`/agents/${agentId}/edit`}>Edit</Link>
           </Button>

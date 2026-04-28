@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { AgentForm } from "@/components/agent-form";
-import { DatabaseLive } from "@/db/service";
+import { runWithDb } from "@/db/service";
 import { getAgentForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 
@@ -18,10 +18,9 @@ export default async function EditAgentPage({ params }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const agent = await Effect.runPromise(
+  const agent = await runWithDb(
     getAgentForUser(agentId, session.user.id).pipe(
-      Effect.provide(DatabaseLive),
-      Effect.catchAll(() => Effect.succeed(null)),
+      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
     ),
   );
 
