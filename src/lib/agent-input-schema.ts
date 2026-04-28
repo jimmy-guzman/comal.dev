@@ -38,7 +38,9 @@ const toolEntrySchema = z
         ctx.addIssue({
           code: "custom",
           message: issue.message,
-          path: ["config", ...(issue.path?.map((p) => (typeof p === "object" ? p.key : p)) ?? [])],
+          path: ["config", ...(issue.path?.map((p) => {
+            return typeof p === "object" ? p.key : p;
+          }) ?? [])],
         });
       }
 
@@ -54,7 +56,7 @@ export const agentInputSchema = z.object({
   name: z.string().trim().min(1).max(100),
   systemPrompt: z.string().trim().min(1).max(20_000),
   tools: z.array(toolEntrySchema).superRefine((items, ctx) => {
-    const seen = new Map<string, number>();
+    const seen = new Set<string>();
 
     for (const [index, item] of items.entries()) {
       if (seen.has(item.toolId)) {
@@ -67,7 +69,7 @@ export const agentInputSchema = z.object({
         continue;
       }
 
-      seen.set(item.toolId, index);
+      seen.add(item.toolId);
     }
   }),
 });
