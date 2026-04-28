@@ -1,9 +1,11 @@
 import { and, count, eq } from "drizzle-orm";
 import { Effect } from "effect";
 
+import type { DatabaseError } from "@/lib/errors";
+
 import { chatEvent, conversation } from "@/db/schemas/chat-schema";
-import { Database } from "@/db/service";
-import { DatabaseError, ForbiddenError, NotFoundError } from "@/lib/errors";
+import { Database, runQuery } from "@/db/service";
+import { ForbiddenError, NotFoundError } from "@/lib/errors";
 
 import type { ChatEventRow } from "./projector";
 
@@ -29,11 +31,8 @@ export const getConversationWithEvents = (
   return Effect.gen(function* () {
     const db = yield* Database;
 
-    const convRows = yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
-      try: () => {
-        return db.select().from(conversation).where(eq(conversation.id, conversationId)).limit(1);
-      },
+    const convRows = yield* runQuery(() => {
+      return db.select().from(conversation).where(eq(conversation.id, conversationId)).limit(1);
     });
 
     const conv = convRows.at(0);
@@ -46,21 +45,18 @@ export const getConversationWithEvents = (
       return yield* Effect.fail(new ForbiddenError());
     }
 
-    const eventRows = yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
-      try: () => {
-        return db
-          .select({
-            eventType: chatEvent.eventType,
-            messageId: chatEvent.messageId,
-            payload: chatEvent.payload,
-            role: chatEvent.role,
-            sequence: chatEvent.sequence,
-          })
-          .from(chatEvent)
-          .where(eq(chatEvent.conversationId, conversationId))
-          .orderBy(chatEvent.sequence);
-      },
+    const eventRows = yield* runQuery(() => {
+      return db
+        .select({
+          eventType: chatEvent.eventType,
+          messageId: chatEvent.messageId,
+          payload: chatEvent.payload,
+          role: chatEvent.role,
+          sequence: chatEvent.sequence,
+        })
+        .from(chatEvent)
+        .where(eq(chatEvent.conversationId, conversationId))
+        .orderBy(chatEvent.sequence);
     });
 
     const events = eventRows.flatMap((row): ChatEventRow[] => {
@@ -96,19 +92,16 @@ export const countAssistantTurns = (
   return Effect.gen(function* () {
     const db = yield* Database;
 
-    const rows = yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
-      try: () => {
-        return db
-          .select({ count: count() })
-          .from(chatEvent)
-          .where(
-            and(
-              eq(chatEvent.conversationId, conversationId),
-              eq(chatEvent.eventType, "assistant-turn-finish"),
-            ),
-          );
-      },
+    const rows = yield* runQuery(() => {
+      return db
+        .select({ count: count() })
+        .from(chatEvent)
+        .where(
+          and(
+            eq(chatEvent.conversationId, conversationId),
+            eq(chatEvent.eventType, "assistant-turn-finish"),
+          ),
+        );
     });
 
     return rows[0]?.count ?? 0;

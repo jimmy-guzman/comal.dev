@@ -40,7 +40,7 @@ const toolEntrySchema = z
           message: issue.message,
           path: [
             "config",
-            ...(issue.path?.map((p) => typeof p === "object" ? p.key : p) ?? []),
+            ...(issue.path?.map((p) => (typeof p === "object" ? p.key : p)) ?? []),
           ],
         });
       }
@@ -56,5 +56,21 @@ export const agentInputSchema = z.object({
   description: z.string().trim().max(500).optional(),
   name: z.string().trim().min(1).max(100),
   systemPrompt: z.string().trim().min(1).max(20_000),
-  tools: z.array(toolEntrySchema),
+  tools: z.array(toolEntrySchema).superRefine((items, ctx) => {
+    const seen = new Map<string, number>();
+
+    for (const [index, item] of items.entries()) {
+      if (seen.has(item.toolId)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Duplicate tool selection.",
+          path: [index, "toolId"],
+        });
+
+        continue;
+      }
+
+      seen.set(item.toolId, index);
+    }
+  }),
 });

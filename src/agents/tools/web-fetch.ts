@@ -1,10 +1,13 @@
+import type { Response } from "undici";
+
 import { TextDecoder } from "node:util";
 
 import { tool } from "ai";
 import TurndownService from "turndown";
+import { fetch } from "undici";
 import { z } from "zod";
 
-import { assertSafeUrl } from "./web-fetch-safety";
+import { assertSafeUrl, getSafeDispatcher } from "./web-fetch-safety";
 
 const MAX_RESPONSE_SIZE = 5 * 1024 * 1024; // 5MB
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -35,10 +38,11 @@ const readBoundedBody = async (response: Response) => {
     throw new Error("Response too large (exceeds 5MB limit)");
   }
 
-  const reader = response.body?.getReader();
+  const body = response.body as null | ReadableStream<Uint8Array>;
+  const reader = body?.getReader();
 
   if (!reader) {
-    throw new Error("Response has no body");
+    return new Uint8Array(0);
   }
 
   const chunks: Uint8Array[] = [];
@@ -102,8 +106,13 @@ const fetchWithSafeRedirects = async ({ format, signal, url }: FetchArgs) => {
   let current = url;
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    const parsed = await assertSafeUrl(current);
-    const response = await fetch(parsed, { headers, redirect: "manual", signal });
+    const parsed = assertSafeUrl(current);
+    const response = await fetch(parsed, {
+      dispatcher: getSafeDispatcher(),
+      headers,
+      redirect: "manual",
+      signal,
+    });
 
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location");

@@ -6,7 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { ConversationList } from "@/components/conversation-list";
 import { DeleteAgentButton } from "@/components/delete-agent-button";
 import { Button } from "@/components/ui/button";
-import { runWithDb } from "@/db/service";
+import { appRuntime } from "@/db/service";
 import { getAgentForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 import { listConversationsForAgent } from "@/lib/chat";
@@ -22,7 +22,7 @@ export default async function AgentPage({ params }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const agent = await runWithDb(
+  const agent = await appRuntime.runPromise(
     getAgentForUser(agentId, session.user.id).pipe(
       Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
     ),
@@ -30,7 +30,9 @@ export default async function AgentPage({ params }: Props) {
 
   if (!agent) notFound();
 
-  const conversations = await runWithDb(listConversationsForAgent(session.user.id, agentId));
+  const conversations = await appRuntime.runPromise(
+    listConversationsForAgent(session.user.id, agentId),
+  );
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-8 p-8">

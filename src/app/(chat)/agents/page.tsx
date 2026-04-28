@@ -4,7 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { runWithDb } from "@/db/service";
+import { appRuntime } from "@/db/service";
 import { listAgentsForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 
@@ -13,7 +13,7 @@ export default async function AgentsPage() {
 
   if (!session?.user) redirect("/sign-in");
 
-  const agents = await runWithDb(listAgentsForUser(session.user.id));
+  const agents = await appRuntime.runPromise(listAgentsForUser(session.user.id));
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-8 p-8">

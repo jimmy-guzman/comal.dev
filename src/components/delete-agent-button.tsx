@@ -55,7 +55,9 @@ export const DeleteAgentButton = ({ agentId, agentName }: Props) => {
           <AlertDialogAction
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             disabled={isPending}
-            onClick={() => { execute({ agentId }); }}
+            onClick={() => {
+              execute({ agentId });
+            }}
           >
             {isPending ? "Deleting..." : "Delete"}
           </AlertDialogAction>

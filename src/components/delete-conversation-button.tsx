@@ -7,7 +7,6 @@ import * as React from "react";
 import { deleteConversationAction } from "@/actions/delete-conversation";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -16,6 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   agentId: string;
@@ -74,13 +74,16 @@ export const DeleteConversationButton = ({
         ) : null}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
+          <Button
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             disabled={isPending}
-            onClick={() => { execute({ conversationId }); }}
+            onClick={() => {
+              execute({ conversationId });
+            }}
+            type="button"
           >
             {isPending ? "Deleting..." : "Delete"}
-          </AlertDialogAction>
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

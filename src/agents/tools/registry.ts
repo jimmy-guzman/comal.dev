@@ -10,6 +10,17 @@ interface ToolMetadata<TConfig = unknown> {
   name: string;
 }
 
+const deepFreeze = <T>(value: T): T => {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const key of Object.keys(value)) {
+      deepFreeze((value as Record<string, unknown>)[key]);
+    }
+  }
+
+  return value;
+};
+
 const noConfigSchema = z.object({}).strict();
 
 type NoConfig = z.infer<typeof noConfigSchema>;
@@ -22,7 +33,7 @@ type ApprovalConfig = z.infer<typeof approvalConfigSchema>;
 
 const getCurrentTimeMeta = {
   configSchema: noConfigSchema,
-  defaultConfig: {},
+  defaultConfig: deepFreeze({}),
   description: "Returns the current date and time in the user's timezone.",
   id: "get-current-time",
   name: "Current time",
@@ -30,7 +41,7 @@ const getCurrentTimeMeta = {
 
 const webFetchMeta = {
   configSchema: approvalConfigSchema,
-  defaultConfig: { needsApproval: true },
+  defaultConfig: deepFreeze({ needsApproval: true }),
   description: "Fetches the contents of a URL and returns it as markdown, text, or HTML.",
   id: "web-fetch",
   name: "Web fetch",
@@ -38,7 +49,7 @@ const webFetchMeta = {
 
 const webSearchMeta = {
   configSchema: approvalConfigSchema,
-  defaultConfig: { needsApproval: false },
+  defaultConfig: deepFreeze({ needsApproval: false }),
   description: "Searches the web (via Tavily) and returns a list of titles, URLs, and snippets.",
   id: "web-search",
   name: "Web search",
@@ -46,18 +57,18 @@ const webSearchMeta = {
 
 const githubReadMeta = {
   configSchema: noConfigSchema,
-  defaultConfig: {},
+  defaultConfig: deepFreeze({}),
   description: "Reads files from public GitHub repositories in batch.",
   id: "github-read",
   name: "GitHub read",
 } satisfies ToolMetadata<NoConfig>;
 
-const metadata = [
-  getCurrentTimeMeta as ToolMetadata,
-  webFetchMeta as ToolMetadata,
-  webSearchMeta as ToolMetadata,
-  githubReadMeta as ToolMetadata,
-];
+const metadata = Object.freeze([
+  Object.freeze(getCurrentTimeMeta) as ToolMetadata,
+  Object.freeze(webFetchMeta) as ToolMetadata,
+  Object.freeze(webSearchMeta) as ToolMetadata,
+  Object.freeze(githubReadMeta) as ToolMetadata,
+]);
 
 const byId = new Map(metadata.map((m) => [m.id, m]));
 

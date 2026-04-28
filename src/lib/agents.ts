@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 
 import { agent, agentTool } from "@/db/schemas/agent-schema";
 import { conversation } from "@/db/schemas/chat-schema";
-import { Database } from "@/db/service";
+import { Database, runQuery } from "@/db/service";
 import { DatabaseError, ForbiddenError, NotFoundError } from "@/lib/errors";
 
 interface AgentToolInput {
@@ -24,22 +24,19 @@ export const listAgentsForUser = (userId: string) => {
   return Effect.gen(function* () {
     const db = yield* Database;
 
-    return yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
-      try: () => {
-        return db
-          .select({
-            createdAt: agent.createdAt,
-            defaultModelId: agent.defaultModelId,
-            description: agent.description,
-            id: agent.id,
-            name: agent.name,
-            updatedAt: agent.updatedAt,
-          })
-          .from(agent)
-          .where(eq(agent.userId, userId))
-          .orderBy(desc(agent.updatedAt));
-      },
+    return yield* runQuery(() => {
+      return db
+        .select({
+          createdAt: agent.createdAt,
+          defaultModelId: agent.defaultModelId,
+          description: agent.description,
+          id: agent.id,
+          name: agent.name,
+          updatedAt: agent.updatedAt,
+        })
+        .from(agent)
+        .where(eq(agent.userId, userId))
+        .orderBy(desc(agent.updatedAt));
     });
   });
 };
@@ -48,15 +45,12 @@ export const getAgentForUser = (agentId: string, userId: string) => {
   return Effect.gen(function* () {
     const db = yield* Database;
 
-    const rows = yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
-      try: () => {
-        return db
-          .select()
-          .from(agent)
-          .where(and(eq(agent.id, agentId), eq(agent.userId, userId)))
-          .limit(1);
-      },
+    const rows = yield* runQuery(() => {
+      return db
+        .select()
+        .from(agent)
+        .where(and(eq(agent.id, agentId), eq(agent.userId, userId)))
+        .limit(1);
     });
 
     const row = rows.at(0);
@@ -65,14 +59,11 @@ export const getAgentForUser = (agentId: string, userId: string) => {
       return yield* Effect.fail(new NotFoundError({ resource: "agent" }));
     }
 
-    const tools = yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
-      try: () => {
-        return db
-          .select({ config: agentTool.config, toolId: agentTool.toolId })
-          .from(agentTool)
-          .where(eq(agentTool.agentId, agentId));
-      },
+    const tools = yield* runQuery(() => {
+      return db
+        .select({ config: agentTool.config, toolId: agentTool.toolId })
+        .from(agentTool)
+        .where(eq(agentTool.agentId, agentId));
     });
 
     return { ...row, tools };
@@ -83,15 +74,8 @@ export const assertAgentOwnership = (agentId: string, userId: string) => {
   return Effect.gen(function* () {
     const db = yield* Database;
 
-    const rows = yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
-      try: () => {
-        return db
-          .select({ userId: agent.userId })
-          .from(agent)
-          .where(eq(agent.id, agentId))
-          .limit(1);
-      },
+    const rows = yield* runQuery(() => {
+      return db.select({ userId: agent.userId }).from(agent).where(eq(agent.id, agentId)).limit(1);
     });
 
     const row = rows.at(0);

@@ -4,8 +4,8 @@ import { and, eq } from "drizzle-orm";
 import { Effect } from "effect";
 
 import { agent, agentTool } from "@/db/schemas/agent-schema";
-import { Database } from "@/db/service";
-import { DatabaseError, NotFoundError } from "@/lib/errors";
+import { Database, runQuery } from "@/db/service";
+import { NotFoundError } from "@/lib/errors";
 
 import type { AgentConfig } from "./types";
 
@@ -60,21 +60,18 @@ export const loadAgent = (agentId: string, userId: string) => {
   return Effect.gen(function* () {
     const db = yield* Database;
 
-    const rows = yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
-      try: () => {
-        return db
-          .select({
-            defaultModelId: agent.defaultModelId,
-            description: agent.description,
-            id: agent.id,
-            name: agent.name,
-            systemPrompt: agent.systemPrompt,
-          })
-          .from(agent)
-          .where(and(eq(agent.id, agentId), eq(agent.userId, userId)))
-          .limit(1);
-      },
+    const rows = yield* runQuery(() => {
+      return db
+        .select({
+          defaultModelId: agent.defaultModelId,
+          description: agent.description,
+          id: agent.id,
+          name: agent.name,
+          systemPrompt: agent.systemPrompt,
+        })
+        .from(agent)
+        .where(and(eq(agent.id, agentId), eq(agent.userId, userId)))
+        .limit(1);
     });
 
     const row = rows.at(0);
@@ -83,14 +80,11 @@ export const loadAgent = (agentId: string, userId: string) => {
       return yield* Effect.fail(new NotFoundError({ resource: "agent" }));
     }
 
-    const toolRows = yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
-      try: () => {
-        return db
-          .select({ config: agentTool.config, toolId: agentTool.toolId })
-          .from(agentTool)
-          .where(eq(agentTool.agentId, agentId));
-      },
+    const toolRows = yield* runQuery(() => {
+      return db
+        .select({ config: agentTool.config, toolId: agentTool.toolId })
+        .from(agentTool)
+        .where(eq(agentTool.agentId, agentId));
     });
 
     const toolsRecord = yield* buildToolsRecord(toolRows);

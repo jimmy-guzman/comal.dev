@@ -4,7 +4,7 @@ import { Effect, Exit } from "effect";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { DatabaseLive } from "@/db/service";
+import { appRuntime } from "@/db/service";
 import { agentInputSchema } from "@/lib/agent-input-schema";
 import { assertAgentOwnership, updateAgent } from "@/lib/agents";
 import { ForbiddenError, NotFoundError } from "@/lib/errors";
@@ -22,9 +22,9 @@ export const updateAgentAction = authClient
     const program = Effect.gen(function* () {
       yield* assertAgentOwnership(agentId, ctx.auth.user.id);
       yield* updateAgent(agentId, input);
-    }).pipe(Effect.provide(DatabaseLive));
+    });
 
-    const exit = await Effect.runPromiseExit(program);
+    const exit = await appRuntime.runPromiseExit(program);
 
     if (Exit.isFailure(exit)) {
       const { cause } = exit;

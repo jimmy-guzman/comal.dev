@@ -3,14 +3,16 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { runWithDb } from "@/db/service";
+import { appRuntime } from "@/db/service";
 import { listAgentsForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 
 export default async function HomePage() {
   const session = await auth.api.getSession({ headers: await headers() });
 
-  const agents = session?.user ? await runWithDb(listAgentsForUser(session.user.id)) : [];
+  const agents = session?.user
+    ? await appRuntime.runPromise(listAgentsForUser(session.user.id))
+    : [];
 
   const ctaHref = session?.user ? "/agents/new" : "/sign-in";
   const ctaLabel = session?.user

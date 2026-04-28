@@ -1,5 +1,9 @@
+import type { LookupAddress, LookupOptions } from "node:dns";
+
 import { lookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
+
+import { Agent } from "undici";
 
 const blockedV4 = new BlockList();
 
@@ -33,7 +37,51 @@ const isBlockedIp = (address: string) => {
   return true;
 };
 
-export const assertSafeUrl = async (target: string) => {
+type LookupCallback = (
+  err: NodeJS.ErrnoException | null,
+  addressOrAddresses: LookupAddress[] | string,
+  family?: number,
+) => void;
+
+const safeLookup = (
+  hostname: string,
+  options: LookupOptions,
+  callback: LookupCallback,
+): void => {
+  const family = options.family === 4 || options.family === 6 ? options.family : 0;
+
+  lookup(hostname, { all: true, family, verbatim: true })
+    .then((records) => {
+      const allowed = records.filter(({ address }) => !isBlockedIp(address));
+
+      if (allowed.length === 0) {
+        callback(new Error("URL resolves to a blocked address"), "");
+
+        return;
+      }
+
+      if (options.all) {
+        callback(null, allowed);
+
+        return;
+      }
+
+      const [first] = allowed;
+
+      callback(null, first.address, first.family);
+    })
+    .catch((error: unknown) => {
+      callback(error as NodeJS.ErrnoException, "");
+    });
+};
+
+const safeDispatcher = new Agent({ connect: { lookup: safeLookup } });
+
+export const getSafeDispatcher = () => {
+  return safeDispatcher;
+};
+
+export const assertSafeUrl = (target: string) => {
   let parsed: URL;
 
   try {
@@ -46,26 +94,10 @@ export const assertSafeUrl = async (target: string) => {
     throw new Error("URL must start with http:// or https://");
   }
 
-  const {hostname} = parsed;
+  const { hostname } = parsed;
 
-  if (isIP(hostname)) {
-    if (isBlockedIp(hostname)) {
-      throw new Error("URL resolves to a blocked address");
-    }
-
-    return parsed;
-  }
-
-  const records = await lookup(hostname, { all: true, verbatim: true });
-
-  if (records.length === 0) {
-    throw new Error("URL could not be resolved");
-  }
-
-  for (const { address } of records) {
-    if (isBlockedIp(address)) {
-      throw new Error("URL resolves to a blocked address");
-    }
+  if (isIP(hostname) && isBlockedIp(hostname)) {
+    throw new Error("URL resolves to a blocked address");
   }
 
   return parsed;

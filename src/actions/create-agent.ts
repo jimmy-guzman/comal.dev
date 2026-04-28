@@ -1,9 +1,9 @@
 "use server";
 
-import { Cause, Effect, Exit } from "effect";
+import { Cause, Exit } from "effect";
 import { revalidatePath } from "next/cache";
 
-import { DatabaseLive } from "@/db/service";
+import { appRuntime } from "@/db/service";
 import { agentInputSchema } from "@/lib/agent-input-schema";
 import { createAgent } from "@/lib/agents";
 import { authClient } from "@/lib/safe-action";
@@ -11,9 +11,7 @@ import { authClient } from "@/lib/safe-action";
 export const createAgentAction = authClient
   .inputSchema(agentInputSchema)
   .action(async ({ ctx, parsedInput }) => {
-    const program = createAgent(ctx.auth.user.id, parsedInput).pipe(Effect.provide(DatabaseLive));
-
-    const exit = await Effect.runPromiseExit(program);
+    const exit = await appRuntime.runPromiseExit(createAgent(ctx.auth.user.id, parsedInput));
 
     if (Exit.isFailure(exit)) {
       throw new Error("Failed to create agent.", { cause: Cause.squash(exit.cause) });

@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
-import { DatabaseLive } from "@/db/service";
+import { appRuntime } from "@/db/service";
 import { getAgentForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 import { createConversation } from "@/lib/chat";
@@ -29,9 +29,9 @@ export async function GET(_req: Request, { params }: Props) {
       title: "New conversation",
       userId: session.user.id,
     });
-  }).pipe(Effect.provide(DatabaseLive));
+  });
 
-  const exit = await Effect.runPromiseExit(program);
+  const exit = await appRuntime.runPromiseExit(program);
 
   return Exit.match(exit, {
     onFailure: (cause) => {
