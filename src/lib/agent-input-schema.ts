@@ -8,7 +8,7 @@ const toolEntrySchema = z
     config: z.unknown(),
     toolId: z.string(),
   })
-  .superRefine((value, ctx) => {
+  .transform((value, ctx) => {
     const def = tools.get(value.toolId);
 
     if (!def) {
@@ -18,7 +18,7 @@ const toolEntrySchema = z
         path: ["toolId"],
       });
 
-      return;
+      return z.NEVER;
     }
 
     const validation = def.configSchema["~standard"].validate(value.config);
@@ -30,7 +30,7 @@ const toolEntrySchema = z
         path: ["config"],
       });
 
-      return;
+      return z.NEVER;
     }
 
     if (validation.issues) {
@@ -38,10 +38,17 @@ const toolEntrySchema = z
         ctx.addIssue({
           code: "custom",
           message: issue.message,
-          path: ["config", ...(issue.path?.map((p) => (typeof p === "object" ? p.key : p)) ?? [])],
+          path: [
+            "config",
+            ...(issue.path?.map((p) => typeof p === "object" ? p.key : p) ?? []),
+          ],
         });
       }
+
+      return z.NEVER;
     }
+
+    return { config: validation.value, toolId: value.toolId };
   });
 
 export const agentInputSchema = z.object({

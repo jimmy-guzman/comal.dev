@@ -9,6 +9,7 @@ import { DatabaseError, NotFoundError } from "@/lib/errors";
 
 import type { AgentConfig } from "./types";
 
+import { buildTool } from "./tools/build";
 import { tools as toolRegistry } from "./tools/registry";
 
 const buildToolsRecord = (rows: { config: unknown; toolId: string }[]) => {
@@ -30,15 +31,25 @@ const buildToolsRecord = (rows: { config: unknown; toolId: string }[]) => {
         continue;
       }
 
+      let config: unknown;
+
       if (validation.issues) {
         yield* Effect.logWarning(
           `invalid config for "${row.toolId}", falling back to default`,
         ).pipe(Effect.annotateLogs({ issues: validation.issues }));
-        result[row.toolId] = def.build(def.defaultConfig);
+        config = def.defaultConfig;
+      } else {
+        config = validation.value;
+      }
+
+      const built = buildTool(row.toolId, config);
+
+      if (!built) {
+        yield* Effect.logWarning(`no builder registered for "${row.toolId}", skipping`);
         continue;
       }
 
-      result[row.toolId] = def.build(validation.value);
+      result[row.toolId] = built;
     }
 
     return result;

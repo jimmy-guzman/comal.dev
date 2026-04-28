@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2Icon } from "lucide-react";
+import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
@@ -36,7 +36,6 @@ export const DeleteConversationButton = ({
 }: Props) => {
   const router = useRouter();
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
-  const [isPending, setIsPending] = React.useState(false);
 
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : uncontrolledOpen;
@@ -49,18 +48,15 @@ export const DeleteConversationButton = ({
     }
   };
 
-  const handleDelete = async () => {
-    setIsPending(true);
+  const { execute, isPending, result } = useAction(deleteConversationAction, {
+    onSuccess: () => {
+      setOpen(false);
 
-    await deleteConversationAction({ conversationId });
-
-    setIsPending(false);
-    setOpen(false);
-
-    if (redirectAfter) {
-      router.push(`/agents/${agentId}`);
-    }
-  };
+      if (redirectAfter) {
+        router.push(`/agents/${agentId}`);
+      }
+    },
+  });
 
   return (
     <AlertDialog onOpenChange={setOpen} open={open}>
@@ -73,14 +69,16 @@ export const DeleteConversationButton = ({
             undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {result.serverError ? (
+          <p className="text-destructive text-sm">{result.serverError}</p>
+        ) : null}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             disabled={isPending}
-            onClick={() => void handleDelete()}
+            onClick={() => { execute({ conversationId }); }}
           >
-            <Trash2Icon />
             {isPending ? "Deleting..." : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>

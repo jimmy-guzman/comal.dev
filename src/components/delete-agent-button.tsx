@@ -1,5 +1,6 @@
 "use client";
 
+import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
@@ -25,17 +26,13 @@ interface Props {
 export const DeleteAgentButton = ({ agentId, agentName }: Props) => {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
-  const [isPending, setIsPending] = React.useState(false);
 
-  const handleDelete = async () => {
-    setIsPending(true);
-
-    await deleteAgentAction({ agentId });
-
-    setIsPending(false);
-    setOpen(false);
-    router.push("/agents");
-  };
+  const { execute, isPending, result } = useAction(deleteAgentAction, {
+    onSuccess: () => {
+      setOpen(false);
+      router.push("/agents");
+    },
+  });
 
   return (
     <AlertDialog onOpenChange={setOpen} open={open}>
@@ -50,12 +47,15 @@ export const DeleteAgentButton = ({ agentId, agentName }: Props) => {
             undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {result.serverError ? (
+          <p className="text-destructive text-sm">{result.serverError}</p>
+        ) : null}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             disabled={isPending}
-            onClick={() => void handleDelete()}
+            onClick={() => { execute({ agentId }); }}
           >
             {isPending ? "Deleting..." : "Delete"}
           </AlertDialogAction>
