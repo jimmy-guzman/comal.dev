@@ -48,7 +48,14 @@ export const DeleteAgentButton = ({ agentId, agentName }: Props) => {
           </AlertDialogDescription>
         </AlertDialogHeader>
         {result.serverError ? (
-          <p className="text-destructive text-sm">{result.serverError}</p>
+          <p
+            aria-atomic="true"
+            aria-live="assertive"
+            className="text-destructive text-sm"
+            role="alert"
+          >
+            {result.serverError}
+          </p>
         ) : null}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>

@@ -31,9 +31,7 @@ export const isRetryableDbError = (error: unknown) => {
     if (source instanceof Error) {
       if (source instanceof TypeError) return true;
 
-      const { code } = source as { code?: unknown };
-
-      if (isNetworkErrorCode(code)) return true;
+      if (isNetworkErrorCode(Reflect.get(source, "code"))) return true;
     }
 
     return false;
@@ -41,11 +39,7 @@ export const isRetryableDbError = (error: unknown) => {
 
   if (error instanceof TypeError) return true;
 
-  if (error instanceof Error) {
-    const { code } = error as { code?: unknown };
-
-    if (isNetworkErrorCode(code)) return true;
-  }
+  if (error instanceof Error && isNetworkErrorCode(Reflect.get(error, "code"))) return true;
 
   return false;
 };

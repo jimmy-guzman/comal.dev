@@ -52,7 +52,7 @@ export const listConversationsForAgent = (
     createdAt: Date;
     id: string;
     modelId: string;
-    title: null | string;
+    title: string;
   }[],
   DatabaseError,
   Database

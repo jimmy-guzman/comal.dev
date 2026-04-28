@@ -16,22 +16,14 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import type { Database } from "@/db/service";
-import type {
-  DatabaseError,
-  ForbiddenError,
-  NotFoundError,
-  UnauthorizedError,
-} from "@/lib/errors";
+import type { DatabaseError, ForbiddenError, NotFoundError, UnauthorizedError } from "@/lib/errors";
 
 import { loadAgent } from "@/agents";
 import { appRuntime } from "@/db/service";
 import { Auth, AuthLive } from "@/lib/auth-context";
 import { updateConversationTitle } from "@/lib/chat";
 import { classifyChatError } from "@/lib/chat/errors";
-import {
-  appendChatEvent,
-  persistChatStream,
-} from "@/lib/chat/persist-stream";
+import { appendChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
 import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
 import { LLMError, MessageConversionError, ValidationError } from "@/lib/errors";
 import { openrouter } from "@/lib/openrouter";

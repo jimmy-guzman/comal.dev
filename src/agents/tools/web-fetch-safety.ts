@@ -32,7 +32,7 @@ const isBlockedIp = (address: string) => {
 
   if (family === 4) return blockedV4.check(address, "ipv4");
 
-  if (family === 6) return blockedV6.check(address, "ipv6") || blockedV4.check(address, "ipv6");
+  if (family === 6) return blockedV6.check(address, "ipv6");
 
   return true;
 };
@@ -43,11 +43,7 @@ type LookupCallback = (
   family?: number,
 ) => void;
 
-const safeLookup = (
-  hostname: string,
-  options: LookupOptions,
-  callback: LookupCallback,
-): void => {
+const safeLookup = (hostname: string, options: LookupOptions, callback: LookupCallback): void => {
   const family = options.family === 4 || options.family === 6 ? options.family : 0;
 
   lookup(hostname, { all: true, family, verbatim: true })
