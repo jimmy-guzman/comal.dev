@@ -29,26 +29,3 @@ export const getServerProductionUrl = () => {
 
   return env.BETTER_AUTH_URL ?? LOCAL_URL;
 };
-
-export const getClientBaseUrl = () => {
-  if (env.NEXT_PUBLIC_APP_URL) {
-    return env.NEXT_PUBLIC_APP_URL;
-  }
-
-  if (
-    env.NEXT_PUBLIC_VERCEL_ENV === "production" &&
-    env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL
-  ) {
-    return withProtocol(env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL);
-  }
-
-  if (env.NEXT_PUBLIC_VERCEL_URL) {
-    return withProtocol(env.NEXT_PUBLIC_VERCEL_URL);
-  }
-
-  return LOCAL_URL;
-};
-
-export const isPreviewDeployment = () => {
-  return env.NEXT_PUBLIC_VERCEL_ENV === "preview";
-};

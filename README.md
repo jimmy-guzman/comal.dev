@@ -33,7 +33,6 @@ Build your own AI agents. Pick a model, write a system prompt, choose tools, cha
    - `BETTER_AUTH_SECRET` — random secret for Better Auth
    - `BETTER_AUTH_URL` — base URL of the app for local dev (e.g. `http://localhost:3000`). Optional on Vercel; derived from `VERCEL_URL` / `VERCEL_PROJECT_PRODUCTION_URL` when unset.
    - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — [GitHub OAuth app](https://github.com/settings/developers)
-   - `NEXT_PUBLIC_APP_URL` — same as `BETTER_AUTH_URL`. Same Vercel fallback applies.
    - `OPENROUTER_API_KEY` — [OpenRouter](https://openrouter.ai/) key for chat
    - `TAVILY_API_KEY` — [Tavily](https://tavily.com) key for web search
 3. Push the database schema: `bun run db:push`
@@ -41,7 +40,11 @@ Build your own AI agents. Pick a model, write a system prompt, choose tools, cha
 
 ## Deploying to Vercel
 
-`BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` are optional on Vercel. The base URL is derived at runtime from Vercel's built-in env vars (`VERCEL_PROJECT_PRODUCTION_URL` for production, `VERCEL_URL` for previews) by `src/lib/base-url.ts`. Preview deployments work for anonymous sessions, but the GitHub sign-in button is hidden on previews (`VERCEL_ENV === "preview"`) since the OAuth callback is registered against the production domain only.
+`BETTER_AUTH_URL` is optional on Vercel. The server-side base URL is derived at runtime from Vercel's built-in env vars (`VERCEL_PROJECT_PRODUCTION_URL` for production, `VERCEL_URL` for previews) by `src/lib/base-url.ts`. The auth client always calls same-origin, so no client-side URL env vars are required.
+
+Anonymous sessions are bootstrapped server-side by `src/proxy.ts` on every page request that lacks a session cookie. The first SSR pass already sees the new session, so there is no client-side flash of "sign in" copy. The proxy runs on the Node.js runtime by default in Next.js 16, so Better Auth + Drizzle + Neon work without an Edge-runtime workaround.
+
+GitHub OAuth is registered against the production domain only, so the GitHub sign-in button is hidden on preview deployments (`VERCEL_ENV === "preview"`). Anonymous sessions still work on previews.
 
 ## Agents
 

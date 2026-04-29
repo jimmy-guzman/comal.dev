@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { authClient } from "@/lib/auth-client";
-import { isPreviewDeployment } from "@/lib/base-url";
 import { cn } from "@/lib/utils";
 
-export function SignInCard({ className, ...props }: React.ComponentProps<"div">) {
+type SignInCardProps = React.ComponentProps<"div"> & {
+  previewDisabled?: boolean;
+};
+
+export function SignInCard({ className, previewDisabled = false, ...props }: SignInCardProps) {
   const [pending, setPending] = useState(false);
-  const previewDisabled = isPreviewDeployment();
 
   const handleGithub = async () => {
     setPending(true);
