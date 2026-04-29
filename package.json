@@ -14,11 +14,13 @@
     "db:studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "openapi-ts": "openapi-ts"
   },
   "dependencies": {
     "@ai-sdk/provider": "3.0.8",
     "@ai-sdk/react": "3.0.170",
+    "@hey-api/openapi-ts": "0.97.0",
     "@neondatabase/serverless": "1.1.0",
     "@next-safe-action/adapter-better-auth": "0.1.6",
     "@openrouter/ai-sdk-provider": "2.8.1",

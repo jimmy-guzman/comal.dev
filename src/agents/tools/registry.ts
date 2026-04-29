@@ -63,11 +63,83 @@ const githubReadMeta = {
   name: "GitHub read",
 } satisfies ToolMetadata<NoConfig>;
 
+const tmdbSearchMultiMeta = {
+  configSchema: noConfigSchema,
+  defaultConfig: deepFreeze({}),
+  description: "Searches TMDB across movies, TV, and people in a single request.",
+  id: "tmdb-search-multi",
+  name: "TMDB search",
+} satisfies ToolMetadata<NoConfig>;
+
+const tmdbMovieDetailsMeta = {
+  configSchema: noConfigSchema,
+  defaultConfig: deepFreeze({}),
+  description: "Fetches full TMDB metadata for a movie by id.",
+  id: "tmdb-movie-details",
+  name: "TMDB movie details",
+} satisfies ToolMetadata<NoConfig>;
+
+const tmdbTvDetailsMeta = {
+  configSchema: noConfigSchema,
+  defaultConfig: deepFreeze({}),
+  description: "Fetches full TMDB metadata for a TV series by id.",
+  id: "tmdb-tv-details",
+  name: "TMDB TV details",
+} satisfies ToolMetadata<NoConfig>;
+
+const tmdbTrendingAllMeta = {
+  configSchema: noConfigSchema,
+  defaultConfig: deepFreeze({}),
+  description: "Lists what's trending across movies and TV on TMDB.",
+  id: "tmdb-trending-all",
+  name: "TMDB trending (all)",
+} satisfies ToolMetadata<NoConfig>;
+
+const tmdbTrendingMoviesMeta = {
+  configSchema: noConfigSchema,
+  defaultConfig: deepFreeze({}),
+  description: "Lists trending movies on TMDB.",
+  id: "tmdb-trending-movies",
+  name: "TMDB trending movies",
+} satisfies ToolMetadata<NoConfig>;
+
+const tmdbTrendingTvMeta = {
+  configSchema: noConfigSchema,
+  defaultConfig: deepFreeze({}),
+  description: "Lists trending TV series on TMDB.",
+  id: "tmdb-trending-tv",
+  name: "TMDB trending TV",
+} satisfies ToolMetadata<NoConfig>;
+
+const tmdbDiscoverMovieMeta = {
+  configSchema: noConfigSchema,
+  defaultConfig: deepFreeze({}),
+  description: "Discovers movies on TMDB by genre, year, language, and sort order.",
+  id: "tmdb-discover-movie",
+  name: "TMDB discover movies",
+} satisfies ToolMetadata<NoConfig>;
+
+const tmdbDiscoverTvMeta = {
+  configSchema: noConfigSchema,
+  defaultConfig: deepFreeze({}),
+  description: "Discovers TV series on TMDB by genre, first-air year, language, and sort order.",
+  id: "tmdb-discover-tv",
+  name: "TMDB discover TV",
+} satisfies ToolMetadata<NoConfig>;
+
 const metadata = Object.freeze([
   Object.freeze(getCurrentTimeMeta) as ToolMetadata,
   Object.freeze(webFetchMeta) as ToolMetadata,
   Object.freeze(webSearchMeta) as ToolMetadata,
   Object.freeze(githubReadMeta) as ToolMetadata,
+  Object.freeze(tmdbSearchMultiMeta) as ToolMetadata,
+  Object.freeze(tmdbMovieDetailsMeta) as ToolMetadata,
+  Object.freeze(tmdbTvDetailsMeta) as ToolMetadata,
+  Object.freeze(tmdbTrendingAllMeta) as ToolMetadata,
+  Object.freeze(tmdbTrendingMoviesMeta) as ToolMetadata,
+  Object.freeze(tmdbTrendingTvMeta) as ToolMetadata,
+  Object.freeze(tmdbDiscoverMovieMeta) as ToolMetadata,
+  Object.freeze(tmdbDiscoverTvMeta) as ToolMetadata,
 ]);
 
 const byId = new Map(metadata.map((m) => [m.id, m]));

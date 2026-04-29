@@ -30,6 +30,7 @@ When changing API client types or AI SDK-related code, run `bun run lint` and `b
 - **`loadAgent(agentId, userId)`** in `src/agents/index.ts` is the single composition point: fetches the agent scoped to the owner, resolves tool ids against the registry, returns an `AgentConfig`. The chat route (`src/app/api/chat/route.ts`) calls it with `ctx.session.user.id`.
 - **Server actions own all writes.** `src/actions/{create,update,delete}-agent.ts` use `next-safe-action`. Mutations validate against `agentInputSchema` (`src/lib/agent-input-schema.ts`), which `superRefine`s tool ids against the registry. `assertAgentOwnership` gates updates; all actions `revalidatePath("/", "layout")` on success.
 - **Persistence is Effect-based.** Use the `Database` `Context.Tag` and `Effect.provide(DatabaseLive)` (or `runWithDb`). Neon HTTP does not support multi-statement transactions; sequence inserts inside a single `tryPromise`.
+- **Generated API clients live in `src/clients/<name>/`.** Each is produced by `bun run openapi-ts` from a spec; treat `*.gen.ts` and the barrel `index.ts` as build output and do not hand-edit. Tools import SDK functions and types from the barrel (`@/clients/<name>`) only. Auth is passed per-call via the `auth` option on each SDK function (see `src/agents/tools/tmdb/*.ts`); `client.setConfig` is avoided so tools don't mutate a shared singleton. Tools are intentionally thin pass-throughs: they call one SDK function, surface `error` as a thrown `Error`, and return raw `data` so the model gets the upstream shape it already knows.
 
 ## Forms
 
