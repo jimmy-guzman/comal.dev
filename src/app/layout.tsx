@@ -5,7 +5,6 @@ import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
-import { AnonymousSession } from "@/components/anonymous-session";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 
@@ -31,7 +30,6 @@ export default function RootLayout({
       lang="en"
     >
       <body className="flex h-full min-h-0 flex-col">
-        <AnonymousSession />
         <NuqsAdapter>
           <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         </NuqsAdapter>

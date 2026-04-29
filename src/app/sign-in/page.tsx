@@ -2,11 +2,13 @@ import { headers } from "next/headers";
 
 import { SignInCard } from "@/components/sign-in-card";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { env } from "@/env";
 import { auth } from "@/lib/auth";
 
 export default async function Page() {
   const session = await auth.api.getSession({ headers: await headers() });
   const isLinked = session?.user && !session.user.isAnonymous;
+  const previewDisabled = env.VERCEL_ENV === "preview";
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center overflow-y-auto p-6 md:p-10">
@@ -19,7 +21,7 @@ export default async function Page() {
             </CardHeader>
           </Card>
         ) : (
-          <SignInCard />
+          <SignInCard previewDisabled={previewDisabled} />
         )}
       </div>
     </div>
