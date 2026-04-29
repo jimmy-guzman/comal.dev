@@ -8,7 +8,7 @@ import {
   stepCountIs,
   streamText,
 } from "ai";
-import { Effect, Logger } from "effect";
+import { Data, Effect, Logger } from "effect";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -27,6 +27,12 @@ import { appendChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
 import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
 import { LLMError, MessageConversionError, ValidationError } from "@/lib/errors";
 import { openrouter } from "@/lib/openrouter";
+import { chatLimiter, chatLimiterAnon, checkLimit, pickLimiter } from "@/lib/rate-limit";
+
+class RateLimitError extends Data.TaggedError("RateLimitError")<{
+  limit: number;
+  reset: number;
+}> {}
 
 const postBodySchema = z.object({
   conversationId: z.string().min(1),
@@ -62,6 +68,7 @@ const errorToResponse = (
     | ForbiddenError
     | MessageConversionError
     | NotFoundError
+    | RateLimitError
     | UnauthorizedError
     | ValidationError,
 ): Response => {
@@ -83,6 +90,15 @@ const errorToResponse = (
 
   if (error._tag === "NotFoundError") {
     return Response.json({ error: `${error.resource} not found.` }, { status: 404 });
+  }
+
+  if (error._tag === "RateLimitError") {
+    const retryAfterSeconds = Math.max(1, Math.ceil((error.reset - Date.now()) / 1000));
+
+    return Response.json(
+      { error: "Rate limit exceeded. Please try again later." },
+      { headers: { "Retry-After": String(retryAfterSeconds) }, status: 429 },
+    );
   }
 
   return Response.json({ error: "Internal server error." }, { status: 500 });
@@ -172,11 +188,25 @@ export async function POST(req: Request) {
     | ForbiddenError
     | MessageConversionError
     | NotFoundError
+    | RateLimitError
     | UnauthorizedError
     | ValidationError;
 
   const program = Effect.gen(function* () {
     const { user } = yield* Auth;
+
+    const limiter = pickLimiter(
+      { anon: chatLimiterAnon, authed: chatLimiter },
+      user,
+    );
+
+    const { limit, reset, success } = yield* Effect.promise(() => {
+      return checkLimit(limiter, user.id);
+    });
+
+    if (!success) {
+      return yield* Effect.fail(new RateLimitError({ limit, reset }));
+    }
 
     const conv = yield* getConversationWithEvents(user.id, conversationId);
 
