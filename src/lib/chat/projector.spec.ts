@@ -246,9 +246,10 @@ describe("projectMessages", () => {
       }),
     ]);
 
-    expect(
-      result[0]?.parts.flatMap((p) => (p.type === "text" ? [p.text] : [])),
-    ).toStrictEqual(["first ", "second"]);
+    expect(result[0]?.parts.flatMap((p) => (p.type === "text" ? [p.text] : []))).toStrictEqual([
+      "first ",
+      "second",
+    ]);
   });
 
   it("should coalesce tool lifecycle across split messageIds into the originating bubble", () => {

@@ -15,22 +15,17 @@ import { headers } from "next/headers";
 import { after } from "next/server";
 import { z } from "zod";
 
-import type { ForbiddenError, UnauthorizedError } from "@/lib/errors";
+import type { Database } from "@/db/service";
+import type { DatabaseError, ForbiddenError, NotFoundError, UnauthorizedError } from "@/lib/errors";
 
-import { getAgent } from "@/agents";
-import { DatabaseLive } from "@/db/service";
-import { auth } from "@/lib/auth";
+import { loadAgent } from "@/agents";
+import { appRuntime } from "@/db/service";
+import { Auth, AuthLive } from "@/lib/auth-context";
 import { updateConversationTitle } from "@/lib/chat";
 import { classifyChatError } from "@/lib/chat/errors";
-import { persistChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
+import { appendChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
 import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
-import {
-  DatabaseError,
-  LLMError,
-  MessageConversionError,
-  NotFoundError,
-  ValidationError,
-} from "@/lib/errors";
+import { LLMError, MessageConversionError, ValidationError } from "@/lib/errors";
 import { openrouter } from "@/lib/openrouter";
 
 const postBodySchema = z.object({
@@ -57,7 +52,8 @@ const postBodySchema = z.object({
 });
 
 const logError = (message: string, error: unknown): void => {
-  Effect.runSync(Effect.logError(message, error).pipe(Effect.provide(Logger.pretty)));
+  // eslint-disable-next-line no-console -- fire-and-forget logging from non-Effect callbacks
+  console.error(message, error);
 };
 
 const errorToResponse = (
@@ -134,7 +130,7 @@ const generateTitleEffect = (
   conversationId: string,
   modelId: string,
   userText: string,
-): Effect.Effect<void, DatabaseError | LLMError> => {
+): Effect.Effect<void, DatabaseError | LLMError, Database> => {
   return Effect.gen(function* () {
     const { text: title } = yield* Effect.tryPromise({
       catch: (cause) => new LLMError({ cause }),
@@ -146,7 +142,7 @@ const generateTitleEffect = (
       },
     });
 
-    yield* Effect.provide(updateConversationTitle(conversationId, title.trim()), DatabaseLive);
+    yield* updateConversationTitle(conversationId, title.trim());
 
     revalidatePath("/", "layout");
   });
@@ -170,32 +166,21 @@ export async function POST(req: Request) {
   const { conversationId, timezone } = parsed.data;
 
   const requestHeaders = await headers();
-  const session = await auth.api.getSession({ headers: requestHeaders });
-
-  if (!session?.user) {
-    return Response.json({ error: "Unauthorized." }, { status: 401 });
-  }
-
-  const { user } = session;
 
   type ChatError =
     | DatabaseError
     | ForbiddenError
     | MessageConversionError
     | NotFoundError
+    | UnauthorizedError
     | ValidationError;
 
   const program = Effect.gen(function* () {
-    const conv = yield* Effect.provide(
-      getConversationWithEvents(user.id, conversationId),
-      DatabaseLive,
-    );
+    const { user } = yield* Auth;
 
-    const agent = getAgent(conv.agentId);
+    const conv = yield* getConversationWithEvents(user.id, conversationId);
 
-    if (!agent) {
-      return yield* Effect.fail(new NotFoundError({ resource: "agent" }));
-    }
+    const agent = yield* loadAgent(conv.agentId, user.id);
 
     const persistedUserMessageIds = new Set<string>();
 
@@ -242,24 +227,18 @@ export async function POST(req: Request) {
       return m.role === "user";
     });
 
-    const isFirstTurn =
-      (yield* Effect.provide(countAssistantTurns(conversationId), DatabaseLive)) === 0;
+    const isFirstTurn = (yield* countAssistantTurns(conversationId)) === 0;
 
     if (userMessage && !persistedUserMessageIds.has(userMessage.id)) {
-      yield* Effect.tryPromise({
-        catch: (cause) => new DatabaseError({ cause }),
-        try: () => {
-          return persistChatEvent({
-            conversationId,
-            event: {
-              eventType: "user-message",
-              messageId: userMessage.id,
-              payload: { parts: userMessage.parts },
-              role: "user",
-            },
-            modelId: conv.modelId,
-          });
+      yield* appendChatEvent({
+        conversationId,
+        event: {
+          eventType: "user-message",
+          messageId: userMessage.id,
+          payload: { parts: userMessage.parts },
+          role: "user",
         },
+        modelId: conv.modelId,
       });
     }
 
@@ -268,25 +247,20 @@ export async function POST(req: Request) {
     });
 
     for (const approval of approvalResponses) {
-      yield* Effect.tryPromise({
-        catch: (cause) => new DatabaseError({ cause }),
-        try: () => {
-          return persistChatEvent({
-            conversationId,
-            event: {
-              eventType: "tool-approval-responded",
-              messageId: approval.messageId,
-              payload: {
-                approval: approval.approval,
-                approved: approval.approval.approved,
-                toolCallId: approval.toolCallId,
-                toolName: approval.toolName,
-              },
-              role: "assistant",
-            },
-            modelId: conv.modelId,
-          });
+      yield* appendChatEvent({
+        conversationId,
+        event: {
+          eventType: "tool-approval-responded",
+          messageId: approval.messageId,
+          payload: {
+            approval: approval.approval,
+            approved: approval.approval.approved,
+            toolCallId: approval.toolCallId,
+            toolName: approval.toolName,
+          },
+          role: "assistant",
         },
+        modelId: conv.modelId,
       });
     }
 
@@ -330,7 +304,7 @@ export async function POST(req: Request) {
         if (isFirstTurn && userMessage) {
           const userText = stringifyText(userMessage.parts).slice(0, 500);
 
-          await Effect.runPromise(
+          await appRuntime.runPromise(
             generateTitleEffect(conversationId, conv.modelId, userText).pipe(
               Effect.tapError((error) => {
                 return Effect.logError("Title generation failed", error);
@@ -361,13 +335,14 @@ export async function POST(req: Request) {
       },
       originalMessages: validation.data,
     });
-  }) satisfies Effect.Effect<Response, ChatError>;
+  }) satisfies Effect.Effect<Response, ChatError, Auth | Database>;
 
-  return await Effect.runPromise(
+  return await appRuntime.runPromise(
     program.pipe(
       Effect.tapError((error) => Effect.logError("Chat error", error)),
       Effect.tapDefect((defect) => Effect.logError("Unexpected defect", defect)),
       Effect.catchAll((error) => Effect.succeed(errorToResponse(error))),
+      Effect.provide(AuthLive(requestHeaders)),
       Effect.provide(Logger.pretty),
     ),
   );

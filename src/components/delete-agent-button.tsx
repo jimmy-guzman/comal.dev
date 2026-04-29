@@ -4,9 +4,10 @@ import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
-import { deleteConversationAction } from "@/actions/delete-conversation";
+import { deleteAgentAction } from "@/actions/delete-agent";
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -19,53 +20,30 @@ import { Button } from "@/components/ui/button";
 
 interface Props {
   agentId: string;
-  conversationId: string;
-  onOpenChange?: (open: boolean) => void;
-  open?: boolean;
-  redirectAfter?: boolean;
-  trigger?: React.ReactNode;
+  agentName: string;
 }
 
-export const DeleteConversationButton = ({
-  agentId,
-  conversationId,
-  onOpenChange,
-  open: controlledOpen,
-  redirectAfter = false,
-  trigger,
-}: Props) => {
+export const DeleteAgentButton = ({ agentId, agentName }: Props) => {
   const router = useRouter();
-  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
 
-  const isControlled = controlledOpen !== undefined;
-  const open = isControlled ? controlledOpen : uncontrolledOpen;
-
-  const setOpen = (next: boolean) => {
-    if (isControlled) {
-      onOpenChange?.(next);
-    } else {
-      setUncontrolledOpen(next);
-    }
-  };
-
-  const { execute, isPending, result } = useAction(deleteConversationAction, {
+  const { execute, isPending, result } = useAction(deleteAgentAction, {
     onSuccess: () => {
       setOpen(false);
-
-      if (redirectAfter) {
-        router.push(`/agents/${agentId}`);
-      }
+      router.push("/agents");
     },
   });
 
   return (
     <AlertDialog onOpenChange={setOpen} open={open}>
-      {trigger ? <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger> : null}
+      <AlertDialogTrigger asChild>
+        <Button variant="outline">Delete</Button>
+      </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
+          <AlertDialogTitle>Delete {agentName}?</AlertDialogTitle>
           <AlertDialogDescription>
-            This conversation and all its messages will be permanently deleted. This cannot be
+            This agent and all of its conversations will be permanently deleted. This cannot be
             undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -81,16 +59,15 @@ export const DeleteConversationButton = ({
         ) : null}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
-          <Button
+          <AlertDialogAction
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             disabled={isPending}
             onClick={() => {
-              execute({ conversationId });
+              execute({ agentId });
             }}
-            type="button"
           >
             {isPending ? "Deleting..." : "Delete"}
-          </Button>
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -1,12 +1,15 @@
 import { relations } from "drizzle-orm";
 import { bigserial, index, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
+import { agent } from "./agent-schema";
 import { user } from "./auth-schema";
 
 export const conversation = pgTable(
   "conversation",
   {
-    agentId: text("agent_id").notNull(),
+    agentId: text("agent_id")
+      .notNull()
+      .references(() => agent.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     id: text("id").primaryKey(),
     modelId: text("model_id").notNull(),

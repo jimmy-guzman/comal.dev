@@ -2,9 +2,11 @@ import type { TextStreamPart, ToolSet } from "ai";
 
 import { Effect } from "effect";
 
+import type { DatabaseError } from "@/lib/errors";
+
 import { chatEvent } from "@/db/schemas/chat-schema";
-import { Database, runWithDb } from "@/db/service";
-import { DatabaseError, ValidationError } from "@/lib/errors";
+import { appRuntime, Database, runQuery } from "@/db/service";
+import { ValidationError } from "@/lib/errors";
 
 import type { MapStreamPartContext } from "./event-mapper";
 import type { ChatEventInput } from "./events";
@@ -18,7 +20,7 @@ interface AppendChatEventArgs {
   modelId: null | string;
 }
 
-const appendChatEvent = (
+export const appendChatEvent = (
   args: AppendChatEventArgs,
 ): Effect.Effect<void, DatabaseError | ValidationError, Database> => {
   return Effect.gen(function* () {
@@ -33,24 +35,21 @@ const appendChatEvent = (
 
     const db = yield* Database;
 
-    yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
-      try: () => {
-        return db.insert(chatEvent).values({
-          conversationId: args.conversationId,
-          eventType: args.event.eventType,
-          messageId: args.event.messageId,
-          modelId: args.modelId,
-          payload: validatedPayload,
-          role: args.event.role,
-        });
-      },
+    yield* runQuery(() => {
+      return db.insert(chatEvent).values({
+        conversationId: args.conversationId,
+        eventType: args.event.eventType,
+        messageId: args.event.messageId,
+        modelId: args.modelId,
+        payload: validatedPayload,
+        role: args.event.role,
+      });
     });
   });
 };
 
 export const persistChatEvent = (args: AppendChatEventArgs): Promise<void> => {
-  return runWithDb(appendChatEvent(args));
+  return appRuntime.runPromise(appendChatEvent(args));
 };
 
 interface PersistStreamArgs {

@@ -23,6 +23,22 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 When changing API client types or AI SDK-related code, run `bun run lint` and `bun run build`; use `bunx` for one-off CLIs where needed.
 
+## Architecture
+
+- **Agents are user-owned, private, runtime-defined.** No built-in agents exist in code. Each agent is a row in `agent` (`src/db/schemas/agent-schema.ts`) with selected tools in `agent_tool`. There is no sharing, no orgs, no templates.
+- **Tool registry is static and builtin-only.** `src/agents/tools/registry.ts` exposes `tools.list()` and `tools.get(id)`. To add a tool: implement it under `src/agents/tools/`, register it in `registry.ts`. There is no `register()` API and no `source` discriminator; if a tool needs per-agent config, expose a factory (see `createWebFetch({ needsApproval })`).
+- **`loadAgent(agentId, userId)`** in `src/agents/index.ts` is the single composition point: fetches the agent scoped to the owner, resolves tool ids against the registry, returns an `AgentConfig`. The chat route (`src/app/api/chat/route.ts`) calls it with `ctx.session.user.id`.
+- **Server actions own all writes.** `src/actions/{create,update,delete}-agent.ts` use `next-safe-action`. Mutations validate against `agentInputSchema` (`src/lib/agent-input-schema.ts`), which `superRefine`s tool ids against the registry. `assertAgentOwnership` gates updates; all actions `revalidatePath("/", "layout")` on success.
+- **Persistence is Effect-based.** Use the `Database` `Context.Tag` and `Effect.provide(DatabaseLive)` (or `runWithDb`). Neon HTTP does not support multi-statement transactions; sequence inserts inside a single `tryPromise`.
+
+## Forms
+
+- **Use TanStack Form (`@tanstack/react-form`) for all forms.** No react-hook-form. Pattern: `useForm({ defaultValues, validators: { onSubmit: schema }, onSubmit })`, then `<form.Field>` with a JSX children render-prop (the `react-x/no-children-prop` lint rule forbids `children=` as a prop).
+- **Form schema is allowed to differ from the server schema.** UI shape (e.g. `tools: ToolSelection[]` with an `enabled` flag) lives next to the form; persisted shape lives in `agent-input-schema.ts`. They drift independently. Don't try to share one schema across both layers.
+- **Wire validation errors through shadcn `<FieldError errors={field.state.meta.errors} />`.** TanStack's Zod issues plug in directly. Mark the wrapping `<Field>` with `data-invalid` and the input with `aria-invalid` based on `field.state.meta.errors.length`.
+- **Submit handlers are sync unless they actually `await`.** Marking `onSubmit` `async` without an `await` trips `@typescript-eslint/require-await`.
+- **Mutations go through `useAction` from `next-safe-action/hooks`.** Render `result.serverError` for server-side failures.
+
 ## Code style & structure
 
 - **Files read bottom-up: helpers at the top, main exported symbol at the bottom.**

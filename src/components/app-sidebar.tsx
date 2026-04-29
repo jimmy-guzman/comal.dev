@@ -1,16 +1,14 @@
 "use client";
 
-import { ChevronRightIcon, MoreHorizontalIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { MoreHorizontalIcon, Trash2Icon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
 
-import type { AgentConfig } from "@/agents/types";
-
 import { DeleteConversationButton } from "@/components/delete-conversation-button";
+import { NewChatButton } from "@/components/new-chat-button";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +20,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupAction,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
@@ -32,36 +29,45 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-interface Conversation {
+interface RecentConversation {
+  agentId: string;
+  agentName: string;
   id: string;
-  title: null | string;
-}
-
-interface AgentWithConversations extends Pick<AgentConfig, "id" | "name"> {
-  conversations: Conversation[];
+  title: string;
 }
 
 interface Props {
-  agents: AgentWithConversations[];
+  agents: { id: string; name: string }[];
+  conversations: RecentConversation[];
   isSignedIn: boolean;
 }
 
 interface ConversationItemProps {
   agentId: string;
+  agentName: string;
   conversationId: string;
   isActive: boolean;
-  title: null | string;
+  title: string;
 }
 
-const ConversationItem = ({ agentId, conversationId, isActive, title }: ConversationItemProps) => {
+const ConversationItem = ({
+  agentId,
+  agentName,
+  conversationId,
+  isActive,
+  title,
+}: ConversationItemProps) => {
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const href = `/agents/${agentId}/conversations/${conversationId}` as const;
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={isActive}>
+      <SidebarMenuButton asChild className="h-auto py-2" isActive={isActive}>
         <Link href={href}>
-          <span className="truncate">{title ?? "Untitled"}</span>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="truncate text-sm">{title}</span>
+            <span className="text-muted-foreground truncate text-xs">{agentName}</span>
+          </div>
         </Link>
       </SidebarMenuButton>
       <DropdownMenu>
@@ -95,8 +101,10 @@ const ConversationItem = ({ agentId, conversationId, isActive, title }: Conversa
   );
 };
 
-export const AppSidebar = ({ agents, isSignedIn }: Props) => {
+export const AppSidebar = ({ agents, conversations, isSignedIn }: Props) => {
   const pathname = usePathname();
+  const activeMatch = /^\/agents\/[^/]+\/conversations\/([^/]+)/.exec(pathname);
+  const activeConversationId = activeMatch?.[1] ?? null;
 
   return (
     <Sidebar>
@@ -110,51 +118,45 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
       </SidebarHeader>
 
       <SidebarContent>
-        {agents.map((agent) => {
-          return (
-            <Collapsible className="group/collapsible" defaultOpen key={agent.id}>
-              <SidebarGroup>
-                <SidebarGroupLabel asChild>
-                  <CollapsibleTrigger className="flex w-full items-center pr-8">
-                    {agent.name}
-                    <ChevronRightIcon className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                  </CollapsibleTrigger>
-                </SidebarGroupLabel>
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <NewChatButton agents={agents} />
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
 
-                <SidebarGroupAction asChild title={`New ${agent.name} conversation`}>
-                  <Link href={`/agents/${agent.id}/conversations/new`}>
-                    <PlusIcon />
-                  </Link>
-                </SidebarGroupAction>
+        <SidebarGroup>
+          <SidebarGroupLabel>Recent</SidebarGroupLabel>
+          <SidebarMenu>
+            {conversations.length === 0 ? (
+              <p className="text-muted-foreground px-2 py-2 text-xs">No chats yet.</p>
+            ) : (
+              conversations.map((c) => {
+                return (
+                  <ConversationItem
+                    agentId={c.agentId}
+                    agentName={c.agentName}
+                    conversationId={c.id}
+                    isActive={c.id === activeConversationId}
+                    key={c.id}
+                    title={c.title}
+                  />
+                );
+              })
+            )}
+          </SidebarMenu>
+        </SidebarGroup>
 
-                <CollapsibleContent>
-                  <SidebarMenu>
-                    {agent.conversations.length === 0 ? (
-                      <p className="text-muted-foreground px-2 py-2 text-xs">
-                        No conversations yet.
-                      </p>
-                    ) : (
-                      agent.conversations.map((c) => {
-                        const href = `/agents/${agent.id}/conversations/${c.id}` as const;
-                        const isActive = pathname === href;
-
-                        return (
-                          <ConversationItem
-                            agentId={agent.id}
-                            conversationId={c.id}
-                            isActive={isActive}
-                            key={c.id}
-                            title={c.title}
-                          />
-                        );
-                      })
-                    )}
-                  </SidebarMenu>
-                </CollapsibleContent>
-              </SidebarGroup>
-            </Collapsible>
-          );
-        })}
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith("/agents")}>
+                <Link href="/agents">Agents</Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
       </SidebarContent>
 
       {isSignedIn ? null : (
