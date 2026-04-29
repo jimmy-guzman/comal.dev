@@ -79,7 +79,9 @@ const ToolRow = ({ onUpdate, selection }: ToolRowProps) => {
 };
 
 export const AgentToolPicker = ({ onChange, value }: Props) => {
-  const grouped = tools.listByGroup();
+  const grouped = tools
+    .listByGroup()
+    .toSorted((a, b) => a.items.length - b.items.length);
 
   const [defaultOpen] = useState(() => {
     return grouped
