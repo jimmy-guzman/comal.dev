@@ -7,7 +7,16 @@ import { env } from "@/env";
 const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format.")
-  .refine((value) => !Number.isNaN(Date.parse(value)), "Date is not a valid calendar date.");
+  .refine((value) => {
+    const [year, month, day] = value.split("-").map(Number) as [number, number, number];
+    const date = new Date(Date.UTC(year, month - 1, day));
+
+    return (
+      date.getUTCFullYear() === year &&
+      date.getUTCMonth() === month - 1 &&
+      date.getUTCDate() === day
+    );
+  }, "Date is not a valid calendar date.");
 
 const sortByEnum = z.enum([
   "popularity.desc",
@@ -53,31 +62,43 @@ export const tmdbDiscoverMovie = tool({
 
     return data;
   },
-  inputSchema: z.object({
-    page: z.number().int().min(1).max(500).default(1).describe("Page number (1-500)."),
-    primaryReleaseDateGte: isoDate
-      .optional()
-      .describe("Lower bound on primary release date (YYYY-MM-DD)."),
-    primaryReleaseDateLte: isoDate
-      .optional()
-      .describe("Upper bound on primary release date (YYYY-MM-DD)."),
-    primaryReleaseYear: z
-      .number()
-      .int()
-      .min(1880)
-      .max(2100)
-      .optional()
-      .describe("Filter by primary release year."),
-    sortBy: sortByEnum
-      .default("popularity.desc")
-      .describe("Sort order. Defaults to popularity.desc."),
-    withGenres: z
-      .string()
-      .optional()
-      .describe("Comma-separated (AND) or pipe-separated (OR) TMDB genre ids."),
-    withOriginalLanguage: z
-      .string()
-      .optional()
-      .describe("ISO-639-1 original language code (e.g. 'ja')."),
-  }),
+  inputSchema: z
+    .object({
+      page: z.number().int().min(1).max(500).default(1).describe("Page number (1-500)."),
+      primaryReleaseDateGte: isoDate
+        .optional()
+        .describe("Lower bound on primary release date (YYYY-MM-DD)."),
+      primaryReleaseDateLte: isoDate
+        .optional()
+        .describe("Upper bound on primary release date (YYYY-MM-DD)."),
+      primaryReleaseYear: z
+        .number()
+        .int()
+        .min(1880)
+        .max(2100)
+        .optional()
+        .describe("Filter by primary release year."),
+      sortBy: sortByEnum
+        .default("popularity.desc")
+        .describe("Sort order. Defaults to popularity.desc."),
+      withGenres: z
+        .string()
+        .optional()
+        .describe("Comma-separated (AND) or pipe-separated (OR) TMDB genre ids."),
+      withOriginalLanguage: z
+        .string()
+        .optional()
+        .describe("ISO-639-1 original language code (e.g. 'ja')."),
+    })
+    .refine(
+      ({ primaryReleaseDateGte, primaryReleaseDateLte }) => {
+        return !primaryReleaseDateGte ||
+        !primaryReleaseDateLte ||
+        primaryReleaseDateGte <= primaryReleaseDateLte;
+      },
+      {
+        message: "primaryReleaseDateGte must be on or before primaryReleaseDateLte.",
+        path: ["primaryReleaseDateGte"],
+      },
+    ),
 });
