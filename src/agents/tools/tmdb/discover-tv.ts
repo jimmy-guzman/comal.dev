@@ -4,6 +4,11 @@ import { z } from "zod";
 import { discoverTv } from "@/clients/tmdb";
 import { env } from "@/env";
 
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format.")
+  .refine((value) => !Number.isNaN(Date.parse(value)), "Date is not a valid calendar date.");
+
 const sortByEnum = z.enum([
   "popularity.desc",
   "popularity.asc",
@@ -49,8 +54,8 @@ export const tmdbDiscoverTv = tool({
     return data;
   },
   inputSchema: z.object({
-    firstAirDateGte: z.string().optional().describe("Lower bound on first air date (YYYY-MM-DD)."),
-    firstAirDateLte: z.string().optional().describe("Upper bound on first air date (YYYY-MM-DD)."),
+    firstAirDateGte: isoDate.optional().describe("Lower bound on first air date (YYYY-MM-DD)."),
+    firstAirDateLte: isoDate.optional().describe("Upper bound on first air date (YYYY-MM-DD)."),
     firstAirDateYear: z
       .number()
       .int()

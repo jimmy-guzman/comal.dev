@@ -4,6 +4,11 @@ import { z } from "zod";
 import { discoverMovie } from "@/clients/tmdb";
 import { env } from "@/env";
 
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format.")
+  .refine((value) => !Number.isNaN(Date.parse(value)), "Date is not a valid calendar date.");
+
 const sortByEnum = z.enum([
   "popularity.desc",
   "popularity.asc",
@@ -50,12 +55,10 @@ export const tmdbDiscoverMovie = tool({
   },
   inputSchema: z.object({
     page: z.number().int().min(1).max(500).default(1).describe("Page number (1-500)."),
-    primaryReleaseDateGte: z
-      .string()
+    primaryReleaseDateGte: isoDate
       .optional()
       .describe("Lower bound on primary release date (YYYY-MM-DD)."),
-    primaryReleaseDateLte: z
-      .string()
+    primaryReleaseDateLte: isoDate
       .optional()
       .describe("Upper bound on primary release date (YYYY-MM-DD)."),
     primaryReleaseYear: z
