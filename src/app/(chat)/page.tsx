@@ -1,5 +1,3 @@
-import type { Effect } from "effect";
-
 import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,21 +7,12 @@ import { appRuntime } from "@/db/service";
 import { listAgentsForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 
-type AgentSummary = Effect.Effect.Success<ReturnType<typeof listAgentsForUser>>[number];
-
 export default async function HomePage() {
   const session = await auth.api.getSession({ headers: await headers() });
 
-  let agents: AgentSummary[] = [];
-
-  if (session?.user) {
-    try {
-      agents = await appRuntime.runPromise(listAgentsForUser(session.user.id));
-    } catch (error) {
-      // eslint-disable-next-line no-console -- degrade gracefully on transient DB failure
-      console.error("Failed to load agents for home page", error);
-    }
-  }
+  const agents = session?.user
+    ? await appRuntime.runPromise(listAgentsForUser(session.user.id))
+    : [];
 
   const ctaHref = session?.user ? "/agents/new" : "/sign-in";
   const ctaLabel = session?.user
