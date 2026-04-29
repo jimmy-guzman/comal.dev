@@ -1,10 +1,10 @@
 import { anonymousClient, organizationClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
-import { env } from "@/env";
+import { getClientBaseUrl } from "@/lib/base-url";
 
 export const authClient = createAuthClient({
   basePath: "/auth",
-  baseURL: env.NEXT_PUBLIC_APP_URL,
+  baseURL: getClientBaseUrl(),
   plugins: [anonymousClient(), organizationClient()],
 });

@@ -6,10 +6,17 @@ import { anonymous, organization } from "better-auth/plugins";
 import { db } from "@/db/client";
 import * as schema from "@/db/schemas/auth-schema";
 import { env } from "@/env";
+import { getServerBaseUrl, getServerProductionUrl, LOCAL_URL } from "@/lib/base-url";
 import { migrateAnonymousUserData } from "@/lib/chat";
+
+const baseURL = getServerBaseUrl();
+const productionURL = getServerProductionUrl();
+
+const trustedOrigins = [...new Set([baseURL, LOCAL_URL, productionURL])];
 
 export const auth = betterAuth({
   basePath: "/auth",
+  baseURL,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,
@@ -35,4 +42,5 @@ export const auth = betterAuth({
       clientSecret: env.GITHUB_CLIENT_SECRET,
     },
   },
+  trustedOrigins,
 });

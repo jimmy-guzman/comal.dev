@@ -31,13 +31,17 @@ Build your own AI agents. Pick a model, write a system prompt, choose tools, cha
 2. Copy [`.env.example`](.env.example) to `.env` and fill in values:
    - `DATABASE_URL` — Postgres connection string (e.g. [Neon](https://neon.tech))
    - `BETTER_AUTH_SECRET` — random secret for Better Auth
-   - `BETTER_AUTH_URL` — base URL of the app (e.g. `http://localhost:3000`)
+   - `BETTER_AUTH_URL` — base URL of the app for local dev (e.g. `http://localhost:3000`). Optional on Vercel; derived from `VERCEL_URL` / `VERCEL_PROJECT_PRODUCTION_URL` when unset.
    - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — [GitHub OAuth app](https://github.com/settings/developers)
-   - `NEXT_PUBLIC_APP_URL` — same as `BETTER_AUTH_URL`
+   - `NEXT_PUBLIC_APP_URL` — same as `BETTER_AUTH_URL`. Same Vercel fallback applies.
    - `OPENROUTER_API_KEY` — [OpenRouter](https://openrouter.ai/) key for chat
    - `TAVILY_API_KEY` — [Tavily](https://tavily.com) key for web search
 3. Push the database schema: `bun run db:push`
 4. Run the dev server: `bun dev`
+
+## Deploying to Vercel
+
+`BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` are optional on Vercel. The base URL is derived at runtime from Vercel's built-in env vars (`VERCEL_PROJECT_PRODUCTION_URL` for production, `VERCEL_URL` for previews) by `src/lib/base-url.ts`. Preview deployments work for anonymous sessions, but the GitHub sign-in button is hidden on previews (`VERCEL_ENV === "preview"`) since the OAuth callback is registered against the production domain only.
 
 ## Agents
 

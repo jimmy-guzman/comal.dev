@@ -6,20 +6,21 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { env } from "@/env";
 import { authClient } from "@/lib/auth-client";
+import { isPreviewDeployment } from "@/lib/base-url";
 import { cn } from "@/lib/utils";
 
 export function SignInCard({ className, ...props }: React.ComponentProps<"div">) {
   const [pending, setPending] = useState(false);
+  const previewDisabled = isPreviewDeployment();
 
   const handleGithub = async () => {
     setPending(true);
 
     try {
       await authClient.signIn.social({
-        callbackURL: `${env.NEXT_PUBLIC_APP_URL}/`,
-        errorCallbackURL: `${env.NEXT_PUBLIC_APP_URL}/sign-in?error=oauth`,
+        callbackURL: "/",
+        errorCallbackURL: "/sign-in?error=oauth",
         provider: "github",
       });
     } catch {
@@ -35,15 +36,19 @@ export function SignInCard({ className, ...props }: React.ComponentProps<"div">)
         <CardHeader>
           <CardTitle>Save your work</CardTitle>
           <CardDescription>
-            Sign in with GitHub to persist your specs across devices.
+            {previewDisabled
+              ? "GitHub sign-in is disabled on preview deployments. Use the production site to sign in."
+              : "Sign in with GitHub to persist your specs across devices."}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button className="w-full" disabled={pending} onClick={handleGithub}>
-            {pending ? <Spinner data-icon="inline-start" /> : null}
-            Continue with GitHub
-          </Button>
-        </CardContent>
+        {previewDisabled ? null : (
+          <CardContent>
+            <Button className="w-full" disabled={pending} onClick={handleGithub}>
+              {pending ? <Spinner data-icon="inline-start" /> : null}
+              Continue with GitHub
+            </Button>
+          </CardContent>
+        )}
       </Card>
     </div>
   );
