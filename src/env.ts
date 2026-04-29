@@ -16,5 +16,7 @@ export const env = createEnv({
     GITHUB_CLIENT_SECRET: z.string().min(1),
     OPENROUTER_API_KEY: z.string().min(1),
     TAVILY_API_KEY: z.string().min(1),
+    UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
+    UPSTASH_REDIS_REST_URL: z.url(),
   },
 });
