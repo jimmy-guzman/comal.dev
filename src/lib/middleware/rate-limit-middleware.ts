@@ -16,10 +16,10 @@ export const rateLimitMiddleware = createMiddleware<{
     ctx.auth.user,
   );
 
-  const { success } = await checkLimit(limiter, ctx.auth.user.id);
+  const { reset, success } = await checkLimit(limiter, ctx.auth.user.id);
 
   if (!success) {
-    throw new RateLimitError();
+    throw new RateLimitError({ reset });
   }
 
   return next();

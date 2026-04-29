@@ -4,13 +4,13 @@ import { Redis } from "@upstash/redis";
 import { env } from "@/env";
 
 const CHAT_AUTHED_LIMIT = 50;
-const CHAT_AUTHED_WINDOW = "1 h" as const;
+const CHAT_AUTHED_WINDOW = "1 h";
 const CHAT_ANON_LIMIT = 10;
-const CHAT_ANON_WINDOW = "1 h" as const;
+const CHAT_ANON_WINDOW = "1 h";
 const MUTATION_AUTHED_LIMIT = 30;
-const MUTATION_AUTHED_WINDOW = "1 m" as const;
+const MUTATION_AUTHED_WINDOW = "1 m";
 const MUTATION_ANON_LIMIT = 5;
-const MUTATION_ANON_WINDOW = "1 m" as const;
+const MUTATION_ANON_WINDOW = "1 m";
 
 const REDIS_TIMEOUT_MS = 1000;
 
