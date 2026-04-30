@@ -40,7 +40,7 @@ const ConversationListItem = ({ agentId, conversation }: ConversationListItemPro
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            className="text-muted-foreground hover:text-foreground ml-1 transition-opacity group-hover:opacity-100 md:opacity-0"
+            className="text-muted-foreground hover:text-foreground ml-1 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 md:opacity-0 md:group-focus-within:opacity-100"
             size="icon-sm"
             variant="ghost"
           >
