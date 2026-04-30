@@ -1,4 +1,4 @@
-import type { Tool } from "ai";
+import type { ToolSet } from "ai";
 
 import { and, eq } from "drizzle-orm";
 import { Effect } from "effect";
@@ -14,7 +14,7 @@ import { tools as toolRegistry } from "./tools/registry";
 
 const buildToolsRecord = (rows: { config: unknown; toolId: string }[]) => {
   return Effect.gen(function* () {
-    const result: Record<string, Tool> = {};
+    const result: ToolSet = {};
 
     for (const row of rows) {
       const def = toolRegistry.get(row.toolId);

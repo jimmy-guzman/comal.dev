@@ -23,7 +23,6 @@ import type { DatabaseError, ForbiddenError, NotFoundError, UnauthorizedError } 
 
 import { loadAgent } from "@/agents";
 import { appRuntime } from "@/db/service";
-import { getAgentForUser } from "@/lib/agents";
 import { Auth, AuthLive } from "@/lib/auth-context";
 import { createConversation, updateConversationTitle } from "@/lib/chat";
 import { classifyChatError } from "@/lib/chat/errors";
@@ -242,6 +241,41 @@ export async function POST(req: Request) {
       return !Array.isArray(parts) || parts.length > 0;
     });
 
+    // Resolve the agent (and, for existing conversations, the conversation
+    // row) before message validation. Then validate, and only after
+    // validation passes do we insert a new conversation row. This ordering
+    // ensures a malformed request never leaves a phantom row. Neon HTTP
+    // has no multi-statement transactions, so creation and the first event
+    // are not strictly atomic; the validation gate is the practical
+    // guarantee.
+    let conversationId: string;
+    let convModelId: string;
+    let existingEvents: ChatEventRow[] = [];
+    let isNewConversation = false;
+    let resolvedAgentId: string;
+
+    if (conversationSource.kind === "create") {
+      resolvedAgentId = conversationSource.agentId;
+      convModelId = conversationSource.modelId;
+    } else {
+      const conv = yield* getConversationWithEvents(user.id, conversationSource.conversationId);
+
+      resolvedAgentId = conv.agentId;
+      convModelId = conv.modelId;
+      existingEvents = conv.events;
+    }
+
+    // loadAgent enforces ownership (filters by userId) and resolves the
+    // tool implementations from the registry. Loading it before validation
+    // keeps the agent-ownership gate ahead of any conversation row insert
+    // for the create flow. Note: we don't pass agent.tools to
+    // safeValidateUIMessages because the SDK's tools option requires a
+    // compile-time-known UIMessage tools generic; our agents are dynamic
+    // so we get message-shape validation here, not tool-input validation.
+    // Tool inputs are still validated downstream by streamText. See
+    // follow-up issue for a typed UIMessage system.
+    const agent = yield* loadAgent(resolvedAgentId, user.id);
+
     const validation = yield* Effect.tryPromise({
       catch: (cause) => {
         return new ValidationError({ cause, message: "Failed to validate messages." });
@@ -253,20 +287,7 @@ export async function POST(req: Request) {
       return yield* Effect.fail(new ValidationError({ message: validation.error.message }));
     }
 
-    // Resolve the conversation only after message validation passes. For new
-    // conversations this also gates the row insert on agent ownership, so a
-    // bad request never leaves a phantom row. Neon HTTP has no multi-statement
-    // transactions, so creation and the first event are not strictly atomic;
-    // the validation gate above is the practical guarantee.
-    let conversationId: string;
-    let convAgentId: string;
-    let convModelId: string;
-    let existingEvents: ChatEventRow[] = [];
-    let isNewConversation = false;
-
     if (conversationSource.kind === "create") {
-      yield* getAgentForUser(conversationSource.agentId, user.id);
-
       const created = yield* createConversation({
         agentId: conversationSource.agentId,
         modelId: conversationSource.modelId,
@@ -275,19 +296,10 @@ export async function POST(req: Request) {
       });
 
       conversationId = created.id;
-      convAgentId = conversationSource.agentId;
-      convModelId = conversationSource.modelId;
       isNewConversation = true;
     } else {
-      const conv = yield* getConversationWithEvents(user.id, conversationSource.conversationId);
-
-      conversationId = conv.id;
-      convAgentId = conv.agentId;
-      convModelId = conv.modelId;
-      existingEvents = conv.events;
+      conversationId = conversationSource.conversationId;
     }
-
-    const agent = yield* loadAgent(convAgentId, user.id);
 
     const persistedUserMessageIds = new Set<string>();
 
@@ -412,6 +424,7 @@ export async function POST(req: Request) {
         if (isNewConversation) {
           writer.write({
             data: { id: conversationId },
+            transient: true,
             type: "data-conversation-created",
           });
         }

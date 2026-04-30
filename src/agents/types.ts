@@ -1,4 +1,4 @@
-import type { Tool } from "ai";
+import type { ToolSet } from "ai";
 
 export interface AgentConfig {
   defaultModelId: string;
@@ -7,5 +7,5 @@ export interface AgentConfig {
   id: string;
   name: string;
   systemPrompt: string;
-  tools: Record<string, Tool>;
+  tools: ToolSet;
 }
