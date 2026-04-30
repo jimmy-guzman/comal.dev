@@ -79,9 +79,9 @@ const ToolRow = ({ onUpdate, selection }: ToolRowProps) => {
 };
 
 export const AgentToolPicker = ({ onChange, value }: Props) => {
-  const grouped = tools
-    .listByGroup()
-    .toSorted((a, b) => a.items.length - b.items.length);
+  const grouped = tools.listByGroup().toSorted((a, b) => {
+    return a.items.length - b.items.length;
+  });
 
   const [defaultOpen] = useState(() => {
     return grouped
@@ -89,11 +89,9 @@ export const AgentToolPicker = ({ onChange, value }: Props) => {
         return items.some((tool) => {
           return value.find((s) => s.toolId === tool.id)?.enabled;
         });
-      },
-      )
+      })
       .map(({ group }) => group.id);
-  },
-  );
+  });
 
   const updateAt = (index: number, next: Partial<ToolSelection>) => {
     onChange(value.map((entry, i) => (i === index ? { ...entry, ...next } : entry)));
@@ -134,8 +132,7 @@ export const AgentToolPicker = ({ onChange, value }: Props) => {
                       selection={selection}
                     />
                   );
-                },
-                )}
+                })}
               </div>
             </AccordionContent>
           </AccordionItem>

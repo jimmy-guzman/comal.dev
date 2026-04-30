@@ -92,9 +92,11 @@ export const tmdbDiscoverMovie = tool({
     })
     .refine(
       ({ primaryReleaseDateGte, primaryReleaseDateLte }) => {
-        return !primaryReleaseDateGte ||
-        !primaryReleaseDateLte ||
-        primaryReleaseDateGte <= primaryReleaseDateLte;
+        return (
+          !primaryReleaseDateGte ||
+          !primaryReleaseDateLte ||
+          primaryReleaseDateGte <= primaryReleaseDateLte
+        );
       },
       {
         message: "primaryReleaseDateGte must be on or before primaryReleaseDateLte.",

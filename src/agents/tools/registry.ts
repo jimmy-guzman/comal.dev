@@ -9,12 +9,7 @@ const groups = {
   web: { id: "web", label: "Web" },
 } as const satisfies Record<string, { id: string; label: string }>;
 
-export type ToolGroupId = keyof typeof groups;
-
-export interface ToolGroup {
-  id: ToolGroupId;
-  label: string;
-}
+type ToolGroupId = keyof typeof groups;
 
 interface ToolMetadata<TConfig = unknown> {
   configSchema: StandardSchemaV1<unknown, TConfig>;
@@ -171,13 +166,19 @@ const metadata = Object.freeze([
 
 const byId = new Map(metadata.map((m) => [m.id, m]));
 
-const groupList = Object.freeze(Object.values(groups).map((g) => {
-  return Object.freeze({ ...g });
-}));
+const groupList = Object.freeze(
+  // eslint-disable-next-line arrow-style/arrow-return-style -- conflicts with prettier
+  Object.values(groups).map((group) => {
+    return Object.freeze({ ...group });
+  }),
+);
 
 const groupedList = Object.freeze(
   groupList.map((group) => {
-    return {group, items: metadata.filter((tool) => tool.group === group.id)};
+    return Object.freeze({
+      group,
+      items: Object.freeze(metadata.filter((tool) => tool.group === group.id)),
+    });
   }),
 );
 
