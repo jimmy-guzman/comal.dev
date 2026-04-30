@@ -38,6 +38,17 @@ Build your own AI agents. Pick a model, write a system prompt, choose tools, cha
 3. Push the database schema: `bun run db:push`
 4. Run the dev server: `bun dev`
 
+## Worktrees
+
+Use the bundled scripts to manage git worktrees under `.worktrees/`. They symlink `.env` from the repo root so each worktree shares the same secrets, and seed an empty `.env.local` for per-worktree overrides.
+
+- `bun run worktree:add <branch>` creates `.worktrees/<branch>`, links `.env`, and creates `.env.local`. Pass `--from <ref>` to branch from somewhere other than HEAD, or `--link <file>` (repeatable) to symlink additional gitignored files at the repo root.
+- `bun run worktree:remove <branch>` removes the worktree and deletes the branch. Pass `--force` to discard uncommitted changes or `--keep-branch` to leave the branch in place.
+
+To override env vars for a single worktree, edit that worktree's `.env.local`. Next.js loads `.env.local` after `.env`, so values there win without touching the shared root file.
+
+`node_modules` is intentionally not linked: each worktree must run its own `bun install` so dependency changes on one branch don't bleed into others.
+
 ## Deploying to Vercel
 
 `BETTER_AUTH_URL` is optional on Vercel. The server-side base URL is derived at runtime from Vercel's built-in env vars (`VERCEL_PROJECT_PRODUCTION_URL` for production, `VERCEL_URL` for previews) by `src/lib/base-url.ts`. The auth client always calls same-origin, so no client-side URL env vars are required.
