@@ -111,7 +111,7 @@ const lastMessageHasErrorPart = (messages: UIMessage[]): boolean => {
 
 interface Props {
   agentId: string;
-  conversationId: string;
+  conversationId: null | string;
   initialMessages: UIMessage[];
   modelId: string;
   suggestions: string[];
@@ -119,11 +119,12 @@ interface Props {
 
 export const ChatView = ({
   agentId,
-  conversationId,
+  conversationId: initialConversationId,
   initialMessages,
   modelId: initialModelId,
   suggestions,
 }: Props) => {
+  const [conversationId, setConversationId] = useState<null | string>(initialConversationId);
   const [modelId, setModelId] = useState(initialModelId);
   const userInteractedRef = useRef(false);
 
@@ -145,10 +146,33 @@ export const ChatView = ({
     stop,
   } = useChat({
     messages: initialMessages,
+    onData: (dataPart) => {
+      if (dataPart.type !== "data-conversation-created") return;
+
+      const data = dataPart.data as { id?: unknown };
+
+      if (typeof data.id !== "string") return;
+
+      const newId = data.id;
+
+      setConversationId(newId);
+      // Update the URL without unmounting the current route. router.replace
+      // would navigate to the sibling [conversationId] route, remounting
+      // <ChatView> and aborting the in-flight stream. router.refresh() has
+      // the same effect since the new URL maps to a different page component.
+      globalThis.history.replaceState(null, "", `/agents/${agentId}/conversations/${newId}`);
+    },
     sendAutomaticallyWhen,
     transport: new DefaultChatTransport({
       api: "/api/chat",
-      body: { conversationId, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+      body: () => {
+        return {
+          agentId,
+          conversationId,
+          modelId,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        };
+      },
     }),
   });
 
@@ -179,7 +203,10 @@ export const ChatView = ({
 
   const handleModelSelect = (newModelId: ModelId) => {
     setModelId(newModelId);
-    void updateConversationModelAction({ conversationId, modelId: newModelId });
+
+    if (conversationId !== null) {
+      void updateConversationModelAction({ conversationId, modelId: newModelId });
+    }
   };
 
   const isStreaming = status === "streaming";
@@ -190,21 +217,25 @@ export const ChatView = ({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center justify-end border-b px-4 py-2">
-        <DeleteConversationButton
-          agentId={agentId}
-          conversationId={conversationId}
-          redirectAfter
-          trigger={
-            <Button
-              className="text-muted-foreground hover:text-destructive"
-              size="icon-sm"
-              variant="ghost"
-            >
-              <Trash2Icon />
-              <span className="sr-only">Delete conversation</span>
-            </Button>
-          }
-        />
+        {conversationId === null ? (
+          <div className="h-8" />
+        ) : (
+          <DeleteConversationButton
+            agentId={agentId}
+            conversationId={conversationId}
+            redirectAfter
+            trigger={
+              <Button
+                className="text-muted-foreground hover:text-destructive"
+                size="icon-sm"
+                variant="ghost"
+              >
+                <Trash2Icon />
+                <span className="sr-only">Delete conversation</span>
+              </Button>
+            }
+          />
+        )}
       </div>
       <Conversation className="flex-1">
         <ConversationContent>
@@ -235,7 +266,12 @@ export const ChatView = ({
             <ErrorPart canRetry={canRetry} data={liveErrorInfo} onRetry={handleRetry} />
           )}
         </ConversationContent>
-        <ConversationDownload filename={`conversation-${conversationId}.md`} messages={messages} />
+        {conversationId === null ? null : (
+          <ConversationDownload
+            filename={`conversation-${conversationId}.md`}
+            messages={messages}
+          />
+        )}
         <ConversationScrollButton />
       </Conversation>
 

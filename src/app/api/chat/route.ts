@@ -2,6 +2,8 @@ import type { UIMessage } from "ai";
 
 import {
   convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
   generateText,
   isToolUIPart,
   safeValidateUIMessages,
@@ -16,12 +18,14 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import type { Database } from "@/db/service";
+import type { ChatEventRow } from "@/lib/chat/projector";
 import type { DatabaseError, ForbiddenError, NotFoundError, UnauthorizedError } from "@/lib/errors";
 
 import { loadAgent } from "@/agents";
 import { appRuntime } from "@/db/service";
+import { getAgentForUser } from "@/lib/agents";
 import { Auth, AuthLive } from "@/lib/auth-context";
-import { updateConversationTitle } from "@/lib/chat";
+import { createConversation, updateConversationTitle } from "@/lib/chat";
 import { classifyChatError } from "@/lib/chat/errors";
 import { appendChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
 import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
@@ -35,8 +39,10 @@ class RateLimitError extends Data.TaggedError("RateLimitError")<{
 }> {}
 
 const postBodySchema = z.object({
-  conversationId: z.string().min(1),
+  agentId: z.string().min(1).optional(),
+  conversationId: z.string().min(1).nullable(),
   messages: z.array(z.unknown()).min(1),
+  modelId: z.string().min(1).optional(),
   timezone: z
     .string()
     .trim()
@@ -179,7 +185,30 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const { conversationId, timezone } = parsed.data;
+  const {
+    agentId: bodyAgentId,
+    conversationId: bodyConversationId,
+    modelId: bodyModelId,
+    timezone,
+  } = parsed.data;
+
+  type ConversationSource =
+    | { agentId: string; kind: "create"; modelId: string }
+    | { conversationId: string; kind: "existing" };
+
+  const conversationSource: ConversationSource | null =
+    bodyConversationId === null
+      ? bodyAgentId !== undefined && bodyModelId !== undefined
+        ? { agentId: bodyAgentId, kind: "create", modelId: bodyModelId }
+        : null
+      : { conversationId: bodyConversationId, kind: "existing" };
+
+  if (conversationSource === null) {
+    return Response.json(
+      { error: "agentId and modelId are required when creating a new conversation." },
+      { status: 400 },
+    );
+  }
 
   const requestHeaders = await headers();
 
@@ -205,13 +234,41 @@ export async function POST(req: Request) {
       return yield* Effect.fail(new RateLimitError({ limit, reset }));
     }
 
-    const conv = yield* getConversationWithEvents(user.id, conversationId);
+    let conversationId: string;
+    let convAgentId: string;
+    let convModelId: string;
+    let existingEvents: ChatEventRow[] = [];
+    let isNewConversation = false;
 
-    const agent = yield* loadAgent(conv.agentId, user.id);
+    if (conversationSource.kind === "create") {
+      // Validate ownership of the agent before creating the row.
+      yield* getAgentForUser(conversationSource.agentId, user.id);
+
+      const created = yield* createConversation({
+        agentId: conversationSource.agentId,
+        modelId: conversationSource.modelId,
+        title: "New conversation",
+        userId: user.id,
+      });
+
+      conversationId = created.id;
+      convAgentId = conversationSource.agentId;
+      convModelId = conversationSource.modelId;
+      isNewConversation = true;
+    } else {
+      const conv = yield* getConversationWithEvents(user.id, conversationSource.conversationId);
+
+      conversationId = conv.id;
+      convAgentId = conv.agentId;
+      convModelId = conv.modelId;
+      existingEvents = conv.events;
+    }
+
+    const agent = yield* loadAgent(convAgentId, user.id);
 
     const persistedUserMessageIds = new Set<string>();
 
-    for (const event of conv.events) {
+    for (const event of existingEvents) {
       if (event.eventType === "user-message" && event.messageId !== null) {
         persistedUserMessageIds.add(event.messageId);
       }
@@ -219,7 +276,7 @@ export async function POST(req: Request) {
 
     const persistedApprovalToolCallIds = new Set<string>();
 
-    for (const event of conv.events) {
+    for (const event of existingEvents) {
       if (event.eventType !== "tool-approval-responded") continue;
 
       if (typeof event.payload !== "object" || event.payload === null) continue;
@@ -254,7 +311,7 @@ export async function POST(req: Request) {
       return m.role === "user";
     });
 
-    const isFirstTurn = (yield* countAssistantTurns(conversationId)) === 0;
+    const isFirstTurn = isNewConversation || (yield* countAssistantTurns(conversationId)) === 0;
 
     if (userMessage && !persistedUserMessageIds.has(userMessage.id)) {
       yield* appendChatEvent({
@@ -265,7 +322,7 @@ export async function POST(req: Request) {
           payload: { parts: userMessage.parts },
           role: "user",
         },
-        modelId: conv.modelId,
+        modelId: convModelId,
       });
     }
 
@@ -287,7 +344,7 @@ export async function POST(req: Request) {
           },
           role: "assistant",
         },
-        modelId: conv.modelId,
+        modelId: convModelId,
       });
     }
 
@@ -307,7 +364,7 @@ export async function POST(req: Request) {
 
     const result = streamText({
       messages: modelMessages,
-      model: openrouter(conv.modelId),
+      model: openrouter(convModelId),
       onError: ({ error }) => {
         logError("streamText error", error);
       },
@@ -322,7 +379,7 @@ export async function POST(req: Request) {
           conversationId,
           fullStream: result.fullStream,
           messageId: assistantMessageId,
-          modelId: conv.modelId,
+          modelId: convModelId,
           onEventError: (error, event) => {
             logError(`persistChatStream event error (${event.eventType})`, error);
           },
@@ -332,7 +389,7 @@ export async function POST(req: Request) {
           const userText = stringifyText(userMessage.parts).slice(0, 500);
 
           await appRuntime.runPromise(
-            generateTitleEffect(conversationId, conv.modelId, userText).pipe(
+            generateTitleEffect(conversationId, convModelId, userText).pipe(
               Effect.tapError((error) => {
                 return Effect.logError("Title generation failed", error);
               }),
@@ -346,22 +403,37 @@ export async function POST(req: Request) {
       }
     });
 
-    return result.toUIMessageStreamResponse({
-      onError: (error) => {
-        logError("UI message stream error", error);
+    const uiStream = createUIMessageStream({
+      execute: ({ writer }) => {
+        if (isNewConversation) {
+          writer.write({
+            data: { id: conversationId },
+            type: "data-conversation-created",
+          });
+        }
 
-        const info = classifyChatError(error);
+        writer.merge(
+          result.toUIMessageStream({
+            onError: (error) => {
+              logError("UI message stream error", error);
 
-        return JSON.stringify({
-          kind: info.kind,
-          message: info.message,
-          retryable: info.retryable,
-          statusCode: info.statusCode,
-          suggestModelSwitch: info.suggestModelSwitch,
-        });
+              const info = classifyChatError(error);
+
+              return JSON.stringify({
+                kind: info.kind,
+                message: info.message,
+                retryable: info.retryable,
+                statusCode: info.statusCode,
+                suggestModelSwitch: info.suggestModelSwitch,
+              });
+            },
+            originalMessages: validation.data,
+          }),
+        );
       },
-      originalMessages: validation.data,
     });
+
+    return createUIMessageStreamResponse({ stream: uiStream });
   }) satisfies Effect.Effect<Response, ChatError, Auth | Database>;
 
   return await appRuntime.runPromise(
