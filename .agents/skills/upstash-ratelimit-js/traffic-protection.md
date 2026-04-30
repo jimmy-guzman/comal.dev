@@ -42,7 +42,7 @@ if (!result.success && result.reason === "denyList") {
 
 ## Auto IP Deny List
 
-Automatically blocks IPs aggregated from >30 open‑source abuse lists (via GitHub's *ipsum* repository). Updates occur daily at **2 AM UTC**.
+Automatically blocks IPs aggregated from >30 open‑source abuse lists (via GitHub's _ipsum_ repository). Updates occur daily at **2 AM UTC**.
 
 Enable protection:
 

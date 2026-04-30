@@ -29,7 +29,7 @@ await redis.zadd("leaderboard", { score: 100, member: "player1" });
 await redis.zadd(
   "leaderboard",
   { score: 250, member: "player2" },
-  { score: 150, member: "player3" }
+  { score: 150, member: "player3" },
 );
 
 // Update score (replaces if member exists)
@@ -88,7 +88,7 @@ await redis.zadd(
   "scores",
   { score: 1, member: "a" },
   { score: 2, member: "b" },
-  { score: 3, member: "c" }
+  { score: 3, member: "c" },
 );
 await redis.zremrangebyrank("scores", 0, 0); // Remove lowest score (rank 0)
 
@@ -105,7 +105,7 @@ await redis.zadd(
   "items",
   { score: 1, member: "a" },
   { score: 2, member: "b" },
-  { score: 3, member: "c" }
+  { score: 3, member: "c" },
 );
 const twoLowest = await redis.zpopmin("items", 2); // Remove 2 lowest
 
@@ -115,7 +115,7 @@ await redis.zadd(
   "events",
   { score: now - 3600000, member: "event1" }, // 1 hour ago
   { score: now - 1800000, member: "event2" }, // 30 min ago
-  { score: now, member: "event3" } // now
+  { score: now, member: "event3" }, // now
 );
 
 // Get events from last hour

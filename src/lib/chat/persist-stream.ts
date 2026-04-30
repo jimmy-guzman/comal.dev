@@ -48,7 +48,7 @@ export const appendChatEvent = (
   });
 };
 
-export const persistChatEvent = (args: AppendChatEventArgs): Promise<void> => {
+const persistChatEvent = (args: AppendChatEventArgs) => {
   return appRuntime.runPromise(appendChatEvent(args));
 };
 

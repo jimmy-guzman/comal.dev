@@ -50,7 +50,7 @@ await redis.xadd(
       comparison: "=",
       threshold: 1000,
     },
-  }
+  },
 );
 
 // Add with approximate trim (more efficient)
@@ -64,7 +64,7 @@ await redis.xadd(
       comparison: "~",
       threshold: 1000,
     },
-  }
+  },
 );
 
 // Get stream length
@@ -102,7 +102,7 @@ const groupEntries = await redis.xreadgroup(
   "consumer1", // consumer name
   "events", // stream key
   ">", // > means undelivered messages
-  { count: 5 }
+  { count: 5 },
 );
 
 // Acknowledge processed messages
@@ -125,7 +125,7 @@ const pendingDetails = await redis.xpending(
   "-", // start
   "_+", // end
   10, // count
-  { consumer: "consumer1" } // optional: specific consumer
+  { consumer: "consumer1" }, // optional: specific consumer
 );
 
 // Claim pending messages (take over from another consumer)
@@ -134,7 +134,7 @@ const claimed = await redis.xclaim(
   "processors", // group
   "consumer2", // new owner (consumer)
   3600000, // min idle time (ms)
-  "1642424242424-0" // message ID(s) to claim
+  "1642424242424-0", // message ID(s) to claim
 );
 
 // Delete messages

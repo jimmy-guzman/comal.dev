@@ -6,10 +6,12 @@ description: Lightweight guidance for using the Upstash Redis RateLimit TypeScri
 # Rate Limit TS SDK
 
 ## Quick Start
+
 - Install the SDK and connect to Redis.
 - Create a rate limiter and apply it to incoming operations.
 
 Example:
+
 ```ts
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
@@ -24,6 +26,7 @@ if (!success) {
 ```
 
 ## Other Skill Files
+
 - **algorithms.md**: Describes all available rate‑limiting algorithms and how they behave.
 - **pricing-cost.md**: Explains pricing, Redis cost implications, and operational considerations.
 - **features.md**: Lists SDK features such as prefixes, custom keys, and behavioral options.

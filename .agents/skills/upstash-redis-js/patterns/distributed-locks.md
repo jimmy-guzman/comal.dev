@@ -97,7 +97,7 @@ async function acquireLockWithRetry(
   lockKey: string,
   ttl: number = 10,
   retries: number = 3,
-  delay: number = 100
+  delay: number = 100,
 ): Promise<boolean> {
   for (let i = 0; i < retries; i++) {
     const acquired = await acquireLock(lockKey, ttl);

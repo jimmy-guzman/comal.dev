@@ -35,17 +35,9 @@ const createLimiter = (
   });
 };
 
-export const chatLimiter = createLimiter(
-  "chat:authed",
-  CHAT_AUTHED_LIMIT,
-  CHAT_AUTHED_WINDOW,
-);
+export const chatLimiter = createLimiter("chat:authed", CHAT_AUTHED_LIMIT, CHAT_AUTHED_WINDOW);
 
-export const chatLimiterAnon = createLimiter(
-  "chat:anon",
-  CHAT_ANON_LIMIT,
-  CHAT_ANON_WINDOW,
-);
+export const chatLimiterAnon = createLimiter("chat:anon", CHAT_ANON_LIMIT, CHAT_ANON_WINDOW);
 
 export const mutationLimiter = createLimiter(
   "action:authed",
@@ -72,7 +64,7 @@ export const pickLimiter = (pair: LimiterPair, user: LimiterUser): Ratelimit => 
   return user.isAnonymous ? pair.anon : pair.authed;
 };
 
-export interface CheckLimitResult {
+interface CheckLimitResult {
   limit: number;
   remaining: number;
   reset: number;
@@ -84,8 +76,7 @@ export const checkLimit = async (
   identifier: string,
 ): Promise<CheckLimitResult> => {
   try {
-    const { limit, remaining, reset, success } =
-      await limiter.limit(identifier);
+    const { limit, remaining, reset, success } = await limiter.limit(identifier);
 
     return { limit, remaining, reset, success };
   } catch (error) {

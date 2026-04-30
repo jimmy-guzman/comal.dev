@@ -5,7 +5,7 @@ import { UnauthorizedError } from "./errors";
 
 type Session = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
 
-export interface AuthContext {
+interface AuthContext {
   session: Session["session"];
   user: Session["user"];
   userId: string;

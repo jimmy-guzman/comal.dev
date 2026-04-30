@@ -195,10 +195,7 @@ export async function POST(req: Request) {
   const program = Effect.gen(function* () {
     const { user } = yield* Auth;
 
-    const limiter = pickLimiter(
-      { anon: chatLimiterAnon, authed: chatLimiter },
-      user,
-    );
+    const limiter = pickLimiter({ anon: chatLimiterAnon, authed: chatLimiter }, user);
 
     const { limit, reset, success } = yield* Effect.promise(() => {
       return checkLimit(limiter, user.id);

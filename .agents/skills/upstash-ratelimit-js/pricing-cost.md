@@ -7,6 +7,7 @@ This document explains how Redis command costs vary across Ratelimit algorithms,
 ## Overview
 
 Redis command usage depends on:
+
 - Algorithm type (Fixed Window, Sliding Window, Token Bucket)
 - Algorithm state for a given identifier (first request, intermediate, rate‑limited)
 - Cache hit/miss in the runtime environment
@@ -19,6 +20,7 @@ A Global Upstash Redis setup multiplies write commands by `(1 + readRegionCount)
 ## Algorithm States
 
 Each identifier (e.g., an IP or user ID) has an associated state:
+
 - **First**: No existing key; creates state and sets expiry
 - **Intermediate**: Key exists; normal operation
 - **Rate‑Limited**: Request blocked; may avoid Redis if cache contains an unexpired block timestamp
@@ -39,38 +41,47 @@ Only rate‑limited results populate the cache.
 ## Command Costs by Operation
 
 ### `limit()`
+
 Costs depend on algorithm, cache state, and identifier state.
 
 **Fixed Window:**
+
 - First: 3 commands (EVAL, INCR, PEXPIRE)
 - Intermediate: 2 commands (EVAL, INCR)
 - Rate‑limited miss: 2 commands (EVAL, INCR)
 - Rate‑limited hit: 0 commands
 
 **Sliding Window:**
+
 - First: 5 commands (EVAL, GET, GET, INCR, PEXPIRE)
 - Intermediate: 4 commands (EVAL, GET, GET, INCR)
 - Rate‑limited miss: 3 commands (EVAL, GET, GET)
 - Rate‑limited hit: 0 commands
 
 **Token Bucket:**
+
 - First/Intermediate: 4 commands (EVAL, HMGET, HSET, PEXPIRE)
 - Rate‑limited miss: 2 commands (EVAL, HMGET)
 - Rate‑limited hit: 0 commands
 
 ### `getRemaining()`
+
 Always deterministic, no cache effects:
+
 - Fixed Window: 2 commands (EVAL, GET)
 - Sliding Window: 3 commands (EVAL, GET, GET)
 - Token Bucket: 2 commands (EVAL, HMGET)
 
 ### `resetUsedTokens()`
+
 Starts with SCAN and deletes all matching keys:
+
 - Fixed Window: 3 commands (EVAL, SCAN, DEL)
 - Sliding Window: 4 commands (EVAL, SCAN, DEL, DEL)
 - Token Bucket: 3 commands (EVAL, SCAN, DEL)
 
 ### `blockUntilReady()`
+
 Same cost model as `limit()`.
 
 ---
@@ -78,7 +89,9 @@ Same cost model as `limit()`.
 ## Optional Features Impact
 
 ### Deny List
+
 Adds **2 commands per `limit()` call**:
+
 - One `SMISMEMBER` check
 - One TTL fetch for deny list validity
 
@@ -87,15 +100,20 @@ Auto‑IP deny list refresh uses **9 commands once per day** (first limit call a
 A deny‑listed identifier is cached for a minute, skipping Redis for subsequent checks.
 
 ### Analytics
+
 Adds **1 Redis command per `limit()`** via `ZINCRBY`.
 
 ### Dynamic Limits
+
 Adds **1 command** to each `limit()` and `getRemaining()` call.
+
 - `setDynamicLimit()` = 1 command
 - `getDynamicLimit()` = 1 command
 
 ### Multi‑Region
+
 Effective cost becomes:
+
 ```
 (1 + readRegionCount) * writeCommandCount + readCommandCount
 +1 if analytics is enabled
@@ -114,9 +132,9 @@ const redis = new Redis({ url: process.env.UPSTASH_URL!, token: process.env.UPST
 const limiter = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(10, "60 s"),
-  analytics: true,            // adds +1 ZINCRBY per call
-  enableProtection: true,     // adds +2 per call
-  dynamicLimits: true         // adds +1 per call
+  analytics: true, // adds +1 ZINCRBY per call
+  enableProtection: true, // adds +2 per call
+  dynamicLimits: true, // adds +1 per call
 });
 
 async function handle(ip) {

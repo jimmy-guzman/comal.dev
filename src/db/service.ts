@@ -7,11 +7,7 @@ import { isRetryableDbError } from "./errors";
 
 export class Database extends Context.Tag("Database")<Database, typeof db>() {}
 
-const DatabaseLive = Layer.succeed(Database, db);
-
-export const AppLive = Layer.mergeAll(DatabaseLive);
-
-export type AppContext = Layer.Layer.Success<typeof AppLive>;
+const AppLive = Layer.succeed(Database, db);
 
 export const appRuntime = ManagedRuntime.make(AppLive);
 
