@@ -297,7 +297,15 @@ export async function POST(req: Request) {
       // phantom row, defeating the purpose of validating before persistence.
       // Existing conversations are allowed to send approval-only payloads
       // where the last message is an assistant turn carrying responses.
-      if (!userMessage) {
+      // The "real" check requires at least one part with substantive content:
+      // a non-whitespace text part, or any non-text part (e.g. file upload).
+      // Without this, a whitespace-only first turn would still create a row.
+      const hasSubstantiveContent =
+        userMessage?.parts.some((part) => {
+          return part.type === "text" ? part.text.trim().length > 0 : true;
+        }) ?? false;
+
+      if (!userMessage || !hasSubstantiveContent) {
         return yield* Effect.fail(
           new ValidationError({
             message: "A new conversation requires at least one user message.",
