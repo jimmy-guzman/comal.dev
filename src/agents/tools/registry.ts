@@ -112,7 +112,7 @@ const tmdbTvDetailsMeta = {
 const tmdbTrendingAllMeta = {
   configSchema: noConfigSchema,
   defaultConfig: deepFreeze({}),
-  description: "Lists what's trending across movies and TV on TMDB.",
+  description: "Lists what's trending across movies, TV, and people on TMDB.",
   group: "tmdb",
   id: "tmdb-trending-all",
   name: "TMDB trending (all)",

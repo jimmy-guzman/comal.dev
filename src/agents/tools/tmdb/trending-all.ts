@@ -6,7 +6,7 @@ import { env } from "@/env";
 
 export const tmdbTrendingAll = tool({
   description:
-    "Fetch what's currently trending across movies and TV on TMDB for a given time window ('day' or 'week'). Each result is tagged with `media_type`. Use this for general 'what's hot right now' questions.",
+    "Fetch what's currently trending across movies, TV, and people on TMDB for a given time window ('day' or 'week'). Each result is tagged with `media_type`. Use this for general 'what's hot right now' questions.",
   execute: async ({ language, timeWindow }) => {
     const { data, error } = await trendingAll({
       auth: () => `Bearer ${env.TMDB_READ_ACCESS_TOKEN}`,
