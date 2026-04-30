@@ -1,0 +1,12 @@
+pre-commit:
+  jobs:
+    - name: fmt
+      glob: "*.{ts,tsx,js,jsx,mjs,cjs,json,css}"
+      run: bun run oxfmt {staged_files}
+      stage_fixed: true
+    - name: lint
+      glob: "*.{ts,tsx,js,jsx,mjs,cjs}"
+      run: bun run eslint --fix --no-warn-ignored {staged_files}
+      stage_fixed: true
+    - name: knip
+      run: bun run knip
