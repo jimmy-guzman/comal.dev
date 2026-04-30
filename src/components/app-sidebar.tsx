@@ -105,6 +105,7 @@ export const AppSidebar = ({ agents, conversations, isSignedIn }: Props) => {
   const pathname = usePathname();
   const activeMatch = /^\/agents\/[^/]+\/conversations\/([^/]+)/.exec(pathname);
   const activeConversationId = activeMatch?.[1] ?? null;
+  const isOnConversation = activeMatch !== null;
 
   return (
     <Sidebar>
@@ -151,7 +152,10 @@ export const AppSidebar = ({ agents, conversations, isSignedIn }: Props) => {
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith("/agents")}>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname.startsWith("/agents") && !isOnConversation}
+              >
                 <Link href="/agents">Agents</Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
