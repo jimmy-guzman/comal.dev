@@ -7,6 +7,7 @@ This Skill documents the core features of the Upstash Rate Limiter for TypeScrip
 Caching prevents unnecessary Redis calls when identifiers are already blocked.
 
 Key points:
+
 - Use an in-memory `Map<string, number>` as `ephemeralCache`.
 - Default: a new `Map()` is created automatically.
 - Disable by setting `ephemeralCache: false`.
@@ -14,6 +15,7 @@ Key points:
 - Responses blocked by cache return `reason: cacheBlock`.
 
 Example:
+
 ```ts
 const cache = new Map();
 const ratelimit = new Ratelimit({
@@ -25,10 +27,12 @@ const ratelimit = new Ratelimit({
 ## Timeout
 
 A timeout allows requests to proceed if Redis is slow or unreachable.
+
 - Default timeout: 5 seconds
 - On timeout success, `reason` reflects this
 
 Example:
+
 ```ts
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
@@ -40,11 +44,13 @@ const ratelimit = new Ratelimit({
 ## Analytics & Dashboard
 
 Analytics collect counts of success/blocked requests.
+
 - Disabled by default; enable via `analytics: true`
 - Data is viewable in the Upstash Rate Limit Dashboard
 - In edge runtimes, ensure analytics requests complete using `pending` from `limit()`
 
 Example:
+
 ```ts
 const { pending } = await ratelimit.limit("id");
 context.waitUntil(pending);
@@ -55,6 +61,7 @@ context.waitUntil(pending);
 Different user tiers can use different limiters.
 
 Example:
+
 ```ts
 const ratelimit = {
   free: new Ratelimit({ prefix: "free", limiter: Ratelimit.slidingWindow(10, "10s") }),
@@ -70,6 +77,7 @@ await ratelimit.paid.limit(userId);
 Specify how many tokens to subtract per request using `rate`.
 
 Example:
+
 ```ts
 await ratelimit.limit("identifier", { rate: batchSize });
 ```
@@ -77,10 +85,12 @@ await ratelimit.limit("identifier", { rate: batchSize });
 ## Multi Region
 
 Multi-region rate limiting provides lower latency and state replication via CRDTs.
+
 - Uses multiple Redis instances
 - Trades strict accuracy for global performance
 
 Example:
+
 ```ts
 const ratelimit = new MultiRegionRatelimit({
   redis: [redisUS, redisEU],
@@ -94,9 +104,11 @@ context.waitUntil(pending);
 ## Dynamic Limits
 
 Update rate limits at runtime without recreating the limiter.
+
 - Works only for single-region limiters (fixedWindow, slidingWindow, tokenBucket)
 
 Example:
+
 ```ts
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),

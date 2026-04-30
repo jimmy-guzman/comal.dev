@@ -30,7 +30,10 @@ export async function proxy(request: NextRequest) {
   const forwardedHeaders = new Headers(request.headers);
   const existingCookie = forwardedHeaders.get("cookie");
 
-  forwardedHeaders.set("cookie", existingCookie ? `${existingCookie}; ${cookieValue}` : cookieValue);
+  forwardedHeaders.set(
+    "cookie",
+    existingCookie ? `${existingCookie}; ${cookieValue}` : cookieValue,
+  );
 
   const response = NextResponse.next({ request: { headers: forwardedHeaders } });
 

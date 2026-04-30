@@ -57,7 +57,7 @@ const rateLimitScript = `
 const allowed = await redis.eval<number>(
   rateLimitScript,
   ["ratelimit:user:123"],
-  [10, 60] // 10 requests per 60 seconds
+  [10, 60], // 10 requests per 60 seconds
 );
 
 if (allowed === 1) {
@@ -95,7 +95,7 @@ const purchaseScript = `
 const purchase = await redis.eval<{ err?: string; ok?: string }>(
   purchaseScript,
   ["inventory:item:1", "balance:user:123"],
-  [5, 20] // Buy 5 items at 20 each
+  [5, 20], // Buy 5 items at 20 each
 );
 
 // Cache script with EVALSHA for better performance

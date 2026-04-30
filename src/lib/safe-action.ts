@@ -6,6 +6,4 @@ import { rateLimitMiddleware } from "./middleware/rate-limit-middleware";
 
 const actionClient = createSafeActionClient();
 
-export const authClient = actionClient
-  .use(betterAuth(auth))
-  .use(rateLimitMiddleware);
+export const authClient = actionClient.use(betterAuth(auth)).use(rateLimitMiddleware);

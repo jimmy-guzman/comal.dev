@@ -36,7 +36,7 @@ async function createSession(userId: string, userData: any) {
       ...userData,
       createdAt: Date.now(),
     },
-    { ex: 3600 } // 1 hour TTL
+    { ex: 3600 }, // 1 hour TTL
   );
 
   return sessionId;
@@ -59,7 +59,7 @@ async function updateSession(sessionId: string, updates: any) {
   await redis.set(
     `session:${sessionId}`,
     { ...current, ...updates, updatedAt: Date.now() },
-    { ex: 3600 } // Reset TTL
+    { ex: 3600 }, // Reset TTL
   );
 }
 
@@ -129,7 +129,7 @@ async function createMultiDeviceSession(userId: string, deviceInfo: any) {
   await redis.set(
     `session:${sessionId}`,
     { userId, ...deviceInfo, createdAt: Date.now() },
-    { ex: 3600 }
+    { ex: 3600 },
   );
 
   // Track in user's session list
@@ -159,7 +159,7 @@ async function createRememberMeToken(userId: string) {
   await redis.set(
     `remember:${token}`,
     { userId, createdAt: Date.now() },
-    { ex: 2592000 } // 30 days
+    { ex: 2592000 }, // 30 days
   );
 
   return token;

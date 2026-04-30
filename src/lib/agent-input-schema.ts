@@ -38,9 +38,12 @@ const toolEntrySchema = z
         ctx.addIssue({
           code: "custom",
           message: issue.message,
-          path: ["config", ...(issue.path?.map((p) => {
-            return typeof p === "object" ? p.key : p;
-          }) ?? [])],
+          path: [
+            "config",
+            ...(issue.path?.map((path) => {
+              return typeof path === "object" ? path.key : path;
+            }) ?? []),
+          ],
         });
       }
 
