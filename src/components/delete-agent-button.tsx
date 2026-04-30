@@ -21,9 +21,10 @@ import { Button } from "@/components/ui/button";
 interface Props {
   agentId: string;
   agentName: string;
+  trigger?: React.ReactNode;
 }
 
-export const DeleteAgentButton = ({ agentId, agentName }: Props) => {
+export const DeleteAgentButton = ({ agentId, agentName, trigger }: Props) => {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
 
@@ -37,7 +38,7 @@ export const DeleteAgentButton = ({ agentId, agentName }: Props) => {
   return (
     <AlertDialog onOpenChange={setOpen} open={open}>
       <AlertDialogTrigger asChild>
-        <Button variant="outline">Delete</Button>
+        {trigger ?? <Button variant="outline">Delete</Button>}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
