@@ -146,8 +146,8 @@ When changing API client types or AI SDK-related code, run `bun run lint` and `b
 
 ## Git hooks
 
-- **Lefthook runs on `pre-commit`.** Three jobs in parallel: `eslint --fix` on staged TS/JS files, `oxfmt` on staged files, and `knip` on the whole repo. Lint and format auto-fix and re-stage; knip blocks the commit on any finding.
-  Catching issues at commit time is cheaper than at review time. Auto-fix means most lint/format violations never reach the diff. Knip is fast enough to gate every commit.
+- **Lefthook runs on `pre-commit`.** Three jobs run sequentially: `oxfmt` on staged files, `eslint --fix` on staged TS/JS files, then `knip` on the whole repo. Format runs before lint so eslint's fixes are the final staged content; both auto-fix and re-stage. Knip blocks the commit on any finding.
+  Catching issues at commit time is cheaper than at review time. Auto-fix means most lint/format violations never reach the diff. Knip is fast enough to gate every commit. Sequential ordering avoids a race where parallel `stage_fixed` jobs would clobber each other on the same file.
 - **Hooks install automatically via the `prepare` script on `bun install`.** Config lives in [`lefthook.yml`](lefthook.yml).
   No manual setup. Cloning + `bun install` is enough.
 - **Bypass with `--no-verify`** (`git commit --no-verify`, `git push --no-verify`) only when intentional, e.g. WIP commits on a branch you'll squash before review.
