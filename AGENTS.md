@@ -143,3 +143,13 @@ When changing API client types or AI SDK-related code, run `bun run lint` and `b
 
 - **PRs: branch off `main`, title follows Conventional Commits, squash merge.**
   One logical change per commit in history, and PR titles double as release notes when they follow the same format as commits.
+
+## Git hooks
+
+- **Lefthook runs on `pre-commit`.** Three jobs in parallel: `eslint --fix` on staged TS/JS files, `oxfmt` on staged files, and `knip` on the whole repo. Lint and format auto-fix and re-stage; knip blocks the commit on any finding.
+  Catching issues at commit time is cheaper than at review time. Auto-fix means most lint/format violations never reach the diff. Knip is fast enough to gate every commit.
+- **Hooks install automatically via the `prepare` script on `bun install`.** Config lives in [`lefthook.yml`](lefthook.yml).
+  No manual setup. Cloning + `bun install` is enough.
+- **Bypass with `--no-verify`** (`git commit --no-verify`, `git push --no-verify`) only when intentional, e.g. WIP commits on a branch you'll squash before review.
+  Hooks exist to be useful, not to be a wall. Bypassing is fine when you know why.
+- **Typecheck runs in CI**, not on commit. Lefthook auto-skips when `CI=true` so hooks don't double-run in GitHub Actions.

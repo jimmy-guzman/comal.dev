@@ -27,7 +27,7 @@ Build your own AI agents. Pick a model, write a system prompt, choose tools, cha
 
 ## Local development
 
-1. Install dependencies: `bun install`
+1. Install dependencies: `bun install` (Git hooks install automatically via Lefthook)
 2. Copy [`.env.example`](.env.example) to `.env` and fill in values:
    - `DATABASE_URL` — Postgres connection string (e.g. [Neon](https://neon.tech))
    - `BETTER_AUTH_SECRET` — random secret for Better Auth
