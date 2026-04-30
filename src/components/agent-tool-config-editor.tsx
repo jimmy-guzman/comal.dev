@@ -65,7 +65,7 @@ const FieldRenderer = ({
   }
 
   if (schema instanceof z.ZodEnum) {
-    const options = Object.keys(schema.def.entries);
+    const options = schema.options.map(String);
     const stringValue = typeof value === "string" ? value : "";
 
     return (
@@ -106,7 +106,15 @@ const FieldRenderer = ({
           onChange={(event) => {
             const raw = event.target.value;
 
-            onChange(raw === "" ? undefined : Number(raw));
+            if (raw === "") {
+              onChange(undefined);
+
+              return;
+            }
+
+            const parsed = Number(raw);
+
+            onChange(Number.isFinite(parsed) ? parsed : undefined);
           }}
           type="number"
           value={typeof value === "number" ? String(value) : ""}
