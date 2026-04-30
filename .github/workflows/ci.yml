@@ -71,7 +71,15 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     env:
-      SKIP_ENV_VALIDATION: "1"
+      DATABASE_URL: postgres://user:pass@localhost:5432/db
+      BETTER_AUTH_SECRET: ci-build-placeholder-secret-not-for-production-use-32chars+
+      GITHUB_CLIENT_ID: ci-build-placeholder
+      GITHUB_CLIENT_SECRET: ci-build-placeholder
+      OPENROUTER_API_KEY: ci-build-placeholder
+      TAVILY_API_KEY: ci-build-placeholder
+      TMDB_READ_ACCESS_TOKEN: ci-build-placeholder
+      UPSTASH_REDIS_REST_URL: https://ci-build.upstash.io
+      UPSTASH_REDIS_REST_TOKEN: ci-build-placeholder
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2

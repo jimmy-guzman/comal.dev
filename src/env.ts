@@ -21,5 +21,4 @@ export const env = createEnv({
     VERCEL_PROJECT_PRODUCTION_URL: z.string().min(1).optional(),
     VERCEL_URL: z.string().min(1).optional(),
   },
-  skipValidation: process.env.SKIP_ENV_VALIDATION === "1",
 });
