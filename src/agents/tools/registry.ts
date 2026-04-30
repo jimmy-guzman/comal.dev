@@ -1,5 +1,3 @@
-import type { StandardSchemaV1 } from "@standard-schema/spec";
-
 import { z } from "zod";
 
 const groups = {
@@ -11,9 +9,9 @@ const groups = {
 
 type ToolGroupId = keyof typeof groups;
 
-interface ToolMetadata<TConfig = unknown> {
-  configSchema: StandardSchemaV1<unknown, TConfig>;
-  defaultConfig: TConfig;
+interface ToolMetadata<TConfig extends z.ZodRawShape = z.ZodRawShape> {
+  configSchema: z.ZodObject<TConfig>;
+  defaultConfig: z.infer<z.ZodObject<TConfig>>;
   description: string;
   group: ToolGroupId;
   id: string;
@@ -33,13 +31,15 @@ const deepFreeze = <T>(value: T): T => {
 
 const noConfigSchema = z.object({}).strict();
 
-type NoConfig = z.infer<typeof noConfigSchema>;
+type NoConfigShape = (typeof noConfigSchema)["shape"];
 
 const approvalConfigSchema = z.object({
-  needsApproval: z.boolean(),
+  needsApproval: z
+    .boolean()
+    .describe("Ask before each call. Recommended for tools that fetch external content."),
 });
 
-type ApprovalConfig = z.infer<typeof approvalConfigSchema>;
+type ApprovalConfigShape = (typeof approvalConfigSchema)["shape"];
 
 const getCurrentTimeMeta = {
   configSchema: noConfigSchema,
@@ -48,7 +48,7 @@ const getCurrentTimeMeta = {
   group: "core",
   id: "get-current-time",
   name: "Current time",
-} satisfies ToolMetadata<NoConfig>;
+} satisfies ToolMetadata<NoConfigShape>;
 
 const webFetchMeta = {
   configSchema: approvalConfigSchema,
@@ -57,7 +57,7 @@ const webFetchMeta = {
   group: "web",
   id: "web-fetch",
   name: "Web fetch",
-} satisfies ToolMetadata<ApprovalConfig>;
+} satisfies ToolMetadata<ApprovalConfigShape>;
 
 const webSearchMeta = {
   configSchema: approvalConfigSchema,
@@ -66,7 +66,7 @@ const webSearchMeta = {
   group: "web",
   id: "web-search",
   name: "Web search",
-} satisfies ToolMetadata<ApprovalConfig>;
+} satisfies ToolMetadata<ApprovalConfigShape>;
 
 const githubReadMeta = {
   configSchema: noConfigSchema,
@@ -75,7 +75,7 @@ const githubReadMeta = {
   group: "github",
   id: "github-read",
   name: "GitHub read",
-} satisfies ToolMetadata<NoConfig>;
+} satisfies ToolMetadata<NoConfigShape>;
 
 const tmdbSearchMultiMeta = {
   configSchema: noConfigSchema,
@@ -84,7 +84,7 @@ const tmdbSearchMultiMeta = {
   group: "tmdb",
   id: "tmdb-search-multi",
   name: "TMDB search",
-} satisfies ToolMetadata<NoConfig>;
+} satisfies ToolMetadata<NoConfigShape>;
 
 const tmdbMovieDetailsMeta = {
   configSchema: noConfigSchema,
@@ -93,7 +93,7 @@ const tmdbMovieDetailsMeta = {
   group: "tmdb",
   id: "tmdb-movie-details",
   name: "TMDB movie details",
-} satisfies ToolMetadata<NoConfig>;
+} satisfies ToolMetadata<NoConfigShape>;
 
 const tmdbTvDetailsMeta = {
   configSchema: noConfigSchema,
@@ -102,7 +102,7 @@ const tmdbTvDetailsMeta = {
   group: "tmdb",
   id: "tmdb-tv-details",
   name: "TMDB TV details",
-} satisfies ToolMetadata<NoConfig>;
+} satisfies ToolMetadata<NoConfigShape>;
 
 const tmdbTrendingAllMeta = {
   configSchema: noConfigSchema,
@@ -111,7 +111,7 @@ const tmdbTrendingAllMeta = {
   group: "tmdb",
   id: "tmdb-trending-all",
   name: "TMDB trending (all)",
-} satisfies ToolMetadata<NoConfig>;
+} satisfies ToolMetadata<NoConfigShape>;
 
 const tmdbTrendingMoviesMeta = {
   configSchema: noConfigSchema,
@@ -120,7 +120,7 @@ const tmdbTrendingMoviesMeta = {
   group: "tmdb",
   id: "tmdb-trending-movies",
   name: "TMDB trending movies",
-} satisfies ToolMetadata<NoConfig>;
+} satisfies ToolMetadata<NoConfigShape>;
 
 const tmdbTrendingTvMeta = {
   configSchema: noConfigSchema,
@@ -129,7 +129,7 @@ const tmdbTrendingTvMeta = {
   group: "tmdb",
   id: "tmdb-trending-tv",
   name: "TMDB trending TV",
-} satisfies ToolMetadata<NoConfig>;
+} satisfies ToolMetadata<NoConfigShape>;
 
 const tmdbDiscoverMovieMeta = {
   configSchema: noConfigSchema,
@@ -138,7 +138,7 @@ const tmdbDiscoverMovieMeta = {
   group: "tmdb",
   id: "tmdb-discover-movie",
   name: "TMDB discover movies",
-} satisfies ToolMetadata<NoConfig>;
+} satisfies ToolMetadata<NoConfigShape>;
 
 const tmdbDiscoverTvMeta = {
   configSchema: noConfigSchema,
@@ -147,7 +147,7 @@ const tmdbDiscoverTvMeta = {
   group: "tmdb",
   id: "tmdb-discover-tv",
   name: "TMDB discover TV",
-} satisfies ToolMetadata<NoConfig>;
+} satisfies ToolMetadata<NoConfigShape>;
 
 const metadata = Object.freeze([
   Object.freeze(getCurrentTimeMeta) as ToolMetadata,

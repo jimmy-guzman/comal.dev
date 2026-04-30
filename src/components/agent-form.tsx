@@ -251,7 +251,9 @@ export const AgentForm = ({ initialAgent }: Props) => {
             return (
               <Field>
                 <FieldLabel>Tools</FieldLabel>
-                <FieldDescription>Pick which tools this agent can call.</FieldDescription>
+                <FieldDescription>
+                  Pick from the library and configure each tool's behavior.
+                </FieldDescription>
                 <AgentToolPicker
                   onChange={(next) => {
                     field.handleChange(next);

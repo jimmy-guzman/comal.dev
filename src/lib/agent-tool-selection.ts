@@ -11,7 +11,7 @@ export const initialToolSelections = (
 ): ToolSelection[] => {
   return tools.list().map((def) => {
     const match = existing?.find((entry) => entry.toolId === def.id);
-    const baseConfig = (def.defaultConfig ?? {}) as Record<string, unknown>;
+    const baseConfig = def.defaultConfig;
     const incomingConfig =
       match && typeof match.config === "object" && match.config !== null
         ? (match.config as Record<string, unknown>)
