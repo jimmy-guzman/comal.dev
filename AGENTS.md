@@ -153,3 +153,11 @@ When changing API client types or AI SDK-related code, run `bun run lint` and `b
 - **Bypass with `--no-verify`** (`git commit --no-verify`, `git push --no-verify`) only when intentional, e.g. WIP commits on a branch you'll squash before review.
   Hooks exist to be useful, not to be a wall. Bypassing is fine when you know why.
 - **Typecheck runs in CI**, not on commit. Lefthook auto-skips when `CI=true` so hooks don't double-run in GitHub Actions.
+
+## Worktrees
+
+- **Worktrees live under `.worktrees/<branch>` with the directory name matching the branch name.** Manage them via `bun run worktree:add <branch>` and `bun run worktree:remove <branch>` ([`scripts/worktree-add.ts`](scripts/worktree-add.ts), [`scripts/worktree-remove.ts`](scripts/worktree-remove.ts)).
+  Predictable layout means tooling and humans agree on where a branch's checkout lives.
+- **`.env` is symlinked from the repo root into each worktree by `worktree:add`.** Single source of truth: edit `.env` at the root, every worktree sees the change. `.env*` is gitignored, so the symlink itself is never committed. Additional gitignored files at the root can be linked with `--link <file>` (repeatable).
+- **`.env.local` is created per-worktree, never linked.** Next.js loads it after `.env`, so it overrides specific keys without mutating the shared root file. This is the override channel; do not symlink `.env.local` across worktrees.
+- **`node_modules` is never linked.** Worktrees exist to isolate branch state, including dependency state. Each worktree runs its own `bun install`. Linking `node_modules` would let a `bun install` on one branch silently rewrite another branch's installed tree.
