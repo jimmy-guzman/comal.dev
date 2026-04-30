@@ -24,7 +24,7 @@ import type { DatabaseError, ForbiddenError, NotFoundError, UnauthorizedError } 
 import { loadAgent } from "@/agents";
 import { appRuntime } from "@/db/service";
 import { Auth, AuthLive } from "@/lib/auth-context";
-import { createConversation, updateConversationTitle } from "@/lib/chat";
+import { createConversationWithFirstUserMessage, updateConversationTitle } from "@/lib/chat";
 import { classifyChatError } from "@/lib/chat/errors";
 import { appendChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
 import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
@@ -287,12 +287,30 @@ export async function POST(req: Request) {
       return yield* Effect.fail(new ValidationError({ message: validation.error.message }));
     }
 
+    const userMessage = validation.data.toReversed().find((m) => {
+      return m.role === "user";
+    });
+
     if (conversationSource.kind === "create") {
-      const created = yield* createConversation({
+      // A brand-new conversation must have a real user turn in this request.
+      // Without it we have nothing to send to the model and would leave a
+      // phantom row, defeating the purpose of validating before persistence.
+      // Existing conversations are allowed to send approval-only payloads
+      // where the last message is an assistant turn carrying responses.
+      if (!userMessage) {
+        return yield* Effect.fail(
+          new ValidationError({
+            message: "A new conversation requires at least one user message.",
+          }),
+        );
+      }
+
+      const created = yield* createConversationWithFirstUserMessage({
         agentId: conversationSource.agentId,
         modelId: conversationSource.modelId,
         title: "New conversation",
         userId: user.id,
+        userMessage: { id: userMessage.id, parts: userMessage.parts },
       });
 
       conversationId = created.id;
@@ -309,6 +327,13 @@ export async function POST(req: Request) {
       }
     }
 
+    // The first user message of a brand-new conversation was already
+    // persisted atomically with the conversation row above; track it here so
+    // the generic append-loop below skips it.
+    if (isNewConversation && userMessage) {
+      persistedUserMessageIds.add(userMessage.id);
+    }
+
     const persistedApprovalToolCallIds = new Set<string>();
 
     for (const event of existingEvents) {
@@ -322,10 +347,6 @@ export async function POST(req: Request) {
         persistedApprovalToolCallIds.add(toolCallId);
       }
     }
-
-    const userMessage = validation.data.toReversed().find((m) => {
-      return m.role === "user";
-    });
 
     const isFirstTurn = isNewConversation || (yield* countAssistantTurns(conversationId)) === 0;
 

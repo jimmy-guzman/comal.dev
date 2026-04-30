@@ -19,8 +19,9 @@ const retrySchedule = Schedule.exponential("100 millis").pipe(
 
 /**
  * Wraps a single-statement database query in an Effect with retry on transient failures.
- * For multi-statement writes, use `Effect.tryPromise` directly: Neon HTTP cannot do
- * transactions, so retrying mid-sequence can leave partial state.
+ * For multi-statement atomic writes, pass a `db.batch([...])` call as the query: Neon HTTP
+ * does not support `db.transaction()`, but `db.batch([...])` runs the given queries
+ * atomically via Neon's HTTP transaction endpoint and is safe to retry as a unit.
  */
 export const runQuery = <A>(query: () => Promise<A>) => {
   return Effect.tryPromise({
