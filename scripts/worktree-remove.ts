@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { execFileSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 
 const printUsage = () => {
   process.stderr.write(
@@ -84,7 +84,13 @@ const tryGit = (args: string[], options?: { cwd?: string }) => {
 
 const repoRoot = dirname(resolve(git(["rev-parse", "--path-format=absolute", "--git-common-dir"])));
 const { branch, force, keepBranch } = parseArgs(process.argv.slice(2));
-const worktreePath = resolve(repoRoot, ".worktrees", branch);
+const worktreesRoot = resolve(repoRoot, ".worktrees");
+const worktreePath = resolve(worktreesRoot, branch);
+const relBranchPath = relative(worktreesRoot, worktreePath);
+
+if (relBranchPath === "" || relBranchPath.startsWith("..") || isAbsolute(relBranchPath)) {
+  fail(`Invalid branch path: ${branch} resolves outside ${relative(repoRoot, worktreesRoot)}`);
+}
 
 const removeArgs = ["worktree", "remove"];
 

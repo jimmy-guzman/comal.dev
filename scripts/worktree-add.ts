@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { execFileSync } from "node:child_process";
 import { existsSync, symlinkSync, writeFileSync } from "node:fs";
-import { dirname, relative, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 
 const DEFAULT_LINKED_FILES = [".env"];
 const ENV_LOCAL_FILE = ".env.local";
@@ -97,7 +97,13 @@ const tryGit = (args: string[], options?: { cwd?: string }) => {
 
 const repoRoot = dirname(resolve(git(["rev-parse", "--path-format=absolute", "--git-common-dir"])));
 const { base, branch, extraLinks } = parseArgs(process.argv.slice(2));
-const worktreePath = resolve(repoRoot, ".worktrees", branch);
+const worktreesRoot = resolve(repoRoot, ".worktrees");
+const worktreePath = resolve(worktreesRoot, branch);
+const relBranchPath = relative(worktreesRoot, worktreePath);
+
+if (relBranchPath === "" || relBranchPath.startsWith("..") || isAbsolute(relBranchPath)) {
+  fail(`Invalid branch path: ${branch} resolves outside ${relative(repoRoot, worktreesRoot)}`);
+}
 
 if (existsSync(worktreePath)) {
   fail(`Worktree already exists at ${relative(repoRoot, worktreePath)}`);
@@ -117,15 +123,23 @@ const filesToLink = [...new Set([...DEFAULT_LINKED_FILES, ...extraLinks])];
 
 for (const file of filesToLink) {
   const source = resolve(repoRoot, file);
+  const relToRepo = relative(repoRoot, source);
+
+  if (relToRepo === "" || relToRepo.startsWith("..") || isAbsolute(relToRepo)) {
+    process.stdout.write(`Skipping ${file}: resolves outside repo root.\n`);
+
+    continue;
+  }
 
   if (existsSync(source)) {
     const target = resolve(worktreePath, file);
+    const linkTarget = relative(dirname(target), source);
 
     if (existsSync(target)) {
       process.stdout.write(`Skipping ${file}: already exists in worktree.\n`);
     } else {
-      symlinkSync(source, target);
-      process.stdout.write(`Linked ${file} -> ${relative(worktreePath, source)}\n`);
+      symlinkSync(linkTarget, target);
+      process.stdout.write(`Linked ${file} -> ${linkTarget}\n`);
     }
   } else {
     process.stdout.write(`Skipping ${file}: not found at repo root.\n`);
