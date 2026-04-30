@@ -5,9 +5,10 @@ import { nanoid } from "nanoid";
 import type { DatabaseError } from "@/lib/errors";
 
 import { agent } from "@/db/schemas/agent-schema";
-import { conversation } from "@/db/schemas/chat-schema";
+import { chatEvent, conversation } from "@/db/schemas/chat-schema";
 import { Database, runQuery } from "@/db/service";
-import { ForbiddenError, NotFoundError } from "@/lib/errors";
+import { validateEventPayload } from "@/lib/chat/events";
+import { ForbiddenError, NotFoundError, ValidationError } from "@/lib/errors";
 
 export const listRecentConversationsForUser = (
   userId: string,
@@ -76,23 +77,53 @@ export const listConversationsForAgent = (
   });
 };
 
-export const createConversation = ({
+/**
+ * Atomically inserts a new conversation row and its first user-message event in
+ * a single Neon HTTP `db.batch([...])`. This avoids the orphan-row case where a
+ * standalone conversation insert succeeds but the subsequent first-event
+ * insert fails. Neon HTTP has no multi-statement transactions; `db.batch` runs
+ * the given queries atomically via the HTTP transaction endpoint.
+ */
+export const createConversationWithFirstUserMessage = ({
   agentId,
   modelId,
   title,
   userId,
+  userMessage,
 }: {
   agentId: string;
   modelId: string;
   title: string;
   userId: string;
-}): Effect.Effect<{ id: string }, DatabaseError, Database> => {
+  userMessage: { id: string; parts: unknown[] };
+}): Effect.Effect<{ id: string }, DatabaseError | ValidationError, Database> => {
   return Effect.gen(function* () {
+    const validatedPayload = yield* Effect.try({
+      catch: (cause) => {
+        return new ValidationError({
+          message: cause instanceof Error ? cause.message : String(cause),
+        });
+      },
+      try: () => {
+        return validateEventPayload("user-message", { parts: userMessage.parts });
+      },
+    });
+
     const db = yield* Database;
     const id = nanoid();
 
     yield* runQuery(() => {
-      return db.insert(conversation).values({ agentId, id, modelId, title, userId });
+      return db.batch([
+        db.insert(conversation).values({ agentId, id, modelId, title, userId }),
+        db.insert(chatEvent).values({
+          conversationId: id,
+          eventType: "user-message",
+          messageId: userMessage.id,
+          modelId,
+          payload: validatedPayload,
+          role: "user",
+        }),
+      ]);
     });
 
     return { id };

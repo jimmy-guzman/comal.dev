@@ -2,6 +2,8 @@ import type { UIMessage } from "ai";
 
 import {
   convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
   generateText,
   isToolUIPart,
   safeValidateUIMessages,
@@ -16,12 +18,13 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import type { Database } from "@/db/service";
+import type { ChatEventRow } from "@/lib/chat/projector";
 import type { DatabaseError, ForbiddenError, NotFoundError, UnauthorizedError } from "@/lib/errors";
 
 import { loadAgent } from "@/agents";
 import { appRuntime } from "@/db/service";
 import { Auth, AuthLive } from "@/lib/auth-context";
-import { updateConversationTitle } from "@/lib/chat";
+import { createConversationWithFirstUserMessage, updateConversationTitle } from "@/lib/chat";
 import { classifyChatError } from "@/lib/chat/errors";
 import { appendChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
 import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
@@ -35,8 +38,10 @@ class RateLimitError extends Data.TaggedError("RateLimitError")<{
 }> {}
 
 const postBodySchema = z.object({
-  conversationId: z.string().min(1),
+  agentId: z.string().min(1).optional(),
+  conversationId: z.string().min(1).nullable(),
   messages: z.array(z.unknown()).min(1),
+  modelId: z.string().min(1).optional(),
   timezone: z
     .string()
     .trim()
@@ -179,7 +184,30 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const { conversationId, timezone } = parsed.data;
+  const {
+    agentId: bodyAgentId,
+    conversationId: bodyConversationId,
+    modelId: bodyModelId,
+    timezone,
+  } = parsed.data;
+
+  type ConversationSource =
+    | { agentId: string; kind: "create"; modelId: string }
+    | { conversationId: string; kind: "existing" };
+
+  const conversationSource: ConversationSource | null =
+    bodyConversationId === null
+      ? bodyAgentId !== undefined && bodyModelId !== undefined
+        ? { agentId: bodyAgentId, kind: "create", modelId: bodyModelId }
+        : null
+      : { conversationId: bodyConversationId, kind: "existing" };
+
+  if (conversationSource === null) {
+    return Response.json(
+      { error: "agentId and modelId are required when creating a new conversation." },
+      { status: 400 },
+    );
+  }
 
   const requestHeaders = await headers();
 
@@ -205,32 +233,6 @@ export async function POST(req: Request) {
       return yield* Effect.fail(new RateLimitError({ limit, reset }));
     }
 
-    const conv = yield* getConversationWithEvents(user.id, conversationId);
-
-    const agent = yield* loadAgent(conv.agentId, user.id);
-
-    const persistedUserMessageIds = new Set<string>();
-
-    for (const event of conv.events) {
-      if (event.eventType === "user-message" && event.messageId !== null) {
-        persistedUserMessageIds.add(event.messageId);
-      }
-    }
-
-    const persistedApprovalToolCallIds = new Set<string>();
-
-    for (const event of conv.events) {
-      if (event.eventType !== "tool-approval-responded") continue;
-
-      if (typeof event.payload !== "object" || event.payload === null) continue;
-
-      const { toolCallId } = event.payload as { toolCallId?: unknown };
-
-      if (typeof toolCallId === "string") {
-        persistedApprovalToolCallIds.add(toolCallId);
-      }
-    }
-
     const incomingMessages = parsed.data.messages.filter((msg) => {
       if (typeof msg !== "object" || msg === null) return true;
 
@@ -238,6 +240,41 @@ export async function POST(req: Request) {
 
       return !Array.isArray(parts) || parts.length > 0;
     });
+
+    // Resolve the agent (and, for existing conversations, the conversation
+    // row) before message validation. Then validate, and only after
+    // validation passes do we insert a new conversation row. This ordering
+    // ensures a malformed request never leaves a phantom row. Neon HTTP
+    // has no multi-statement transactions, so creation and the first event
+    // are not strictly atomic; the validation gate is the practical
+    // guarantee.
+    let conversationId: string;
+    let convModelId: string;
+    let existingEvents: ChatEventRow[] = [];
+    let isNewConversation = false;
+    let resolvedAgentId: string;
+
+    if (conversationSource.kind === "create") {
+      resolvedAgentId = conversationSource.agentId;
+      convModelId = conversationSource.modelId;
+    } else {
+      const conv = yield* getConversationWithEvents(user.id, conversationSource.conversationId);
+
+      resolvedAgentId = conv.agentId;
+      convModelId = conv.modelId;
+      existingEvents = conv.events;
+    }
+
+    // loadAgent enforces ownership (filters by userId) and resolves the
+    // tool implementations from the registry. Loading it before validation
+    // keeps the agent-ownership gate ahead of any conversation row insert
+    // for the create flow. Note: we don't pass agent.tools to
+    // safeValidateUIMessages because the SDK's tools option requires a
+    // compile-time-known UIMessage tools generic; our agents are dynamic
+    // so we get message-shape validation here, not tool-input validation.
+    // Tool inputs are still validated downstream by streamText. See
+    // follow-up issue for a typed UIMessage system.
+    const agent = yield* loadAgent(resolvedAgentId, user.id);
 
     const validation = yield* Effect.tryPromise({
       catch: (cause) => {
@@ -254,7 +291,72 @@ export async function POST(req: Request) {
       return m.role === "user";
     });
 
-    const isFirstTurn = (yield* countAssistantTurns(conversationId)) === 0;
+    if (conversationSource.kind === "create") {
+      // A brand-new conversation must have a real user turn in this request.
+      // Without it we have nothing to send to the model and would leave a
+      // phantom row, defeating the purpose of validating before persistence.
+      // Existing conversations are allowed to send approval-only payloads
+      // where the last message is an assistant turn carrying responses.
+      // The "real" check requires at least one part with substantive content:
+      // a non-whitespace text part, or any non-text part (e.g. file upload).
+      // Without this, a whitespace-only first turn would still create a row.
+      const hasSubstantiveContent =
+        userMessage?.parts.some((part) => {
+          return part.type === "text" ? part.text.trim().length > 0 : true;
+        }) ?? false;
+
+      if (!userMessage || !hasSubstantiveContent) {
+        return yield* Effect.fail(
+          new ValidationError({
+            message: "A new conversation requires at least one user message.",
+          }),
+        );
+      }
+
+      const created = yield* createConversationWithFirstUserMessage({
+        agentId: conversationSource.agentId,
+        modelId: conversationSource.modelId,
+        title: "New conversation",
+        userId: user.id,
+        userMessage: { id: userMessage.id, parts: userMessage.parts },
+      });
+
+      conversationId = created.id;
+      isNewConversation = true;
+    } else {
+      conversationId = conversationSource.conversationId;
+    }
+
+    const persistedUserMessageIds = new Set<string>();
+
+    for (const event of existingEvents) {
+      if (event.eventType === "user-message" && event.messageId !== null) {
+        persistedUserMessageIds.add(event.messageId);
+      }
+    }
+
+    // The first user message of a brand-new conversation was already
+    // persisted atomically with the conversation row above; track it here so
+    // the generic append-loop below skips it.
+    if (isNewConversation && userMessage) {
+      persistedUserMessageIds.add(userMessage.id);
+    }
+
+    const persistedApprovalToolCallIds = new Set<string>();
+
+    for (const event of existingEvents) {
+      if (event.eventType !== "tool-approval-responded") continue;
+
+      if (typeof event.payload !== "object" || event.payload === null) continue;
+
+      const { toolCallId } = event.payload as { toolCallId?: unknown };
+
+      if (typeof toolCallId === "string") {
+        persistedApprovalToolCallIds.add(toolCallId);
+      }
+    }
+
+    const isFirstTurn = isNewConversation || (yield* countAssistantTurns(conversationId)) === 0;
 
     if (userMessage && !persistedUserMessageIds.has(userMessage.id)) {
       yield* appendChatEvent({
@@ -265,7 +367,7 @@ export async function POST(req: Request) {
           payload: { parts: userMessage.parts },
           role: "user",
         },
-        modelId: conv.modelId,
+        modelId: convModelId,
       });
     }
 
@@ -287,7 +389,7 @@ export async function POST(req: Request) {
           },
           role: "assistant",
         },
-        modelId: conv.modelId,
+        modelId: convModelId,
       });
     }
 
@@ -307,7 +409,7 @@ export async function POST(req: Request) {
 
     const result = streamText({
       messages: modelMessages,
-      model: openrouter(conv.modelId),
+      model: openrouter(convModelId),
       onError: ({ error }) => {
         logError("streamText error", error);
       },
@@ -322,7 +424,7 @@ export async function POST(req: Request) {
           conversationId,
           fullStream: result.fullStream,
           messageId: assistantMessageId,
-          modelId: conv.modelId,
+          modelId: convModelId,
           onEventError: (error, event) => {
             logError(`persistChatStream event error (${event.eventType})`, error);
           },
@@ -332,7 +434,7 @@ export async function POST(req: Request) {
           const userText = stringifyText(userMessage.parts).slice(0, 500);
 
           await appRuntime.runPromise(
-            generateTitleEffect(conversationId, conv.modelId, userText).pipe(
+            generateTitleEffect(conversationId, convModelId, userText).pipe(
               Effect.tapError((error) => {
                 return Effect.logError("Title generation failed", error);
               }),
@@ -346,22 +448,38 @@ export async function POST(req: Request) {
       }
     });
 
-    return result.toUIMessageStreamResponse({
-      onError: (error) => {
-        logError("UI message stream error", error);
+    const uiStream = createUIMessageStream({
+      execute: ({ writer }) => {
+        if (isNewConversation) {
+          writer.write({
+            data: { id: conversationId },
+            transient: true,
+            type: "data-conversation-created",
+          });
+        }
 
-        const info = classifyChatError(error);
+        writer.merge(
+          result.toUIMessageStream({
+            onError: (error) => {
+              logError("UI message stream error", error);
 
-        return JSON.stringify({
-          kind: info.kind,
-          message: info.message,
-          retryable: info.retryable,
-          statusCode: info.statusCode,
-          suggestModelSwitch: info.suggestModelSwitch,
-        });
+              const info = classifyChatError(error);
+
+              return JSON.stringify({
+                kind: info.kind,
+                message: info.message,
+                retryable: info.retryable,
+                statusCode: info.statusCode,
+                suggestModelSwitch: info.suggestModelSwitch,
+              });
+            },
+            originalMessages: validation.data,
+          }),
+        );
       },
-      originalMessages: validation.data,
     });
+
+    return createUIMessageStreamResponse({ stream: uiStream });
   }) satisfies Effect.Effect<Response, ChatError, Auth | Database>;
 
   return await appRuntime.runPromise(
