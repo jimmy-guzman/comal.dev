@@ -234,6 +234,30 @@ export async function POST(req: Request) {
       return yield* Effect.fail(new RateLimitError({ limit, reset }));
     }
 
+    const incomingMessages = parsed.data.messages.filter((msg) => {
+      if (typeof msg !== "object" || msg === null) return true;
+
+      const { parts } = msg as { parts?: unknown };
+
+      return !Array.isArray(parts) || parts.length > 0;
+    });
+
+    const validation = yield* Effect.tryPromise({
+      catch: (cause) => {
+        return new ValidationError({ cause, message: "Failed to validate messages." });
+      },
+      try: () => safeValidateUIMessages({ messages: incomingMessages }),
+    });
+
+    if (!validation.success) {
+      return yield* Effect.fail(new ValidationError({ message: validation.error.message }));
+    }
+
+    // Resolve the conversation only after message validation passes. For new
+    // conversations this also gates the row insert on agent ownership, so a
+    // bad request never leaves a phantom row. Neon HTTP has no multi-statement
+    // transactions, so creation and the first event are not strictly atomic;
+    // the validation gate above is the practical guarantee.
     let conversationId: string;
     let convAgentId: string;
     let convModelId: string;
@@ -241,7 +265,6 @@ export async function POST(req: Request) {
     let isNewConversation = false;
 
     if (conversationSource.kind === "create") {
-      // Validate ownership of the agent before creating the row.
       yield* getAgentForUser(conversationSource.agentId, user.id);
 
       const created = yield* createConversation({
@@ -286,25 +309,6 @@ export async function POST(req: Request) {
       if (typeof toolCallId === "string") {
         persistedApprovalToolCallIds.add(toolCallId);
       }
-    }
-
-    const incomingMessages = parsed.data.messages.filter((msg) => {
-      if (typeof msg !== "object" || msg === null) return true;
-
-      const { parts } = msg as { parts?: unknown };
-
-      return !Array.isArray(parts) || parts.length > 0;
-    });
-
-    const validation = yield* Effect.tryPromise({
-      catch: (cause) => {
-        return new ValidationError({ cause, message: "Failed to validate messages." });
-      },
-      try: () => safeValidateUIMessages({ messages: incomingMessages }),
-    });
-
-    if (!validation.success) {
-      return yield* Effect.fail(new ValidationError({ message: validation.error.message }));
     }
 
     const userMessage = validation.data.toReversed().find((m) => {

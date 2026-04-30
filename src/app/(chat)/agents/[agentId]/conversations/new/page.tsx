@@ -19,9 +19,9 @@ export default async function NewConversationPage({ params }: Props) {
   if (!session?.user) redirect("/sign-in");
 
   const agent = await appRuntime.runPromise(
-    getAgentForUser(agentId, session.user.id).pipe(Effect.catchAll(() => {
-      return Effect.succeed(null);
-    })),
+    getAgentForUser(agentId, session.user.id).pipe(
+      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+    ),
   );
 
   if (!agent) notFound();
