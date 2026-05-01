@@ -52,8 +52,8 @@ When changing API client types or AI SDK-related code, run `bun run lint` and `b
 - **Use `satisfies` for type narrowing where possible.**
   Preserves the literal type instead of widening to the annotation, which keeps downstream inference tight without giving up the shape check.
 
-- **Test files use the `.spec.ts` suffix and live next to the code they test.**
-  Colocation makes tests discoverable alongside the thing they cover, and a single suffix keeps test runners' glob configs simple.
+- **Test files use the `.spec.ts` (node) or `.spec.tsx` (jsdom) suffix and live next to the code they test.**
+  Colocation makes tests discoverable alongside the thing they cover. The suffix selects the Vitest project: `.spec.ts` runs in the `node` environment for pure logic, `.spec.tsx` runs in `jsdom` for component tests with React rendering.
 
 ## Code design
 
@@ -80,6 +80,15 @@ When changing API client types or AI SDK-related code, run `bun run lint` and `b
   Code should explain itself through naming and structure. Comments drift from the code they describe; the ones worth keeping have a specific purpose (API docs, known gaps).
 
 ## Testing
+
+- **Vitest with two projects: `node` for `*.spec.ts`, `jsdom` for `*.spec.tsx`.** Configured in [`vitest.config.ts`](vitest.config.ts). The jsdom project loads [`src/test/setup.ts`](src/test/setup.ts), which wires `@testing-library/jest-dom` matchers, MSW lifecycle, and a `ResizeObserver` stub (jsdom doesn't ship one, and AI Elements' `useStickToBottom` needs it).
+  Splitting environments keeps node-only specs fast and avoids paying jsdom startup for them. The `.spec.tsx` suffix doubles as the selector.
+
+- **MSW is the HTTP mock boundary.** A shared `setupServer` lives in [`src/test/msw-server.ts`](src/test/msw-server.ts); per-test handlers go through `server.use(...)`. `onUnhandledRequest: "error"` means any unmocked outbound HTTP call fails the test loudly.
+  Mocking at the network layer (per the testing rule above) means the production transport runs end-to-end, including the AI SDK's stream parsing.
+
+- **For chat/AI SDK responses, build the stream with the SDK's own helpers** (`createUIMessageStream` + `createUIMessageStreamResponse`) inside the MSW handler. Don't hand-craft SSE bytes.
+  The helpers track the stream protocol the same way the real `/api/chat` route does, so a future SDK protocol bump moves both sides together instead of breaking the test.
 
 - **Test behavior, not implementation.**
   Assert what a caller or user observes, not how the code achieves it. "Caller" and "user" scale with the unit under test: for a component it's the person clicking, for a function it's the code calling it. Tests that assert internals break on every refactor and prove nothing about whether the code works.
