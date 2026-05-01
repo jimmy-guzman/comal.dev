@@ -274,13 +274,12 @@ export const AgentForm = ({ initialAgent }: Props) => {
           onClick={() => {
             router.back();
           }}
-          size="lg"
           type="button"
           variant="ghost"
         >
           Cancel
         </Button>
-        <Button disabled={isPending} size="lg" type="submit">
+        <Button disabled={isPending} type="submit">
           {isPending ? "Saving..." : isEdit ? "Save changes" : "Create agent"}
         </Button>
       </div>
