@@ -5,7 +5,7 @@ import type { FileUIPart, UIMessage } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
 import { Trash2Icon } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ModelId } from "@/config/models";
 import type { ChatErrorInfo, ChatErrorKind } from "@/lib/chat/errors";
@@ -128,6 +128,25 @@ export const ChatView = ({
   const [modelId, setModelId] = useState(initialModelId);
   const userInteractedRef = useRef(false);
 
+  /**
+   * useChat captures the transport on first render via an internal ref, so a
+   * body callback that closes over conversationId/modelId would freeze them
+   * at their initial values. Without this, after the server creates a
+   * conversation mid-stream the next send still posts conversationId: null
+   * and forks a new conversation. Mirror the latest values into refs and
+   * read them inside the body callback so each request sees current state.
+   */
+  const conversationIdRef = useRef(conversationId);
+  const modelIdRef = useRef(modelId);
+
+  useEffect(() => {
+    conversationIdRef.current = conversationId;
+  }, [conversationId]);
+
+  useEffect(() => {
+    modelIdRef.current = modelId;
+  }, [modelId]);
+
   const sendAutomaticallyWhen = useCallback((options: { messages: UIMessage[] }) => {
     if (!userInteractedRef.current) {
       return false;
@@ -135,6 +154,25 @@ export const ChatView = ({
 
     return lastAssistantMessageIsCompleteWithApprovalResponses(options);
   }, []);
+
+  /**
+   * The transport's body callback is invoked by the AI SDK at request time
+   * via `resolve()` in HttpChatTransport, not during render. The
+   * react-hooks/refs rule can't see across that boundary and treats the
+   * `.current` reads as render-time access.
+   */
+  // eslint-disable-next-line react-hooks/refs -- body callback runs at request time, not during render
+  const transport = new DefaultChatTransport({
+    api: "/api/chat",
+    body: () => {
+      return {
+        agentId,
+        conversationId: conversationIdRef.current,
+        modelId: modelIdRef.current,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      };
+    },
+  });
 
   const {
     addToolApprovalResponse: addToolApprovalResponseRaw,
@@ -163,17 +201,7 @@ export const ChatView = ({
       globalThis.history.replaceState(null, "", `/agents/${agentId}/conversations/${newId}`);
     },
     sendAutomaticallyWhen,
-    transport: new DefaultChatTransport({
-      api: "/api/chat",
-      body: () => {
-        return {
-          agentId,
-          conversationId,
-          modelId,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        };
-      },
-    }),
+    transport,
   });
 
   const sendMessage: typeof sendMessageRaw = (...args) => {
