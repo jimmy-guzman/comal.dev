@@ -389,9 +389,9 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
                   ownedAgents={ownedAgents}
                   value={field.state.value}
                 />
-                <FieldError errors={subAgentErrors.map((message) => {
-                  return { message };
-                })} />
+                <FieldError
+                  errors={subAgentErrors.map((message) => ({ message }))}
+                />
               </Field>
             );
           }}
