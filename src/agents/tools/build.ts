@@ -36,8 +36,8 @@ const builders = new Map<string, (config: unknown) => Tool>([
   [tmdbTrendingMoviesMeta.id, buildTmdbTrendingMovies],
   [tmdbTrendingTvMeta.id, buildTmdbTrendingTv],
   [tmdbTvDetailsMeta.id, buildTmdbTvDetails],
-  [webFetchMeta.id, buildWebFetch as (c: unknown) => Tool],
-  [webSearchMeta.id, buildWebSearch as (c: unknown) => Tool],
+  [webFetchMeta.id, buildWebFetch],
+  [webSearchMeta.id, buildWebSearch],
 ]);
 
 export const buildTool = (id: string, config: unknown) => {

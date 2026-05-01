@@ -1,15 +1,14 @@
 import { tool } from "ai";
 import { z } from "zod";
 
-import type { webSearchMeta } from "./search.meta";
-
 import { formatResultsAsMarkdown } from "./search-providers/format";
 import { tavilyProvider } from "./search-providers/tavily";
+import { webSearchMeta } from "./search.meta";
 
 const webSearch = (needsApproval: boolean) => {
   return tool({
     description:
-      "Search the web for current information. Returns a markdown list of titles, URLs, and snippets. Use `webFetch` to retrieve the full content of a specific result if needed.",
+      "Search the web for current information. Returns a markdown list of titles, URLs, and snippets. Use `web-fetch` to retrieve the full content of a specific result if needed.",
     execute: async ({ maxResults, query }) => {
       const data = await tavilyProvider.search({ maxResults, query });
 
@@ -28,6 +27,8 @@ const webSearch = (needsApproval: boolean) => {
   });
 };
 
-export const buildWebSearch = ({ needsApproval }: z.infer<typeof webSearchMeta.configSchema>) => {
+export const buildWebSearch = (config: unknown) => {
+  const { needsApproval } = webSearchMeta.configSchema.parse(config);
+
   return webSearch(needsApproval);
 };

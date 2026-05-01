@@ -15,19 +15,19 @@ import { webFetchMeta } from "./web/fetch.meta";
 import { webSearchMeta } from "./web/search.meta";
 
 const metadata = Object.freeze([
-  Object.freeze(coreNowMeta) as ToolMetadata,
-  Object.freeze(githubReadMeta) as ToolMetadata,
-  Object.freeze(tmdbDiscoverMovieMeta) as ToolMetadata,
-  Object.freeze(tmdbDiscoverTvMeta) as ToolMetadata,
-  Object.freeze(tmdbMovieDetailsMeta) as ToolMetadata,
-  Object.freeze(tmdbSearchMeta) as ToolMetadata,
-  Object.freeze(tmdbTrendingMeta) as ToolMetadata,
-  Object.freeze(tmdbTrendingMoviesMeta) as ToolMetadata,
-  Object.freeze(tmdbTrendingTvMeta) as ToolMetadata,
-  Object.freeze(tmdbTvDetailsMeta) as ToolMetadata,
-  Object.freeze(webFetchMeta) as ToolMetadata,
-  Object.freeze(webSearchMeta) as ToolMetadata,
-]);
+  Object.freeze(coreNowMeta),
+  Object.freeze(githubReadMeta),
+  Object.freeze(tmdbDiscoverMovieMeta),
+  Object.freeze(tmdbDiscoverTvMeta),
+  Object.freeze(tmdbMovieDetailsMeta),
+  Object.freeze(tmdbSearchMeta),
+  Object.freeze(tmdbTrendingMeta),
+  Object.freeze(tmdbTrendingMoviesMeta),
+  Object.freeze(tmdbTrendingTvMeta),
+  Object.freeze(tmdbTvDetailsMeta),
+  Object.freeze(webFetchMeta),
+  Object.freeze(webSearchMeta),
+] satisfies readonly ToolMetadata[]);
 
 const byId = new Map(metadata.map((m) => [m.id, m]));
 
