@@ -12,15 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemSeparator,
-  ItemTitle,
-} from "@/components/ui/item";
+import { Separator } from "@/components/ui/separator";
 
 const DIVISIONS = [
   { amount: 60, name: "seconds" },
@@ -64,50 +56,46 @@ const ConversationListItem = ({ agentId, conversation }: ConversationListItemPro
   const href = `/agents/${agentId}/conversations/${conversation.id}` as const;
 
   return (
-    <Item asChild>
-      <Link href={href}>
-        <ItemContent>
-          <ItemTitle>{conversation.title ?? "Untitled"}</ItemTitle>
-          <ItemDescription>Last message {formatRelative(conversation.createdAt)}</ItemDescription>
-        </ItemContent>
-        <ItemActions>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                aria-label="More options"
-                className="hover:bg-background"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                size="icon-sm"
-                variant="ghost"
-              >
-                <MoreHorizontalIcon />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setDeleteOpen(true);
-                }}
-                variant="destructive"
-              >
-                <Trash2Icon />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DeleteConversationButton
-            agentId={agentId}
-            conversationId={conversation.id}
-            onOpenChange={setDeleteOpen}
-            open={deleteOpen}
-          />
-        </ItemActions>
+    <li className="group/row relative">
+      <Link className="hover:bg-muted flex flex-col gap-1 rounded-md px-3 py-2.5" href={href}>
+        <span className="truncate text-xs font-medium">{conversation.title ?? "Untitled"}</span>
+        <span className="text-muted-foreground truncate text-xs/relaxed">
+          Last message {formatRelative(conversation.createdAt)}
+        </span>
       </Link>
-    </Item>
+      <div className="absolute top-1/2 right-2 -translate-y-1/2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              aria-label="More options"
+              className="opacity-0 group-focus-within/row:opacity-100 group-hover/row:opacity-100 data-[state=open]:opacity-100"
+              size="icon-sm"
+              variant="ghost"
+            >
+              <MoreHorizontalIcon />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setDeleteOpen(true);
+              }}
+              variant="destructive"
+            >
+              <Trash2Icon />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <DeleteConversationButton
+          agentId={agentId}
+          conversationId={conversation.id}
+          onOpenChange={setDeleteOpen}
+          open={deleteOpen}
+        />
+      </div>
+    </li>
   );
 };
 
@@ -118,15 +106,15 @@ interface Props {
 
 export const ConversationList = ({ agentId, conversations }: Props) => {
   return (
-    <ItemGroup>
+    <ul className="flex flex-col">
       {conversations.map((c, i) => {
         return (
           <React.Fragment key={c.id}>
-            {i > 0 ? <ItemSeparator /> : null}
+            {i > 0 ? <Separator /> : null}
             <ConversationListItem agentId={agentId} conversation={c} />
           </React.Fragment>
         );
       })}
-    </ItemGroup>
+    </ul>
   );
 };
