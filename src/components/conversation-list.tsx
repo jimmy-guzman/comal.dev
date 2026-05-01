@@ -18,8 +18,35 @@ import {
   ItemContent,
   ItemDescription,
   ItemGroup,
+  ItemSeparator,
   ItemTitle,
 } from "@/components/ui/item";
+
+const DIVISIONS = [
+  { amount: 60, name: "seconds" },
+  { amount: 60, name: "minutes" },
+  { amount: 24, name: "hours" },
+  { amount: 7, name: "days" },
+  { amount: 4.345_24, name: "weeks" },
+  { amount: 12, name: "months" },
+  { amount: Number.POSITIVE_INFINITY, name: "years" },
+] as const satisfies readonly { amount: number; name: Intl.RelativeTimeFormatUnit }[];
+
+const relativeTimeFormatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
+const formatRelative = (date: Date) => {
+  let duration = (date.getTime() - Date.now()) / 1000;
+
+  for (const division of DIVISIONS) {
+    if (Math.abs(duration) < division.amount) {
+      return relativeTimeFormatter.format(Math.round(duration), division.name);
+    }
+
+    duration /= division.amount;
+  }
+
+  return relativeTimeFormatter.format(Math.round(duration), "years");
+};
 
 interface Conversation {
   createdAt: Date;
@@ -37,40 +64,48 @@ const ConversationListItem = ({ agentId, conversation }: ConversationListItemPro
   const href = `/agents/${agentId}/conversations/${conversation.id}` as const;
 
   return (
-    <Item>
-      <ItemContent>
-        <ItemTitle>
-          <Link href={href}>{conversation.title ?? "Untitled"}</Link>
-        </ItemTitle>
-        <ItemDescription>{conversation.createdAt.toLocaleDateString()}</ItemDescription>
-      </ItemContent>
-      <ItemActions>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button aria-label="More options" size="icon-sm" variant="ghost">
-              <MoreHorizontalIcon />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onSelect={(e) => {
-                e.preventDefault();
-                setDeleteOpen(true);
-              }}
-            >
-              <Trash2Icon />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DeleteConversationButton
-          agentId={agentId}
-          conversationId={conversation.id}
-          onOpenChange={setDeleteOpen}
-          open={deleteOpen}
-        />
-      </ItemActions>
+    <Item asChild>
+      <Link href={href}>
+        <ItemContent>
+          <ItemTitle>{conversation.title ?? "Untitled"}</ItemTitle>
+          <ItemDescription>Last message {formatRelative(conversation.createdAt)}</ItemDescription>
+        </ItemContent>
+        <ItemActions>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                aria-label="More options"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                size="icon-sm"
+                variant="ghost"
+              >
+                <MoreHorizontalIcon />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setDeleteOpen(true);
+                }}
+              >
+                <Trash2Icon />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DeleteConversationButton
+            agentId={agentId}
+            conversationId={conversation.id}
+            onOpenChange={setDeleteOpen}
+            open={deleteOpen}
+          />
+        </ItemActions>
+      </Link>
     </Item>
   );
 };
@@ -83,8 +118,13 @@ interface Props {
 export const ConversationList = ({ agentId, conversations }: Props) => {
   return (
     <ItemGroup>
-      {conversations.map((c) => {
-        return <ConversationListItem agentId={agentId} conversation={c} key={c.id} />;
+      {conversations.map((c, i) => {
+        return (
+          <React.Fragment key={c.id}>
+            {i > 0 ? <ItemSeparator /> : null}
+            <ConversationListItem agentId={agentId} conversation={c} />
+          </React.Fragment>
+        );
       })}
     </ItemGroup>
   );
