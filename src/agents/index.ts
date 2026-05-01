@@ -49,7 +49,7 @@ const buildToolsRecord = (rows: { config: unknown; toolId: string }[], depth: nu
         yield* Effect.logWarning(
           `invalid config for "${row.toolId}", falling back to default`,
         ).pipe(Effect.annotateLogs({ issues: validation.issues }));
-        config = def.defaultConfig;
+        config = depth > 0 ? stripApprovalConfig(def.defaultConfig) : def.defaultConfig;
       } else {
         config = validation.value;
       }

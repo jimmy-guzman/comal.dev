@@ -3,6 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { z } from "zod";
 
 import type { OwnedAgent } from "@/components/agent-subagent-picker";
@@ -113,20 +114,61 @@ const resolveModelId = (incoming: string | undefined): ModelId => {
   return incoming && isModelId(incoming) ? incoming : DEFAULT_MODEL_ID;
 };
 
+const subAgentValidationErrorsSchema = z.object({
+  subAgents: z
+    .object({
+      _errors: z.array(z.string()).optional(),
+    })
+    .catchall(
+      z.union([
+        z.array(z.string()),
+        z.object({
+          childAgentId: z.object({ _errors: z.array(z.string()).optional() }).optional(),
+        }),
+      ]),
+    )
+    .optional(),
+});
+
+const extractSubAgentErrors = (validationErrors: unknown): string[] => {
+  const parsed = subAgentValidationErrorsSchema.safeParse(validationErrors);
+
+  if (!parsed.success) return [];
+
+  const ve = parsed.data.subAgents;
+  const arrayErrors = ve?._errors ?? [];
+  const itemErrors = Object.values(ve ?? {})
+    .filter((v): v is { childAgentId?: { _errors?: string[] } } => {
+      return !Array.isArray(v) && typeof v === "object" && "childAgentId" in v;
+    })
+    .flatMap((v) => v.childAgentId?._errors ?? []);
+
+  return [...arrayErrors, ...itemErrors];
+};
+
 const DEFAULT_OWNED_AGENTS: OwnedAgent[] = [];
 
 export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: Props) => {
   const router = useRouter();
   const isEdit = Boolean(initialAgent);
+  const [subAgentErrors, setSubAgentErrors] = useState<string[]>([]);
 
   const create = useAction(createAgentAction, {
+    onError: ({ error }) => {
+      setSubAgentErrors(extractSubAgentErrors(error.validationErrors));
+    },
     onSuccess: ({ data }) => {
+      setSubAgentErrors([]);
       router.push(`/agents/${data.id}`);
     },
   });
 
   const update = useAction(updateAgentAction, {
+    onError: ({ error }) => {
+      setSubAgentErrors(extractSubAgentErrors(error.validationErrors));
+    },
     onSuccess: ({ data }) => {
+      setSubAgentErrors([]);
       router.push(`/agents/${data.agentId}`);
     },
   });
@@ -334,7 +376,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
         <form.Field mode="array" name="subAgents">
           {(field) => {
             return (
-              <Field>
+              <Field data-invalid={subAgentErrors.length > 0 || undefined}>
                 <FieldLabel>Sub-agents</FieldLabel>
                 <FieldDescription>
                   Other agents this agent can delegate tasks to as tools.
@@ -347,6 +389,9 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
                   ownedAgents={ownedAgents}
                   value={field.state.value}
                 />
+                <FieldError errors={subAgentErrors.map((message) => {
+                  return { message };
+                })} />
               </Field>
             );
           }}
