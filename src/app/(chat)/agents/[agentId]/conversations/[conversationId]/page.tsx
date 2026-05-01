@@ -41,6 +41,7 @@ export default async function ConversationPage({ params }: Props) {
   return (
     <ChatView
       agentId={agentId}
+      agentName={agent.name}
       conversationId={conversationId}
       initialMessages={initialMessages}
       modelId={conv.modelId}

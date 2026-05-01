@@ -28,17 +28,10 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-
-interface RecentConversation {
-  agentId: string;
-  agentName: string;
-  id: string;
-  title: string;
-}
+import { useConversations } from "@/hooks/use-conversations";
 
 interface Props {
   agents: { id: string; name: string }[];
-  conversations: RecentConversation[];
   isSignedIn: boolean;
 }
 
@@ -101,7 +94,8 @@ const ConversationItem = ({
   );
 };
 
-export const AppSidebar = ({ agents, conversations, isSignedIn }: Props) => {
+export const AppSidebar = ({ agents, isSignedIn }: Props) => {
+  const { conversations } = useConversations();
   const pathname = usePathname();
   const activeMatch = /^\/agents\/[^/]+\/conversations\/([^/]+)/.exec(pathname);
   const activeConversationId = activeMatch?.[1] ?? null;

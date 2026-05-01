@@ -29,6 +29,7 @@ export default async function NewConversationPage({ params }: Props) {
   return (
     <ChatView
       agentId={agentId}
+      agentName={agent.name}
       conversationId={null}
       initialMessages={[]}
       modelId={agent.defaultModelId}
