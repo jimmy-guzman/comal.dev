@@ -75,6 +75,7 @@ const ConversationListItem = ({ agentId, conversation }: ConversationListItemPro
             <DropdownMenuTrigger asChild>
               <Button
                 aria-label="More options"
+                className="hover:bg-background"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -87,11 +88,11 @@ const ConversationListItem = ({ agentId, conversation }: ConversationListItemPro
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
                 onSelect={(e) => {
                   e.preventDefault();
                   setDeleteOpen(true);
                 }}
+                variant="destructive"
               >
                 <Trash2Icon />
                 Delete
