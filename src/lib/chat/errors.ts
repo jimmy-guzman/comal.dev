@@ -51,7 +51,7 @@ const CHAT_ERROR_COPY = {
     title: "Network error",
   },
   "rate-limit": {
-    message: "The provider is rate-limiting requests. Wait a moment and retry.",
+    message: "Too many requests. Wait a moment and retry.",
     retryable: true,
     suggestModelSwitch: false,
     title: "Rate limited",
