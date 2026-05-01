@@ -102,7 +102,7 @@ describe("ChatView", () => {
     await user.keyboard("{Enter}");
 
     await waitFor(() => {
-      expect(callCount).toBe(2);
+      expect(requestBodies).toHaveLength(2);
     });
 
     expect(requestBodies[0]).toMatchObject({ agentId: "agent-1", conversationId: null });
