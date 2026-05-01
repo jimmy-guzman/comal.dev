@@ -22,18 +22,6 @@ vi.mock("next/navigation", () => {
   };
 });
 
-vi.mock("@/actions/update-conversation-model", () => {
-  return { updateConversationModelAction: vi.fn() };
-});
-
-vi.mock("@/actions/delete-conversation", () => {
-  return { deleteConversationAction: vi.fn() };
-});
-
-vi.mock("@/components/delete-conversation-button", () => {
-  return { DeleteConversationButton: () => null };
-});
-
 vi.mock("@/components/chat-model-picker", () => ({
   ChatModelPicker: () => null,
 }));
