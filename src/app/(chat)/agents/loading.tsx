@@ -11,7 +11,7 @@ export default function AgentsLoading() {
         {Array.from({ length: PLACEHOLDER_COUNT }, (_, i) => {
           return (
             <Card key={i}>
-              <CardHeader className="flex flex-col gap-2">
+              <CardHeader>
                 <Skeleton className="h-5 w-2/3 rounded-md" />
                 <Skeleton className="h-4 w-full rounded-md" />
                 <Skeleton className="h-4 w-4/6 rounded-md" />

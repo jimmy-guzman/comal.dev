@@ -1,3 +1,4 @@
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const ROW_COUNT = 5;
@@ -16,12 +17,18 @@ export default function AgentDetailLoading() {
           <Skeleton className="size-9 rounded-md" />
         </div>
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2.5">
         {Array.from({ length: ROW_COUNT }, (_, i) => {
           return (
-            <div className="flex flex-col gap-2 px-2 py-3" key={i}>
-              <Skeleton className="h-4 w-3/5 rounded-md" />
-              <Skeleton className="h-3 w-2/5 rounded-md" />
+            <div key={i}>
+              {i > 0 ? <Separator className="my-2" /> : null}
+              <div className="flex items-center gap-2.5 px-3 py-2.5">
+                <div className="flex flex-1 flex-col gap-1">
+                  <Skeleton className="h-3.5 w-3/5 rounded-md" />
+                  <Skeleton className="h-3 w-2/5 rounded-md" />
+                </div>
+                <Skeleton className="size-8 shrink-0 rounded-md" />
+              </div>
             </div>
           );
         })}
