@@ -2,83 +2,114 @@
 
 Build your own AI agents. Pick a model, write a system prompt, choose tools, chat.
 
-## What's included
+## About
 
-- **Next.js 16** with App Router and React 19
-- **Tailwind CSS v4** + shadcn/ui
-- **Better Auth** — anonymous sessions, GitHub OAuth, organization plugin. Start chatting right away; claim an account later to save history across devices.
-- **Drizzle ORM** + Neon Postgres — `agent`, `agent_tool`, `conversation`, and `chat_event` tables. Agents are private to the user that created them.
-- **Vercel AI SDK** + OpenRouter — streaming chat with a static, builtin tool registry (`core-now`, `web-search` via Tavily, `web-fetch` with user approval, `github-read`).
-- **next-safe-action** — typed, auth-aware server actions for agent CRUD.
-- **@tanstack/react-form**, nuqs, zod, es-toolkit, sonner, motion.
+A web app for creating private, runtime-defined AI agents. Each agent is yours: your system prompt, your model, your selected tools. Start chatting anonymously, sign in with GitHub to keep your history.
 
-## Stack
+## Architecture
 
-| Layer     | Choice                                  |
-| --------- | --------------------------------------- |
-| Framework | Next.js 16 (App Router)                 |
-| Language  | TypeScript (strict)                     |
-| UI        | Tailwind v4 + shadcn/ui                 |
-| Forms     | TanStack Form                           |
-| Auth      | Better Auth (anonymous + GitHub + orgs) |
-| Database  | Drizzle ORM + Neon Postgres             |
-| AI        | Vercel AI SDK + OpenRouter              |
-| Runtime   | Bun                                     |
+High-level view of how a chat request flows through the app.
 
-## Local development
+```mermaid
+flowchart TB
+  User([User])
 
-1. Install dependencies: `bun install` (Git hooks install automatically via Lefthook)
-2. Copy [`.env.example`](.env.example) to `.env` and fill in values:
-   - `DATABASE_URL` — Postgres connection string (e.g. [Neon](https://neon.tech))
-   - `BETTER_AUTH_SECRET` — random secret for Better Auth
-   - `BETTER_AUTH_URL` — base URL of the app for local dev (e.g. `http://localhost:3000`). Optional on Vercel; derived from `VERCEL_URL` / `VERCEL_PROJECT_PRODUCTION_URL` when unset.
-   - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — [GitHub OAuth app](https://github.com/settings/developers)
-   - `OPENROUTER_API_KEY` — [OpenRouter](https://openrouter.ai/) key for chat
-   - `TAVILY_API_KEY` — [Tavily](https://tavily.com) key for web search
-3. Push the database schema: `bun run db:push`
-4. Run the dev server: `bun dev`
+  subgraph Browser
+    UI[Next.js UI<br/>chat + agent forms]
+  end
 
-## Worktrees
+  subgraph Server[Next.js server]
+    Proxy[proxy.ts<br/>anonymous session bootstrap]
+    Actions[Server actions<br/>agent + conversation CRUD]
+    ChatAPI[/api/chat route/]
+    Loader[loadAgent<br/>composes agent + tools]
+    Registry[Tool registry<br/>core / web / github / tmdb]
+  end
 
-Use the bundled scripts to manage git worktrees under `.worktrees/`. They symlink `.env` from the repo root so each worktree shares the same secrets, and seed an empty `.env.local` for per-worktree overrides.
+  subgraph External
+    OpenRouter[OpenRouter<br/>LLM provider]
+    Tavily[Tavily]
+    GitHub[GitHub API]
+    TMDB[TMDB API]
+  end
 
-- `bun run worktree:add <branch>` creates `.worktrees/<branch>`, links `.env`, and creates `.env.local`. Pass `--from <ref>` to branch from somewhere other than HEAD, or `--link <file>` (repeatable) to symlink additional gitignored files at the repo root.
-- `bun run worktree:remove <branch>` removes the worktree and deletes the branch. Pass `--force` to discard uncommitted changes or `--keep-branch` to leave the branch in place.
+  subgraph Data
+    Neon[(Neon Postgres<br/>Drizzle)]
+    Redis[(Upstash Redis<br/>rate limit)]
+    Auth[Better Auth]
+  end
 
-To override env vars for a single worktree, edit that worktree's `.env.local`. Next.js loads `.env.local` after `.env`, so values there win without touching the shared root file.
+  User --> UI
+  UI --> Proxy
+  UI --> Actions
+  UI -->|stream| ChatAPI
 
-`node_modules` is intentionally not linked: each worktree must run its own `bun install` so dependency changes on one branch don't bleed into others.
+  Proxy --> Auth
+  Actions --> Auth
+  Actions --> Neon
+  ChatAPI --> Auth
+  ChatAPI --> Redis
+  ChatAPI --> Loader
+  Loader --> Neon
+  Loader --> Registry
+  ChatAPI --> OpenRouter
+  ChatAPI --> Neon
 
-## Deploying to Vercel
+  Registry -.-> Tavily
+  Registry -.-> GitHub
+  Registry -.-> TMDB
+```
 
-`BETTER_AUTH_URL` is optional on Vercel. The server-side base URL is derived at runtime from Vercel's built-in env vars (`VERCEL_PROJECT_PRODUCTION_URL` for production, `VERCEL_URL` for previews) by `src/lib/base-url.ts`. The auth client always calls same-origin, so no client-side URL env vars are required.
+## Features
 
-Anonymous sessions are bootstrapped server-side by `src/proxy.ts` on every page request that lacks a session cookie. The first SSR pass already sees the new session, so there is no client-side flash of "sign in" copy. The proxy runs on the Node.js runtime by default in Next.js 16, so Better Auth + Drizzle + Neon work without an Edge-runtime workaround.
+- Private agents with custom system prompts
+- Any model available through OpenRouter
+- Anonymous sessions, GitHub sign-in to persist history
+- Streaming chat with markdown, code, math, mermaid
+- Approval-gated tools that pause and ask before running
+- Conversation history with per-conversation model switching
 
-GitHub OAuth is registered against the production domain only, so the GitHub sign-in button is hidden on preview deployments (`VERCEL_ENV === "preview"`). Anonymous sessions still work on previews.
+## Tools
 
-## Agents
+- **Current time** — Returns the current date and time in the user's timezone.
+- **Web search** — Searches the web (via Tavily) and returns a list of titles, URLs, and snippets.
+- **Web fetch** — Fetches the contents of a URL and returns it as markdown, text, or HTML.
+- **GitHub read** — Reads files from public GitHub repositories in batch.
+- **TMDB search** — Searches TMDB across movies, TV, and people in a single request.
+- **TMDB trending** — Lists what's trending across movies, TV, and people on TMDB.
+- **TMDB trending movies** — Lists trending movies on TMDB.
+- **TMDB trending TV** — Lists trending TV series on TMDB.
+- **TMDB discover movies** — Discovers movies on TMDB by genre, year, language, and sort order.
+- **TMDB discover TV** — Discovers TV series on TMDB by genre, first-air year, language, and sort order.
+- **TMDB movie details** — Fetches full TMDB metadata for a movie by id.
+- **TMDB TV details** — Fetches full TMDB metadata for a TV series by id.
 
-Agents are user-owned and runtime-defined. There are no built-in agents shipped in code. Create one at `/agents/new`: pick a model, write a system prompt, select tools from the registry. The chat route loads the agent scoped to the signed-in user and composes it from the registry at request time.
+## Tech stack
 
-See `src/agents/index.ts` (`loadAgent`) and `src/lib/agents.ts` (CRUD via Effect + Drizzle).
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS v4
+- shadcn/ui
+- Better Auth
+- Drizzle ORM + Neon Postgres
+- Vercel AI SDK + OpenRouter
+- Upstash Redis
+- next-safe-action
+- TanStack Form
+- Bun
 
-## Tools and approval
+## Getting started
 
-Tools live in `src/agents/tools/` and are registered in `src/agents/tools/registry.ts`. The registry is static and builtin-only; users select from `tools.list()` when configuring an agent. Two execution patterns:
-
-- **Auto-execute:** plain `tool({ execute })` runs immediately when the model calls it. See `web/search.ts` and `core/now.ts`.
-- **Approval-gated:** `tool({ needsApproval: true, execute })` pauses the stream, surfaces a confirmation UI, and only runs after the user approves. See `web/fetch.ts` (configured via the `needsApproval` field on the tool's config schema).
-
-The approval flow uses the AI SDK's `approval-requested` / `approval-responded` part states. The chat client auto-resubmits after an approval response via `lastAssistantMessageIsCompleteWithApprovalResponses`. The server passes `originalMessages` to `toUIMessageStreamResponse` so the streaming state can match tool chunks against existing tool invocations.
-
-## Web search
-
-`web-search` uses [Tavily](https://tavily.com) by default. The tool is built on a `SearchProvider` abstraction in `src/agents/tools/search/`:
-
-- `types.ts` — `SearchProvider` interface and result types
-- `tavily.ts` — Tavily implementation
-- `format.ts` — formats results as a markdown list for the model
-- `index.ts` — `createWebSearch({ provider, needsApproval? })` factory
-
-To swap providers, implement `SearchProvider` and pass it to `createWebSearch` in the registry.
+1. `bun install`
+2. Copy `.env.example` to `.env` and fill in:
+   - `DATABASE_URL`
+   - `BETTER_AUTH_SECRET`
+   - `BETTER_AUTH_URL` (optional locally; pin only if you need a canonical URL)
+   - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`
+   - `OPENROUTER_API_KEY`
+   - `TAVILY_API_KEY`
+   - `TMDB_READ_ACCESS_TOKEN`
+   - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`
+3. `bun run db:push`
+4. `bun dev`
