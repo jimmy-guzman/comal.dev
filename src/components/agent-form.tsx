@@ -5,10 +5,12 @@ import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 
+import type { OwnedAgent } from "@/components/agent-subagent-picker";
 import type { ModelId } from "@/config/models";
 
 import { createAgentAction } from "@/actions/create-agent";
 import { updateAgentAction } from "@/actions/update-agent";
+import { AgentSubagentPicker } from "@/components/agent-subagent-picker";
 import { AgentToolPicker } from "@/components/agent-tool-picker";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -30,6 +32,18 @@ const formSchema = z.object({
   defaultModelId: z.enum(MODEL_IDS),
   description: z.string().trim().max(500),
   name: z.string().trim().min(1).max(100),
+  subAgents: z.array(
+    z.object({
+      alias: z
+        .string()
+        .trim()
+        .min(1)
+        .max(32)
+        .regex(/^[\w-]+$/, "Alias may only contain letters, numbers, hyphens, and underscores."),
+      childAgentId: z.string().min(1),
+      descriptionOverride: z.string().trim().max(1024),
+    }),
+  ),
   systemPrompt: z.string().trim().min(1).max(20_000),
   tools: z.array(
     z.object({
@@ -45,12 +59,14 @@ interface InitialAgent {
   description: null | string;
   id: string;
   name: string;
+  subAgents: { alias: string; childAgentId: string; descriptionOverride: null | string }[];
   systemPrompt: string;
   tools: { config: unknown; toolId: string }[];
 }
 
 interface Props {
   initialAgent?: InitialAgent;
+  ownedAgents?: OwnedAgent[];
 }
 
 const DEFAULT_MODEL_ID: ModelId = "anthropic/claude-haiku-4.5";
@@ -63,7 +79,9 @@ const resolveModelId = (incoming: string | undefined): ModelId => {
   return incoming && isModelId(incoming) ? incoming : DEFAULT_MODEL_ID;
 };
 
-export const AgentForm = ({ initialAgent }: Props) => {
+const DEFAULT_OWNED_AGENTS: OwnedAgent[] = [];
+
+export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: Props) => {
   const router = useRouter();
   const isEdit = Boolean(initialAgent);
 
@@ -87,6 +105,14 @@ export const AgentForm = ({ initialAgent }: Props) => {
       defaultModelId: resolveModelId(initialAgent?.defaultModelId),
       description: initialAgent?.description ?? "",
       name: initialAgent?.name ?? "",
+      subAgents:
+        initialAgent?.subAgents.map((s) => {
+          return {
+            alias: s.alias,
+            childAgentId: s.childAgentId,
+            descriptionOverride: s.descriptionOverride ?? "",
+          };
+        }) ?? [],
       systemPrompt: initialAgent?.systemPrompt ?? "",
       tools: initialToolSelections(initialAgent?.tools),
     },
@@ -99,6 +125,13 @@ export const AgentForm = ({ initialAgent }: Props) => {
         defaultModelId: value.defaultModelId,
         description: value.description.trim() || undefined,
         name: value.name.trim(),
+        subAgents: value.subAgents.map((s) => {
+          return {
+            alias: s.alias.trim(),
+            childAgentId: s.childAgentId,
+            descriptionOverride: s.descriptionOverride.trim() || undefined,
+          };
+        }),
         systemPrompt: value.systemPrompt.trim(),
         tools,
       };
@@ -258,6 +291,26 @@ export const AgentForm = ({ initialAgent }: Props) => {
                   onChange={(next) => {
                     field.handleChange(next);
                   }}
+                  value={field.state.value}
+                />
+              </Field>
+            );
+          }}
+        </form.Field>
+        <form.Field mode="array" name="subAgents">
+          {(field) => {
+            return (
+              <Field>
+                <FieldLabel>Sub-agents</FieldLabel>
+                <FieldDescription>
+                  Other agents this agent can delegate tasks to as tools.
+                </FieldDescription>
+                <AgentSubagentPicker
+                  currentAgentId={initialAgent?.id}
+                  onChange={(next) => {
+                    field.handleChange(next);
+                  }}
+                  ownedAgents={ownedAgents}
                   value={field.state.value}
                 />
               </Field>

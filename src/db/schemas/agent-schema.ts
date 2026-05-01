@@ -1,5 +1,14 @@
-import { relations } from "drizzle-orm";
-import { index, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import {
+  check,
+  index,
+  jsonb,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  unique,
+} from "drizzle-orm/pg-core";
 
 import { user } from "./auth-schema";
 
@@ -40,8 +49,33 @@ export const agentTool = pgTable(
   (table) => [primaryKey({ columns: [table.agentId, table.toolId] })],
 );
 
+export const agentSubagent = pgTable(
+  "agent_subagent",
+  {
+    alias: text("alias").notNull(),
+    childAgentId: text("child_agent_id")
+      .notNull()
+      .references(() => agent.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    descriptionOverride: text("description_override"),
+    parentAgentId: text("parent_agent_id")
+      .notNull()
+      .references(() => agent.id, { onDelete: "cascade" }),
+  },
+  (table) => {
+    return [
+      primaryKey({ columns: [table.parentAgentId, table.childAgentId] }),
+      unique("agent_subagent_parent_alias_unique").on(table.parentAgentId, table.alias),
+      index("agent_subagent_child_idx").on(table.childAgentId),
+      check("agent_subagent_no_self", sql`${table.parentAgentId} <> ${table.childAgentId}`),
+    ];
+  },
+);
+
 export const agentRelations = relations(agent, ({ many, one }) => {
   return {
+    parentLinks: many(agentSubagent, { relationName: "agent_subagent_child" }),
+    subAgentLinks: many(agentSubagent, { relationName: "agent_subagent_parent" }),
     tools: many(agentTool),
     user: one(user, { fields: [agent.userId], references: [user.id] }),
   };
@@ -50,5 +84,20 @@ export const agentRelations = relations(agent, ({ many, one }) => {
 export const agentToolRelations = relations(agentTool, ({ one }) => {
   return {
     agent: one(agent, { fields: [agentTool.agentId], references: [agent.id] }),
+  };
+});
+
+export const agentSubagentRelations = relations(agentSubagent, ({ one }) => {
+  return {
+    childAgent: one(agent, {
+      fields: [agentSubagent.childAgentId],
+      references: [agent.id],
+      relationName: "agent_subagent_child",
+    }),
+    parentAgent: one(agent, {
+      fields: [agentSubagent.parentAgentId],
+      references: [agent.id],
+      relationName: "agent_subagent_parent",
+    }),
   };
 });

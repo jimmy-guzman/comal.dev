@@ -1,16 +1,64 @@
 "use server";
 
-import { Cause, Exit } from "effect";
+import { Cause, Effect, Exit } from "effect";
+import { returnValidationErrors } from "next-safe-action";
 import { revalidatePath } from "next/cache";
 
 import { appRuntime } from "@/db/service";
+import { detectCycle } from "@/lib/agent-graph";
 import { agentInputSchema } from "@/lib/agent-input-schema";
-import { createAgent } from "@/lib/agents";
+import { createAgent, listOwnedAgentIds, listOwnerSubAgentEdges } from "@/lib/agents";
 import { authClient } from "@/lib/safe-action";
+
+const PROPOSED_PARENT_ID = "__proposed__";
 
 export const createAgentAction = authClient
   .inputSchema(agentInputSchema)
   .action(async ({ ctx, parsedInput }) => {
+    if (parsedInput.subAgents.length > 0) {
+      const childIds = parsedInput.subAgents.map((s) => s.childAgentId);
+
+      const validation = await appRuntime.runPromise(
+        Effect.all({
+          edges: listOwnerSubAgentEdges(ctx.auth.user.id),
+          owned: listOwnedAgentIds(ctx.auth.user.id, childIds),
+        }),
+      );
+
+      const ownedIds = new Set(validation.owned.map((row) => row.id));
+
+      for (const [index, sub] of parsedInput.subAgents.entries()) {
+        if (!ownedIds.has(sub.childAgentId)) {
+          returnValidationErrors(agentInputSchema, {
+            subAgents: {
+              [index]: { childAgentId: { _errors: ["Sub-agent not found."] } },
+            },
+          });
+        }
+      }
+
+      const edgeMap = new Map<string, string[]>();
+
+      for (const edge of validation.edges) {
+        const list = edgeMap.get(edge.parentAgentId) ?? [];
+
+        list.push(edge.childAgentId);
+        edgeMap.set(edge.parentAgentId, list);
+      }
+
+      edgeMap.set(PROPOSED_PARENT_ID, childIds);
+
+      const cycle = detectCycle(edgeMap, PROPOSED_PARENT_ID);
+
+      if (cycle) {
+        returnValidationErrors(agentInputSchema, {
+          subAgents: {
+            _errors: [`Sub-agent selection would create a cycle: ${cycle.join(" -> ")}.`],
+          },
+        });
+      }
+    }
+
     const exit = await appRuntime.runPromiseExit(createAgent(ctx.auth.user.id, parsedInput));
 
     if (Exit.isFailure(exit)) {

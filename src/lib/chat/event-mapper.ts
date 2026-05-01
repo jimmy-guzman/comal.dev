@@ -245,11 +245,14 @@ export const mapStreamPartToEvent = (
     }
 
     case "tool-result": {
+      const preliminary = part.preliminary === true ? true : undefined;
+
       return {
         eventType: "tool-output-available" satisfies ChatEventType,
         messageId: ctx.messageId,
         payload: {
           output: part.output,
+          preliminary,
           toolCallId: part.toolCallId,
           toolName: part.toolName,
         },

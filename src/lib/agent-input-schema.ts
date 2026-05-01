@@ -3,6 +3,19 @@ import { z } from "zod";
 import { tools } from "@/agents/tools/registry";
 import { MODEL_IDS } from "@/config/models";
 
+const aliasSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(32)
+  .regex(/^[\w-]+$/, "Alias may only contain letters, numbers, hyphens, and underscores.");
+
+const subAgentEntrySchema = z.object({
+  alias: aliasSchema,
+  childAgentId: z.string().min(1),
+  descriptionOverride: z.string().trim().max(1024).optional(),
+});
+
 const toolEntrySchema = z
   .object({
     config: z.unknown(),
@@ -57,6 +70,34 @@ export const agentInputSchema = z.object({
   defaultModelId: z.enum(MODEL_IDS),
   description: z.string().trim().max(500).optional(),
   name: z.string().trim().min(1).max(100),
+  subAgents: z.array(subAgentEntrySchema).superRefine((items, ctx) => {
+    const seenAliases = new Set<string>();
+    const seenChildren = new Set<string>();
+
+    for (const [index, item] of items.entries()) {
+      const alias = item.alias.toLowerCase();
+
+      if (seenAliases.has(alias)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Duplicate sub-agent alias.",
+          path: [index, "alias"],
+        });
+      } else {
+        seenAliases.add(alias);
+      }
+
+      if (seenChildren.has(item.childAgentId)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Sub-agent already added.",
+          path: [index, "childAgentId"],
+        });
+      } else {
+        seenChildren.add(item.childAgentId);
+      }
+    }
+  }),
   systemPrompt: z.string().trim().min(1).max(20_000),
   tools: z.array(toolEntrySchema).superRefine((items, ctx) => {
     const seen = new Set<string>();

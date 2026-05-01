@@ -1,8 +1,9 @@
 "use client";
 
-import type { DynamicToolUIPart, ToolUIPart } from "ai";
+import type { DynamicToolUIPart, ToolUIPart, UIMessage } from "ai";
 
 import { getToolName } from "ai";
+import { z } from "zod";
 
 import {
   Confirmation,
@@ -21,21 +22,95 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 interface ToolPartProps {
   addToolApprovalResponse: (response: { approved: boolean; id: string }) => void;
   part: DynamicToolUIPart | ToolUIPart;
 }
 
+const subagentOutputSchema = z.object({
+  messages: z.array(z.unknown()).optional(),
+  runId: z.string(),
+  status: z.enum(["done", "running"]),
+  text: z.string().optional(),
+});
+
+const isSubagentOutput = (output: unknown): output is z.infer<typeof subagentOutputSchema> => {
+  return subagentOutputSchema.safeParse(output).success;
+};
+
+const SubagentMessages = ({ messages }: { messages: UIMessage[] }) => {
+  const assistantMessages = messages.filter((m) => m.role === "assistant");
+
+  if (assistantMessages.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+        Transcript
+      </h4>
+      <div className="space-y-2">
+        {assistantMessages.map((message) => {
+          const text = message.parts
+            .flatMap((part) => (part.type === "text" ? [part.text] : []))
+            .join("");
+
+          if (!text.trim()) return null;
+
+          return (
+            <div className="bg-muted/50 rounded-md p-3 text-xs" key={message.id}>
+              <MessageResponse className="text-xs">{text}</MessageResponse>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const SubagentOutput = ({ output }: { output: z.infer<typeof subagentOutputSchema> }) => {
+  const messages = (output.messages ?? []) as UIMessage[];
+  const isRunning = output.status === "running";
+
+  return (
+    <Collapsible defaultOpen={isRunning}>
+      <CollapsibleTrigger
+        className={cn(
+          "flex w-full items-center justify-between gap-2 text-xs",
+          "text-muted-foreground hover:text-foreground transition-colors",
+        )}
+      >
+        <span className="font-medium">{isRunning ? "Running..." : "View transcript"}</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="mt-2">
+        {messages.length > 0 ? (
+          <SubagentMessages messages={messages} />
+        ) : (
+          <p className="text-muted-foreground text-xs">No messages yet.</p>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
+
 export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
   const approvalId = part.approval?.id ?? "";
   const toolName = getToolName(part);
-  const output =
-    typeof part.output === "string" ? (
-      <MessageResponse>{part.output}</MessageResponse>
-    ) : (
-      part.output
-    );
+
+  const subagentResult =
+    typeof part.output === "object" && part.output !== null && isSubagentOutput(part.output)
+      ? part.output
+      : null;
+
+  const output = subagentResult ? (
+    <SubagentOutput output={subagentResult} />
+  ) : typeof part.output === "string" ? (
+    <MessageResponse>{part.output}</MessageResponse>
+  ) : (
+    part.output
+  );
 
   return (
     <>
@@ -74,7 +149,11 @@ export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
         )}
         <ToolContent>
           <ToolInput input={part.input} />
-          <ToolOutput errorText={part.errorText} output={output} />
+          {subagentResult ? (
+            <SubagentOutput output={subagentResult} />
+          ) : (
+            <ToolOutput errorText={part.errorText} output={output} />
+          )}
         </ToolContent>
       </Tool>
     </>

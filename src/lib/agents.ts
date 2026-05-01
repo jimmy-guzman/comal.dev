@@ -1,8 +1,8 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
 
-import { agent, agentTool } from "@/db/schemas/agent-schema";
+import { agent, agentSubagent, agentTool } from "@/db/schemas/agent-schema";
 import { Database, runQuery } from "@/db/service";
 import { DatabaseError, ForbiddenError, NotFoundError } from "@/lib/errors";
 
@@ -11,10 +11,17 @@ interface AgentToolInput {
   toolId: string;
 }
 
+interface AgentSubAgentInput {
+  alias: string;
+  childAgentId: string;
+  descriptionOverride?: string;
+}
+
 interface AgentInput {
   defaultModelId: string;
   description?: string;
   name: string;
+  subAgents: AgentSubAgentInput[];
   systemPrompt: string;
   tools: AgentToolInput[];
 }
@@ -65,7 +72,18 @@ export const getAgentForUser = (agentId: string, userId: string) => {
         .where(eq(agentTool.agentId, agentId));
     });
 
-    return { ...row, tools };
+    const subAgents = yield* runQuery(() => {
+      return db
+        .select({
+          alias: agentSubagent.alias,
+          childAgentId: agentSubagent.childAgentId,
+          descriptionOverride: agentSubagent.descriptionOverride,
+        })
+        .from(agentSubagent)
+        .where(eq(agentSubagent.parentAgentId, agentId));
+    });
+
+    return { ...row, subAgents, tools };
   });
 };
 
@@ -96,24 +114,49 @@ export const createAgent = (userId: string, input: AgentInput) => {
     const db = yield* Database;
     const id = nanoid();
 
-    yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
-      try: async () => {
-        await db.insert(agent).values({
-          defaultModelId: input.defaultModelId,
-          description: input.description,
-          id,
-          name: input.name,
-          systemPrompt: input.systemPrompt,
-          userId,
-        });
+    const insertAgent = db.insert(agent).values({
+      defaultModelId: input.defaultModelId,
+      description: input.description,
+      id,
+      name: input.name,
+      systemPrompt: input.systemPrompt,
+      userId,
+    });
 
-        if (input.tools.length > 0) {
-          await db.insert(agentTool).values(
+    const insertTools =
+      input.tools.length > 0
+        ? db.insert(agentTool).values(
             input.tools.map((tool) => {
               return { agentId: id, config: tool.config, toolId: tool.toolId };
             }),
-          );
+          )
+        : null;
+
+    const insertSubAgents =
+      input.subAgents.length > 0
+        ? db.insert(agentSubagent).values(
+            input.subAgents.map((subAgent) => {
+              return {
+                alias: subAgent.alias,
+                childAgentId: subAgent.childAgentId,
+                descriptionOverride: subAgent.descriptionOverride,
+                parentAgentId: id,
+              };
+            }),
+          )
+        : null;
+
+    yield* Effect.tryPromise({
+      catch: (cause) => new DatabaseError({ cause }),
+      try: async () => {
+        if (insertTools && insertSubAgents) {
+          await db.batch([insertAgent, insertTools, insertSubAgents]);
+        } else if (insertTools) {
+          await db.batch([insertAgent, insertTools]);
+        } else if (insertSubAgents) {
+          await db.batch([insertAgent, insertSubAgents]);
+        } else {
+          await insertAgent;
         }
       },
     });
@@ -126,27 +169,55 @@ export const updateAgent = (agentId: string, input: AgentInput) => {
   return Effect.gen(function* () {
     const db = yield* Database;
 
-    yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
-      try: async () => {
-        await db
-          .update(agent)
-          .set({
-            defaultModelId: input.defaultModelId,
-            description: input.description,
-            name: input.name,
-            systemPrompt: input.systemPrompt,
-          })
-          .where(eq(agent.id, agentId));
+    const updateRow = db
+      .update(agent)
+      .set({
+        defaultModelId: input.defaultModelId,
+        description: input.description,
+        name: input.name,
+        systemPrompt: input.systemPrompt,
+      })
+      .where(eq(agent.id, agentId));
 
-        await db.delete(agentTool).where(eq(agentTool.agentId, agentId));
+    const deleteTools = db.delete(agentTool).where(eq(agentTool.agentId, agentId));
+    const deleteSubAgents = db
+      .delete(agentSubagent)
+      .where(eq(agentSubagent.parentAgentId, agentId));
 
-        if (input.tools.length > 0) {
-          await db.insert(agentTool).values(
+    const insertTools =
+      input.tools.length > 0
+        ? db.insert(agentTool).values(
             input.tools.map((tool) => {
               return { agentId, config: tool.config, toolId: tool.toolId };
             }),
-          );
+          )
+        : null;
+
+    const insertSubAgents =
+      input.subAgents.length > 0
+        ? db.insert(agentSubagent).values(
+            input.subAgents.map((subAgent) => {
+              return {
+                alias: subAgent.alias,
+                childAgentId: subAgent.childAgentId,
+                descriptionOverride: subAgent.descriptionOverride,
+                parentAgentId: agentId,
+              };
+            }),
+          )
+        : null;
+
+    yield* Effect.tryPromise({
+      catch: (cause) => new DatabaseError({ cause }),
+      try: async () => {
+        if (insertTools && insertSubAgents) {
+          await db.batch([updateRow, deleteTools, deleteSubAgents, insertTools, insertSubAgents]);
+        } else if (insertTools) {
+          await db.batch([updateRow, deleteTools, deleteSubAgents, insertTools]);
+        } else if (insertSubAgents) {
+          await db.batch([updateRow, deleteTools, deleteSubAgents, insertSubAgents]);
+        } else {
+          await db.batch([updateRow, deleteTools, deleteSubAgents]);
         }
       },
     });
@@ -158,5 +229,37 @@ export const deleteAgent = (agentId: string) => {
     const db = yield* Database;
 
     yield* runQuery(() => db.delete(agent).where(eq(agent.id, agentId)));
+  });
+};
+
+export const listOwnerSubAgentEdges = (userId: string) => {
+  return Effect.gen(function* () {
+    const db = yield* Database;
+
+    return yield* runQuery(() => {
+      return db
+        .select({
+          childAgentId: agentSubagent.childAgentId,
+          parentAgentId: agentSubagent.parentAgentId,
+        })
+        .from(agentSubagent)
+        .innerJoin(agent, eq(agent.id, agentSubagent.parentAgentId))
+        .where(eq(agent.userId, userId));
+    });
+  });
+};
+
+export const listOwnedAgentIds = (userId: string, agentIds: string[]) => {
+  return Effect.gen(function* () {
+    const db = yield* Database;
+
+    if (agentIds.length === 0) return [] as { id: string }[];
+
+    return yield* runQuery(() => {
+      return db
+        .select({ id: agent.id })
+        .from(agent)
+        .where(and(eq(agent.userId, userId), inArray(agent.id, agentIds)));
+    });
   });
 };
