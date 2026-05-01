@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
+import { compact, flatMap } from "es-toolkit";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -114,36 +115,36 @@ const resolveModelId = (incoming: string | undefined): ModelId => {
   return incoming && isModelId(incoming) ? incoming : DEFAULT_MODEL_ID;
 };
 
-const subAgentValidationErrorsSchema = z.object({
-  subAgents: z
-    .object({
-      _errors: z.array(z.string()).optional(),
-    })
-    .catchall(
-      z.union([
-        z.array(z.string()),
-        z.object({
-          childAgentId: z.object({ _errors: z.array(z.string()).optional() }).optional(),
-        }),
-      ]),
-    )
-    .optional(),
-});
+const isStringArray = (v: unknown): v is string[] => {
+  return Array.isArray(v) && v.every((i) => typeof i === "string");
+};
 
-const extractSubAgentErrors = (validationErrors: unknown): string[] => {
-  const parsed = subAgentValidationErrorsSchema.safeParse(validationErrors);
+const isRecord = (v: unknown): v is Record<string, unknown> => {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+};
 
-  if (!parsed.success) return [];
+const extractSubAgentErrors = (validationErrors: unknown): { message: string }[] => {
+  if (!isRecord(validationErrors)) return [];
 
-  const ve = parsed.data.subAgents;
-  const arrayErrors = ve?._errors ?? [];
-  const itemErrors = Object.values(ve ?? {})
-    .filter((v): v is { childAgentId?: { _errors?: string[] } } => {
-      return !Array.isArray(v) && typeof v === "object" && "childAgentId" in v;
-    })
-    .flatMap((v) => v.childAgentId?._errors ?? []);
+  const { subAgents } = validationErrors;
 
-  return [...arrayErrors, ...itemErrors];
+  if (!isRecord(subAgents)) return [];
+
+  const messages = flatMap(Object.values(subAgents), (v) => {
+    if (isStringArray(v)) return v;
+
+    if (isRecord(v)) {
+      const { childAgentId } = v;
+
+      return isRecord(childAgentId) && isStringArray(childAgentId._errors)
+        ? childAgentId._errors
+        : [];
+    }
+
+    return [];
+  });
+
+  return compact(messages).map((message) => ({ message }));
 };
 
 const DEFAULT_OWNED_AGENTS: OwnedAgent[] = [];
@@ -151,7 +152,7 @@ const DEFAULT_OWNED_AGENTS: OwnedAgent[] = [];
 export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: Props) => {
   const router = useRouter();
   const isEdit = Boolean(initialAgent);
-  const [subAgentErrors, setSubAgentErrors] = useState<string[]>([]);
+  const [subAgentErrors, setSubAgentErrors] = useState<{ message: string }[]>([]);
 
   const create = useAction(createAgentAction, {
     onError: ({ error }) => {
@@ -389,9 +390,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
                   ownedAgents={ownedAgents}
                   value={field.state.value}
                 />
-                <FieldError
-                  errors={subAgentErrors.map((message) => ({ message }))}
-                />
+                <FieldError errors={subAgentErrors} />
               </Field>
             );
           }}
