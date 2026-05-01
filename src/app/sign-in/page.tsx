@@ -11,7 +11,7 @@ export default async function Page() {
   const previewDisabled = env.VERCEL_ENV === "preview";
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center overflow-y-auto p-6 md:p-10">
+    <div className="pb-safe-or-6 flex min-h-0 w-full flex-1 flex-col items-center justify-center overflow-y-auto p-6 md:p-10">
       <div className="w-full max-w-sm">
         {isLinked ? (
           <Card>

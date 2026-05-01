@@ -17,7 +17,7 @@ export default function ErrorBoundary({ error, unstable_retry }: Props) {
   }, [error]);
 
   return (
-    <div className="flex min-h-dvh flex-1 flex-col items-center justify-center gap-12 p-8">
+    <div className="pb-safe-or-8 flex min-h-dvh flex-1 flex-col items-center justify-center gap-12 p-8">
       <div className="flex flex-col items-center gap-4 text-center">
         <Image alt="comal.dev mascot" height={80} priority src="/mascot.svg" width={80} />
         <div className="flex flex-col gap-2">

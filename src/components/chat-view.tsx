@@ -275,7 +275,7 @@ export const ChatView = ({
         <ConversationScrollButton />
       </Conversation>
 
-      <div className="flex flex-col gap-2 border-t p-4">
+      <div className="pb-safe-or-4 flex flex-col gap-2 border-t p-4">
         {messages.length === 0 ? (
           <Suggestions>
             {suggestions.map((s) => {
