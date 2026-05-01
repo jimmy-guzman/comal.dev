@@ -25,7 +25,7 @@ import { loadAgent } from "@/agents";
 import { appRuntime } from "@/db/service";
 import { Auth, AuthLive } from "@/lib/auth-context";
 import { createConversationWithFirstUserMessage, updateConversationTitle } from "@/lib/chat";
-import { classifyChatError } from "@/lib/chat/errors";
+import { chatErrorCopyFor, classifyChatError } from "@/lib/chat/errors";
 import { appendChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
 import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
 import { LLMError, MessageConversionError, ValidationError } from "@/lib/errors";
@@ -99,9 +99,16 @@ const errorToResponse = (
 
   if (error._tag === "RateLimitError") {
     const retryAfterSeconds = Math.max(1, Math.ceil((error.reset - Date.now()) / 1000));
+    const copy = chatErrorCopyFor("rate-limit");
 
     return Response.json(
-      { error: "Rate limit exceeded. Please try again later." },
+      {
+        kind: copy.kind,
+        message: copy.message,
+        retryable: copy.retryable,
+        statusCode: 429,
+        suggestModelSwitch: copy.suggestModelSwitch,
+      },
       { headers: { "Retry-After": String(retryAfterSeconds) }, status: 429 },
     );
   }
