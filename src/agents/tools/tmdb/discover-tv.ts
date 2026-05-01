@@ -31,9 +31,9 @@ const sortByEnum = z.enum([
   "name.desc",
 ]);
 
-export const tmdbDiscoverTv = tool({
+const tmdbDiscoverTv = tool({
   description:
-    "Discover TV series on TMDB by combining filters: sort order, genre ids, first-air year, first-air date range, and original language. Use `tmdb-search-multi` first if you only have a name; use this when the user describes criteria (e.g. 'Japanese anime that started after 2020').",
+    "Discover TV series on TMDB by combining filters: sort order, genre ids, first-air year, first-air date range, and original language. Use `tmdb-search` first if you only have a name; use this when the user describes criteria (e.g. 'Japanese anime that started after 2020').",
   execute: async ({
     firstAirDateGte,
     firstAirDateLte,
@@ -96,3 +96,7 @@ export const tmdbDiscoverTv = tool({
       },
     ),
 });
+
+export const buildTmdbDiscoverTv = () => {
+  return tmdbDiscoverTv;
+};

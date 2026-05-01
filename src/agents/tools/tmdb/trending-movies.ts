@@ -4,7 +4,7 @@ import { z } from "zod";
 import { trendingMovies } from "@/clients/tmdb";
 import { env } from "@/env";
 
-export const tmdbTrendingMovies = tool({
+const tmdbTrendingMovies = tool({
   description:
     "Fetch the trending movies on TMDB for a given time window ('day' or 'week'). Use this when the user specifically asks about trending movies (not TV).",
   execute: async ({ language, timeWindow }) => {
@@ -28,3 +28,7 @@ export const tmdbTrendingMovies = tool({
       .describe("Trending window. Defaults to 'week'."),
   }),
 });
+
+export const buildTmdbTrendingMovies = () => {
+  return tmdbTrendingMovies;
+};

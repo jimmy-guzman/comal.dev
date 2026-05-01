@@ -31,9 +31,9 @@ const sortByEnum = z.enum([
   "revenue.asc",
 ]);
 
-export const tmdbDiscoverMovie = tool({
+const tmdbDiscoverMovie = tool({
   description:
-    "Discover movies on TMDB by combining filters: sort order, genre ids, year, release-date range, and original language. Use `tmdb-search-multi` first if you only have a title or name; use this when the user describes criteria (e.g. 'horror movies from 2023').",
+    "Discover movies on TMDB by combining filters: sort order, genre ids, year, release-date range, and original language. Use `tmdb-search` first if you only have a title or name; use this when the user describes criteria (e.g. 'horror movies from 2023').",
   execute: async ({
     page,
     primaryReleaseDateGte,
@@ -104,3 +104,7 @@ export const tmdbDiscoverMovie = tool({
       },
     ),
 });
+
+export const buildTmdbDiscoverMovie = () => {
+  return tmdbDiscoverMovie;
+};

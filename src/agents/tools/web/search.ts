@@ -1,21 +1,17 @@
 import { tool } from "ai";
 import { z } from "zod";
 
-import type { SearchProvider } from "./types";
+import type { webSearchMeta } from "./search.meta";
 
-import { formatResultsAsMarkdown } from "./format";
+import { formatResultsAsMarkdown } from "./search-providers/format";
+import { tavilyProvider } from "./search-providers/tavily";
 
-interface WebSearchOptions {
-  needsApproval?: boolean;
-  provider: SearchProvider;
-}
-
-export const createWebSearch = ({ needsApproval, provider }: WebSearchOptions) => {
+const webSearch = (needsApproval: boolean) => {
   return tool({
     description:
       "Search the web for current information. Returns a markdown list of titles, URLs, and snippets. Use `webFetch` to retrieve the full content of a specific result if needed.",
     execute: async ({ maxResults, query }) => {
-      const data = await provider.search({ maxResults, query });
+      const data = await tavilyProvider.search({ maxResults, query });
 
       return { content: formatResultsAsMarkdown(data), query };
     },
@@ -30,4 +26,8 @@ export const createWebSearch = ({ needsApproval, provider }: WebSearchOptions) =
     }),
     needsApproval,
   });
+};
+
+export const buildWebSearch = ({ needsApproval }: z.infer<typeof webSearchMeta.configSchema>) => {
+  return webSearch(needsApproval);
 };

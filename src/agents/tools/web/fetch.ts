@@ -7,7 +7,9 @@ import TurndownService from "turndown";
 import { fetch } from "undici";
 import { z } from "zod";
 
-import { assertSafeUrl, getSafeDispatcher } from "./web-fetch-safety";
+import type { webFetchMeta } from "./fetch.meta";
+
+import { assertSafeUrl, getSafeDispatcher } from "./fetch-safety";
 
 const MAX_RESPONSE_SIZE = 5 * 1024 * 1024; // 5MB
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -137,11 +139,7 @@ const fetchWithSafeRedirects = async ({ format, signal, url }: FetchArgs) => {
   throw new Error("Too many redirects");
 };
 
-interface WebFetchOptions {
-  needsApproval?: boolean;
-}
-
-export const createWebFetch = ({ needsApproval = true }: WebFetchOptions = {}) => {
+export const buildWebFetch = ({ needsApproval }: z.infer<typeof webFetchMeta.configSchema>) => {
   return tool({
     description: needsApproval
       ? "Fetch the content of a URL and return it as markdown, plain text, or raw HTML. Always ask for user confirmation before fetching."
