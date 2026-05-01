@@ -16,13 +16,11 @@ import { tools as toolRegistry } from "./tools/registry";
 const MAX_DEPTH = 1;
 
 const stripApprovalConfig = (config: unknown): unknown => {
-  if (typeof config !== "object" || config === null) return config;
+  if (typeof config === "object" && config !== null && "needsApproval" in config) {
+    return { ...(config as Record<string, unknown>), needsApproval: false };
+  }
 
-  const { needsApproval: _omit, ...rest } = config as Record<string, unknown>;
-
-  return "needsApproval" in (config as Record<string, unknown>)
-    ? { ...rest, needsApproval: false }
-    : config;
+  return config;
 };
 
 const buildToolsRecord = (rows: { config: unknown; toolId: string }[], depth: number) => {

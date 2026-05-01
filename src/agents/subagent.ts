@@ -92,19 +92,21 @@ export const buildSubagentTool = ({
         prompt,
       });
 
-      let lastMessages: UIMessage[] = [];
+      const messageMap = new Map<string, UIMessage>();
 
       for await (const message of readUIMessageStream({
         stream: result.toUIMessageStream(),
       })) {
-        lastMessages = [message];
+        messageMap.set(message.id, message);
 
         yield {
-          messages: lastMessages,
+          messages: [...messageMap.values()],
           runId,
           status: "running" as const,
         };
       }
+
+      const lastMessages = [...messageMap.values()];
 
       return {
         runId,

@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 
 import { agent, agentSubagent, agentTool } from "@/db/schemas/agent-schema";
 import { Database, runQuery } from "@/db/service";
-import { DatabaseError, ForbiddenError, NotFoundError } from "@/lib/errors";
+import { ForbiddenError, NotFoundError } from "@/lib/errors";
 
 interface AgentToolInput {
   config: unknown;
@@ -146,20 +146,17 @@ export const createAgent = (userId: string, input: AgentInput) => {
           )
         : null;
 
-    yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
-      try: async () => {
-        if (insertTools && insertSubAgents) {
-          await db.batch([insertAgent, insertTools, insertSubAgents]);
-        } else if (insertTools) {
-          await db.batch([insertAgent, insertTools]);
-        } else if (insertSubAgents) {
-          await db.batch([insertAgent, insertSubAgents]);
-        } else {
-          await insertAgent;
-        }
-      },
-    });
+    if (insertTools && insertSubAgents) {
+      yield* runQuery(() => {
+        return db.batch([insertAgent, insertTools, insertSubAgents]);
+      });
+    } else if (insertTools) {
+      yield* runQuery(() => db.batch([insertAgent, insertTools]));
+    } else if (insertSubAgents) {
+      yield* runQuery(() => db.batch([insertAgent, insertSubAgents]));
+    } else {
+      yield* runQuery(() => insertAgent);
+    }
 
     return { id };
   });
@@ -207,20 +204,21 @@ export const updateAgent = (agentId: string, input: AgentInput) => {
           )
         : null;
 
-    yield* Effect.tryPromise({
-      catch: (cause) => new DatabaseError({ cause }),
-      try: async () => {
-        if (insertTools && insertSubAgents) {
-          await db.batch([updateRow, deleteTools, deleteSubAgents, insertTools, insertSubAgents]);
-        } else if (insertTools) {
-          await db.batch([updateRow, deleteTools, deleteSubAgents, insertTools]);
-        } else if (insertSubAgents) {
-          await db.batch([updateRow, deleteTools, deleteSubAgents, insertSubAgents]);
-        } else {
-          await db.batch([updateRow, deleteTools, deleteSubAgents]);
-        }
-      },
-    });
+    if (insertTools && insertSubAgents) {
+      yield* runQuery(() => {
+        return db.batch([updateRow, deleteTools, deleteSubAgents, insertTools, insertSubAgents]);
+      });
+    } else if (insertTools) {
+      yield* runQuery(() => {
+        return db.batch([updateRow, deleteTools, deleteSubAgents, insertTools]);
+      });
+    } else if (insertSubAgents) {
+      yield* runQuery(() => {
+        return db.batch([updateRow, deleteTools, deleteSubAgents, insertSubAgents]);
+      });
+    } else {
+      yield* runQuery(() => db.batch([updateRow, deleteTools, deleteSubAgents]));
+    }
   });
 };
 

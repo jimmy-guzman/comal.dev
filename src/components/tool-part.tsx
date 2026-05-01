@@ -47,11 +47,11 @@ const SubagentMessages = ({ messages }: { messages: UIMessage[] }) => {
   if (assistantMessages.length === 0) return null;
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       <h4 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
         Transcript
       </h4>
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         {assistantMessages.map((message) => {
           const text = message.parts
             .flatMap((part) => (part.type === "text" ? [part.text] : []))
@@ -104,13 +104,12 @@ export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
       ? part.output
       : null;
 
-  const output = subagentResult ? (
-    <SubagentOutput output={subagentResult} />
-  ) : typeof part.output === "string" ? (
-    <MessageResponse>{part.output}</MessageResponse>
-  ) : (
-    part.output
-  );
+  const output =
+    typeof part.output === "string" ? (
+      <MessageResponse>{part.output}</MessageResponse>
+    ) : (
+      part.output
+    );
 
   return (
     <>

@@ -32,18 +32,52 @@ const formSchema = z.object({
   defaultModelId: z.enum(MODEL_IDS),
   description: z.string().trim().max(500),
   name: z.string().trim().min(1).max(100),
-  subAgents: z.array(
-    z.object({
-      alias: z
-        .string()
-        .trim()
-        .min(1)
-        .max(32)
-        .regex(/^[\w-]+$/, "Alias may only contain letters, numbers, hyphens, and underscores."),
-      childAgentId: z.string().min(1),
-      descriptionOverride: z.string().trim().max(1024),
+  subAgents: z
+    .array(
+      z.object({
+        alias: z
+          .string()
+          .trim()
+          .min(1)
+          .max(32)
+          .regex(/^[\w-]+$/, "Alias may only contain letters, numbers, hyphens, and underscores."),
+        childAgentId: z.string().min(1),
+        descriptionOverride: z.string().trim().max(1024),
+      }),
+    )
+    .superRefine((items, ctx) => {
+      const seenAliases = new Map<string, number>();
+      const seenChildIds = new Map<string, number>();
+
+      for (const [i, item] of items.entries()) {
+        const alias = item.alias.trim();
+        const prev = seenAliases.get(alias);
+
+        if (prev === undefined) {
+          seenAliases.set(alias, i);
+        } else {
+          ctx.addIssue({ code: "custom", message: "Alias must be unique.", path: [i, "alias"] });
+          ctx.addIssue({ code: "custom", message: "Alias must be unique.", path: [prev, "alias"] });
+        }
+
+        const prevChild = seenChildIds.get(item.childAgentId);
+
+        if (prevChild === undefined) {
+          seenChildIds.set(item.childAgentId, i);
+        } else {
+          ctx.addIssue({
+            code: "custom",
+            message: "Each agent can only be added once.",
+            path: [i, "childAgentId"],
+          });
+          ctx.addIssue({
+            code: "custom",
+            message: "Each agent can only be added once.",
+            path: [prevChild, "childAgentId"],
+          });
+        }
+      }
     }),
-  ),
   systemPrompt: z.string().trim().min(1).max(20_000),
   tools: z.array(
     z.object({
