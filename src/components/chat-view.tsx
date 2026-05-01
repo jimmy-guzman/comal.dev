@@ -33,6 +33,7 @@ import { DeleteConversationButton } from "@/components/delete-conversation-butto
 import { ErrorPart } from "@/components/error-part";
 import { MessageParts } from "@/components/message-parts";
 import { Button } from "@/components/ui/button";
+import { useConversations } from "@/hooks/use-conversations";
 import { chatErrorCopyFor, classifyChatError } from "@/lib/chat/errors";
 
 const KNOWN_KINDS = new Set<ChatErrorKind>([
@@ -111,6 +112,7 @@ const lastMessageHasErrorPart = (messages: UIMessage[]): boolean => {
 
 interface Props {
   agentId: string;
+  agentName: string;
   conversationId: null | string;
   initialMessages: UIMessage[];
   modelId: string;
@@ -119,6 +121,7 @@ interface Props {
 
 export const ChatView = ({
   agentId,
+  agentName,
   conversationId: initialConversationId,
   initialMessages,
   modelId: initialModelId,
@@ -126,6 +129,7 @@ export const ChatView = ({
 }: Props) => {
   const [conversationId, setConversationId] = useState<null | string>(initialConversationId);
   const [modelId, setModelId] = useState(initialModelId);
+  const { prependConversation, updateConversationTitle } = useConversations();
   const userInteractedRef = useRef(false);
 
   /**
@@ -185,20 +189,36 @@ export const ChatView = ({
   } = useChat({
     messages: initialMessages,
     onData: (dataPart) => {
-      if (dataPart.type !== "data-conversation-created") return;
+      if (dataPart.type === "data-conversation-created") {
+        const data = dataPart.data as { id?: unknown };
 
-      const data = dataPart.data as { id?: unknown };
+        if (typeof data.id !== "string") return;
 
-      if (typeof data.id !== "string") return;
+        const newId = data.id;
 
-      const newId = data.id;
+        setConversationId(newId);
+        prependConversation({
+          agentId,
+          agentName,
+          id: newId,
+          title: "New conversation",
+        });
+        // Update the URL without unmounting the current route. router.replace
+        // would navigate to the sibling [conversationId] route, remounting
+        // <ChatView> and aborting the in-flight stream. router.refresh() has
+        // the same effect since the new URL maps to a different page component.
+        globalThis.history.replaceState(null, "", `/agents/${agentId}/conversations/${newId}`);
 
-      setConversationId(newId);
-      // Update the URL without unmounting the current route. router.replace
-      // would navigate to the sibling [conversationId] route, remounting
-      // <ChatView> and aborting the in-flight stream. router.refresh() has
-      // the same effect since the new URL maps to a different page component.
-      globalThis.history.replaceState(null, "", `/agents/${agentId}/conversations/${newId}`);
+        return;
+      }
+
+      if (dataPart.type === "data-conversation-title") {
+        const data = dataPart.data as { id?: unknown; title?: unknown };
+
+        if (typeof data.id !== "string" || typeof data.title !== "string") return;
+
+        updateConversationTitle(data.id, data.title);
+      }
     },
     sendAutomaticallyWhen,
     transport,

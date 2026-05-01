@@ -5,6 +5,7 @@ import { http } from "msw";
 import { describe, expect, it, vi } from "vitest";
 
 import { ChatView } from "@/components/chat-view";
+import { ConversationsProvider } from "@/components/conversations-provider";
 import { server } from "@/test/msw-server";
 
 vi.mock("next/navigation", () => {
@@ -80,13 +81,16 @@ describe("ChatView", () => {
     const user = userEvent.setup();
 
     render(
-      <ChatView
-        agentId="agent-1"
-        conversationId={null}
-        initialMessages={[]}
-        modelId="gpt-test"
-        suggestions={[]}
-      />,
+      <ConversationsProvider initial={[]}>
+        <ChatView
+          agentId="agent-1"
+          agentName="Agent One"
+          conversationId={null}
+          initialMessages={[]}
+          modelId="gpt-test"
+          suggestions={[]}
+        />
+      </ConversationsProvider>,
     );
 
     const textarea = screen.getByPlaceholderText("Message...");

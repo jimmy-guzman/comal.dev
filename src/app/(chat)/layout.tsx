@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { headers } from "next/headers";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { ConversationsProvider } from "@/components/conversations-provider";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { appRuntime } from "@/db/service";
 import { listAgentsForUser } from "@/lib/agents";
@@ -24,26 +25,29 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
       )
     : { agents: [], conversations: [] };
 
+  const initialConversations = conversations.map((c) => {
+    return {
+      agentId: c.agentId,
+      agentName: c.agentName,
+      id: c.id,
+      title: c.title,
+    };
+  });
+
   return (
     <SidebarProvider defaultOpen={false}>
-      <AppSidebar
-        agents={agents.map((a) => ({ id: a.id, name: a.name }))}
-        conversations={conversations.map((c) => {
-          return {
-            agentId: c.agentId,
-            agentName: c.agentName,
-            id: c.id,
-            title: c.title,
-          };
-        })}
-        isSignedIn={isSignedIn}
-      />
-      <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-          <SidebarTrigger />
-        </header>
-        {children}
-      </SidebarInset>
+      <ConversationsProvider initial={initialConversations}>
+        <AppSidebar
+          agents={agents.map((a) => ({ id: a.id, name: a.name }))}
+          isSignedIn={isSignedIn}
+        />
+        <SidebarInset>
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+            <SidebarTrigger />
+          </header>
+          {children}
+        </SidebarInset>
+      </ConversationsProvider>
     </SidebarProvider>
   );
 }

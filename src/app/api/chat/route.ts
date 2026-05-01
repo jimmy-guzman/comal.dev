@@ -158,7 +158,7 @@ const generateTitleEffect = (
   conversationId: string,
   modelId: string,
   userText: string,
-): Effect.Effect<void, DatabaseError | LLMError, Database> => {
+): Effect.Effect<string, DatabaseError | LLMError, Database> => {
   return Effect.gen(function* () {
     const { text: title } = yield* Effect.tryPromise({
       catch: (cause) => new LLMError({ cause }),
@@ -170,9 +170,13 @@ const generateTitleEffect = (
       },
     });
 
-    yield* updateConversationTitle(conversationId, title.trim());
+    const trimmed = title.trim();
+
+    yield* updateConversationTitle(conversationId, trimmed);
 
     revalidatePath("/", "layout");
+
+    return trimmed;
   });
 };
 
@@ -436,27 +440,13 @@ export async function POST(req: Request) {
             logError(`persistChatStream event error (${event.eventType})`, error);
           },
         });
-
-        if (isFirstTurn && userMessage) {
-          const userText = stringifyText(userMessage.parts).slice(0, 500);
-
-          await appRuntime.runPromise(
-            generateTitleEffect(conversationId, convModelId, userText).pipe(
-              Effect.tapError((error) => {
-                return Effect.logError("Title generation failed", error);
-              }),
-              Effect.catchAll(() => Effect.void),
-              Effect.provide(Logger.pretty),
-            ),
-          );
-        }
       } catch (error) {
         logError("after() persistence failed", error);
       }
     });
 
     const uiStream = createUIMessageStream({
-      execute: ({ writer }) => {
+      execute: async ({ writer }) => {
         if (isNewConversation) {
           writer.write({
             data: { id: conversationId },
@@ -483,6 +473,33 @@ export async function POST(req: Request) {
             originalMessages: validation.data,
           }),
         );
+
+        if (isFirstTurn && userMessage) {
+          try {
+            await result.finishReason;
+
+            const userText = stringifyText(userMessage.parts).slice(0, 500);
+            const title = await appRuntime.runPromise(
+              generateTitleEffect(conversationId, convModelId, userText).pipe(
+                Effect.tapError((error) => {
+                  return Effect.logError("Title generation failed", error);
+                }),
+                Effect.catchAll(() => Effect.succeed(null)),
+                Effect.provide(Logger.pretty),
+              ),
+            );
+
+            if (title !== null) {
+              writer.write({
+                data: { id: conversationId, title },
+                transient: true,
+                type: "data-conversation-title",
+              });
+            }
+          } catch (error) {
+            logError("inline title generation failed", error);
+          }
+        }
       },
     });
 
