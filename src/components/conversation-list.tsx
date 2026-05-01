@@ -12,7 +12,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemSeparator,
+  ItemTitle,
+} from "@/components/ui/item";
 
 const DIVISIONS = [
   { amount: 60, name: "seconds" },
@@ -56,22 +64,20 @@ const ConversationListItem = ({ agentId, conversation }: ConversationListItemPro
   const href = `/agents/${agentId}/conversations/${conversation.id}` as const;
 
   return (
-    <li className="group/row relative">
-      <Link className="hover:bg-muted flex flex-col gap-1 rounded-md px-3 py-2.5" href={href}>
-        <span className="truncate text-xs font-medium">{conversation.title ?? "Untitled"}</span>
-        <span className="text-muted-foreground truncate text-xs/relaxed">
-          Last message {formatRelative(conversation.createdAt)}
-        </span>
-      </Link>
-      <div className="absolute top-1/2 right-2 -translate-y-1/2">
+    <Item className="hover:bg-muted relative rounded-md" size="sm">
+      <ItemContent className="min-w-0">
+        <Link
+          className="flex flex-col gap-1 outline-none after:absolute after:inset-0 after:content-['']"
+          href={href}
+        >
+          <ItemTitle>{conversation.title ?? "Untitled"}</ItemTitle>
+          <ItemDescription>Last message {formatRelative(conversation.createdAt)}</ItemDescription>
+        </Link>
+      </ItemContent>
+      <ItemActions className="relative">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              aria-label="More options"
-              className="opacity-0 group-focus-within/row:opacity-100 group-hover/row:opacity-100 data-[state=open]:opacity-100"
-              size="icon-sm"
-              variant="ghost"
-            >
+            <Button aria-label="More options" size="icon-sm" variant="ghost">
               <MoreHorizontalIcon />
             </Button>
           </DropdownMenuTrigger>
@@ -94,8 +100,8 @@ const ConversationListItem = ({ agentId, conversation }: ConversationListItemPro
           onOpenChange={setDeleteOpen}
           open={deleteOpen}
         />
-      </div>
-    </li>
+      </ItemActions>
+    </Item>
   );
 };
 
@@ -106,15 +112,15 @@ interface Props {
 
 export const ConversationList = ({ agentId, conversations }: Props) => {
   return (
-    <ul className="flex flex-col">
+    <ItemGroup>
       {conversations.map((c, i) => {
         return (
           <React.Fragment key={c.id}>
-            {i > 0 ? <Separator /> : null}
+            {i > 0 ? <ItemSeparator /> : null}
             <ConversationListItem agentId={agentId} conversation={c} />
           </React.Fragment>
         );
       })}
-    </ul>
+    </ItemGroup>
   );
 };
