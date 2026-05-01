@@ -4,9 +4,9 @@ import { z } from "zod";
 import { tvSeriesDetails } from "@/clients/tmdb";
 import { env } from "@/env";
 
-export const tmdbTvDetails = tool({
+const tmdbTvDetails = tool({
   description:
-    "Fetch full TMDB details for a single TV series by its TMDB id. Returns name, overview, season list, networks, status, first/last air dates, and other top-level metadata. Use the id from `tmdb-search-multi`, `tmdb-trending-*`, or `tmdb-discover-tv` results.",
+    "Fetch full TMDB details for a single TV series by its TMDB id. Returns name, overview, season list, networks, status, first/last air dates, and other top-level metadata. Use the id from `tmdb-search`, `tmdb-trending`, `tmdb-trending-tv`, or `tmdb-discover-tv` results.",
   execute: async ({ language, seriesId }) => {
     const { data, error } = await tvSeriesDetails({
       auth: () => `Bearer ${env.TMDB_READ_ACCESS_TOKEN}`,
@@ -25,3 +25,7 @@ export const tmdbTvDetails = tool({
     seriesId: z.number().int().positive().describe("TMDB TV series id."),
   }),
 });
+
+export const buildTmdbTvDetails = () => {
+  return tmdbTvDetails;
+};

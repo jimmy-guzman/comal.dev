@@ -4,7 +4,7 @@ import { z } from "zod";
 import { searchMulti } from "@/clients/tmdb";
 import { env } from "@/env";
 
-export const tmdbSearchMulti = tool({
+const tmdbSearch = tool({
   description:
     "Search TMDB for movies, TV shows, and people in a single call. Returns a paginated list of results, each tagged with `media_type` so you can branch on it. Use this when the user mentions a title or person without specifying the kind.",
   execute: async ({ includeAdult, language, page, query }) => {
@@ -32,3 +32,7 @@ export const tmdbSearchMulti = tool({
     query: z.string().min(1).describe("Search query."),
   }),
 });
+
+export const buildTmdbSearch = () => {
+  return tmdbSearch;
+};

@@ -8,7 +8,7 @@ Build your own AI agents. Pick a model, write a system prompt, choose tools, cha
 - **Tailwind CSS v4** + shadcn/ui
 - **Better Auth** — anonymous sessions, GitHub OAuth, organization plugin. Start chatting right away; claim an account later to save history across devices.
 - **Drizzle ORM** + Neon Postgres — `agent`, `agent_tool`, `conversation`, and `chat_event` tables. Agents are private to the user that created them.
-- **Vercel AI SDK** + OpenRouter — streaming chat with a static, builtin tool registry (`get-current-time`, `web-search` via Tavily, `web-fetch` with user approval, `github-read`).
+- **Vercel AI SDK** + OpenRouter — streaming chat with a static, builtin tool registry (`core-now`, `web-search` via Tavily, `web-fetch` with user approval, `github-read`).
 - **next-safe-action** — typed, auth-aware server actions for agent CRUD.
 - **@tanstack/react-form**, nuqs, zod, es-toolkit, sonner, motion.
 
@@ -67,8 +67,8 @@ See `src/agents/index.ts` (`loadAgent`) and `src/lib/agents.ts` (CRUD via Effect
 
 Tools live in `src/agents/tools/` and are registered in `src/agents/tools/registry.ts`. The registry is static and builtin-only; users select from `tools.list()` when configuring an agent. Two execution patterns:
 
-- **Auto-execute:** plain `tool({ execute })` runs immediately when the model calls it. See `web-search.ts` and `get-current-time.ts`.
-- **Approval-gated:** `tool({ needsApproval: true, execute })` pauses the stream, surfaces a confirmation UI, and only runs after the user approves. See `web-fetch.ts` (configured via `createWebFetch({ needsApproval })`).
+- **Auto-execute:** plain `tool({ execute })` runs immediately when the model calls it. See `web/search.ts` and `core/now.ts`.
+- **Approval-gated:** `tool({ needsApproval: true, execute })` pauses the stream, surfaces a confirmation UI, and only runs after the user approves. See `web/fetch.ts` (configured via the `needsApproval` field on the tool's config schema).
 
 The approval flow uses the AI SDK's `approval-requested` / `approval-responded` part states. The chat client auto-resubmits after an approval response via `lastAssistantMessageIsCompleteWithApprovalResponses`. The server passes `originalMessages` to `toUIMessageStreamResponse` so the streaming state can match tool chunks against existing tool invocations.
 

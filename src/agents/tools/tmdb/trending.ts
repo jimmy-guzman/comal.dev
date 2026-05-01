@@ -4,7 +4,7 @@ import { z } from "zod";
 import { trendingAll } from "@/clients/tmdb";
 import { env } from "@/env";
 
-export const tmdbTrendingAll = tool({
+const tmdbTrending = tool({
   description:
     "Fetch what's currently trending across movies, TV, and people on TMDB for a given time window ('day' or 'week'). Each result is tagged with `media_type`. Use this for general 'what's hot right now' questions.",
   execute: async ({ language, timeWindow }) => {
@@ -15,7 +15,7 @@ export const tmdbTrendingAll = tool({
     });
 
     if (error || !data) {
-      throw new Error(`TMDB trending all failed: ${JSON.stringify(error ?? "no data")}`);
+      throw new Error(`TMDB trending failed: ${JSON.stringify(error ?? "no data")}`);
     }
 
     return data;
@@ -28,3 +28,7 @@ export const tmdbTrendingAll = tool({
       .describe("Trending window. Defaults to 'week'."),
   }),
 });
+
+export const buildTmdbTrending = () => {
+  return tmdbTrending;
+};

@@ -4,9 +4,9 @@ import { z } from "zod";
 import { movieDetails } from "@/clients/tmdb";
 import { env } from "@/env";
 
-export const tmdbMovieDetails = tool({
+const tmdbMovieDetails = tool({
   description:
-    "Fetch full TMDB details for a single movie by its TMDB id. Returns title, overview, runtime, release date, genres, production companies, and other top-level metadata. Use the id from `tmdb-search-multi`, `tmdb-trending-*`, or `tmdb-discover-movie` results.",
+    "Fetch full TMDB details for a single movie by its TMDB id. Returns title, overview, runtime, release date, genres, production companies, and other top-level metadata. Use the id from `tmdb-search`, `tmdb-trending`, `tmdb-trending-movies`, or `tmdb-discover-movie` results.",
   execute: async ({ language, movieId }) => {
     const { data, error } = await movieDetails({
       auth: () => `Bearer ${env.TMDB_READ_ACCESS_TOKEN}`,
@@ -25,3 +25,7 @@ export const tmdbMovieDetails = tool({
     movieId: z.number().int().positive().describe("TMDB movie id."),
   }),
 });
+
+export const buildTmdbMovieDetails = () => {
+  return tmdbMovieDetails;
+};
