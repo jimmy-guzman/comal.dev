@@ -1,18 +1,30 @@
-import type { ToolSet } from "ai";
+import type { Tool, ToolSet } from "ai";
 
 import { and, eq } from "drizzle-orm";
 import { Effect } from "effect";
 
-import { agent, agentTool } from "@/db/schemas/agent-schema";
+import { agent, agentSubagent, agentTool } from "@/db/schemas/agent-schema";
 import { Database, runQuery } from "@/db/service";
 import { NotFoundError } from "@/lib/errors";
+import { SUBAGENT_PREFIX } from "@/lib/subagent-prefix";
 
 import type { AgentConfig } from "./types";
 
+import { buildSubagentTool } from "./subagent";
 import { buildTool } from "./tools/build";
 import { tools as toolRegistry } from "./tools/registry";
 
-const buildToolsRecord = (rows: { config: unknown; toolId: string }[]) => {
+const MAX_DEPTH = 1;
+
+const stripApprovalConfig = (config: unknown): unknown => {
+  if (typeof config === "object" && config !== null && "needsApproval" in config) {
+    return { ...(config as Record<string, unknown>), needsApproval: false };
+  }
+
+  return config;
+};
+
+const buildToolsRecord = (rows: { config: unknown; toolId: string }[], depth: number) => {
   return Effect.gen(function* () {
     const result: ToolSet = {};
 
@@ -24,7 +36,8 @@ const buildToolsRecord = (rows: { config: unknown; toolId: string }[]) => {
         continue;
       }
 
-      const validation = def.configSchema["~standard"].validate(row.config);
+      const rawConfig = depth > 0 ? stripApprovalConfig(row.config) : row.config;
+      const validation = def.configSchema["~standard"].validate(rawConfig);
 
       if (validation instanceof Promise) {
         yield* Effect.logWarning(`async config validation not supported for "${row.toolId}"`);
@@ -37,7 +50,7 @@ const buildToolsRecord = (rows: { config: unknown; toolId: string }[]) => {
         yield* Effect.logWarning(
           `invalid config for "${row.toolId}", falling back to default`,
         ).pipe(Effect.annotateLogs({ issues: validation.issues }));
-        config = def.defaultConfig;
+        config = depth > 0 ? stripApprovalConfig(def.defaultConfig) : def.defaultConfig;
       } else {
         config = validation.value;
       }
@@ -56,8 +69,49 @@ const buildToolsRecord = (rows: { config: unknown; toolId: string }[]) => {
   });
 };
 
-export const loadAgent = (agentId: string, userId: string) => {
+const loadSubagentTools = (parentId: string, ownerId: string) => {
   return Effect.gen(function* () {
+    const db = yield* Database;
+
+    const rows = yield* runQuery(() => {
+      return db
+        .select({
+          alias: agentSubagent.alias,
+          childAgentId: agentSubagent.childAgentId,
+          childDescription: agent.description,
+          childName: agent.name,
+          descriptionOverride: agentSubagent.descriptionOverride,
+        })
+        .from(agentSubagent)
+        .innerJoin(agent, eq(agent.id, agentSubagent.childAgentId))
+        .where(eq(agentSubagent.parentAgentId, parentId));
+    });
+
+    const result: Record<string, Tool> = {};
+
+    for (const row of rows) {
+      result[`${SUBAGENT_PREFIX}${row.alias}`] = buildSubagentTool({
+        childDescription: row.childDescription ?? "",
+        childName: row.childName,
+        link: {
+          alias: row.alias,
+          childAgentId: row.childAgentId,
+          descriptionOverride: row.descriptionOverride,
+        },
+        ownerId,
+      });
+    }
+
+    return result;
+  });
+};
+
+export const loadAgent = (agentId: string, userId: string, depth = 0) => {
+  return Effect.gen(function* () {
+    if (depth > MAX_DEPTH) {
+      return yield* Effect.die(`loadAgent depth ${depth} exceeds max ${MAX_DEPTH}`);
+    }
+
     const db = yield* Database;
 
     const rows = yield* runQuery(() => {
@@ -87,7 +141,10 @@ export const loadAgent = (agentId: string, userId: string) => {
         .where(eq(agentTool.agentId, agentId));
     });
 
-    const toolsRecord = yield* buildToolsRecord(toolRows);
+    const toolsRecord = yield* buildToolsRecord(toolRows, depth);
+
+    const subagentTools =
+      depth === 0 ? yield* loadSubagentTools(agentId, userId) : ({} satisfies ToolSet);
 
     return {
       defaultModelId: row.defaultModelId,
@@ -95,7 +152,7 @@ export const loadAgent = (agentId: string, userId: string) => {
       id: row.id,
       name: row.name,
       systemPrompt: row.systemPrompt,
-      tools: toolsRecord,
+      tools: { ...toolsRecord, ...subagentTools },
     } satisfies AgentConfig;
-  }).pipe(Effect.withLogSpan("loadAgent"), Effect.annotateLogs({ agentId, userId }));
+  }).pipe(Effect.withLogSpan("loadAgent"), Effect.annotateLogs({ agentId, depth, userId }));
 };

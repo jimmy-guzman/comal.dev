@@ -160,6 +160,39 @@ describe("mapStreamPartToEvent", () => {
     });
   });
 
+  it("should include preliminary: true in payload when tool-result is preliminary", () => {
+    const result = map({
+      output: { status: "running" },
+      preliminary: true,
+      toolCallId: "call-sub",
+      toolName: "my-sub-agent",
+      type: "tool-result",
+    });
+
+    expect(result).toMatchObject({
+      eventType: "tool-output-available",
+      payload: { preliminary: true, toolCallId: "call-sub" },
+    });
+  });
+
+  it("should omit preliminary from payload when tool-result is not preliminary", () => {
+    const result = map({
+      output: { status: "done" },
+      toolCallId: "call-sub",
+      toolName: "my-sub-agent",
+      type: "tool-result",
+    });
+
+    expect(result).toMatchObject({
+      eventType: "tool-output-available",
+      payload: { toolCallId: "call-sub" },
+    });
+
+    const payload = result?.payload as Record<string, unknown>;
+
+    expect(payload.preliminary).toBeUndefined();
+  });
+
   it("should emit tool-output-denied with reason when present", () => {
     const result = map({
       reason: "user rejected",

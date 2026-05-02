@@ -40,6 +40,7 @@ const toolInputCompletePayloadSchema = z.object({
 
 const toolOutputAvailablePayloadSchema = z.object({
   output: z.unknown(),
+  preliminary: z.boolean().optional(),
   toolCallId: z.string(),
   toolName: z.string(),
 });

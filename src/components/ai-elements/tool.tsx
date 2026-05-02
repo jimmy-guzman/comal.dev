@@ -31,9 +31,11 @@ export type ToolPart = ToolUIPart | DynamicToolUIPart;
 
 export type ToolHeaderProps = {
   title?: string;
+  badge?: ReactNode;
   className?: string;
+  icon?: ReactNode;
 } & (
-  | { type: ToolUIPart["type"]; state: ToolUIPart["state"]; toolName?: never }
+  | { type: ToolUIPart["type"]; state: ToolUIPart["state"]; toolName?: string }
   | {
       type: DynamicToolUIPart["type"];
       state: DynamicToolUIPart["state"];
@@ -69,14 +71,16 @@ export const getStatusBadge = (status: ToolPart["state"]) => (
 );
 
 export const ToolHeader = ({
+  badge,
   className,
+  icon,
   title,
   type,
   state,
   toolName,
   ...props
 }: ToolHeaderProps) => {
-  const derivedName = type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
+  const derivedName = toolName ?? type.split("-").slice(1).join("-");
 
   return (
     <CollapsibleTrigger
@@ -84,8 +88,9 @@ export const ToolHeader = ({
       {...props}
     >
       <div className="flex items-center gap-2">
-        <WrenchIcon className="text-muted-foreground size-4" />
+        {icon ?? <WrenchIcon className="text-muted-foreground size-4" />}
         <span className="text-sm font-medium">{title ?? derivedName}</span>
+        {badge}
         {getStatusBadge(state)}
       </div>
       <ChevronDownIcon className="text-muted-foreground size-4 transition-transform group-data-[state=open]:rotate-180" />

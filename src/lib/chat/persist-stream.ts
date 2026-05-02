@@ -64,6 +64,14 @@ const buildContext = (messageId: string, modelId: null | string): MapStreamPartC
   return { buffer: createSegmentBuffer(), messageId, modelId };
 };
 
+const isPreliminaryToolOutput = (event: ChatEventInput): boolean => {
+  if (event.eventType !== "tool-output-available") return false;
+
+  const payload = event.payload as { preliminary?: boolean };
+
+  return payload.preliminary === true;
+};
+
 export const persistChatStream = async (args: PersistStreamArgs): Promise<void> => {
   const ctx = buildContext(args.messageId, args.modelId);
 
@@ -71,6 +79,8 @@ export const persistChatStream = async (args: PersistStreamArgs): Promise<void> 
     const event = mapStreamPartToEvent(part, ctx);
 
     if (event === null) continue;
+
+    if (isPreliminaryToolOutput(event)) continue;
 
     try {
       await persistChatEvent({

@@ -1,14 +1,18 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
+import { compact, flatMap } from "es-toolkit";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { z } from "zod";
 
+import type { OwnedAgent } from "@/components/agent-subagent-picker";
 import type { ModelId } from "@/config/models";
 
 import { createAgentAction } from "@/actions/create-agent";
 import { updateAgentAction } from "@/actions/update-agent";
+import { AgentSubagentPicker } from "@/components/agent-subagent-picker";
 import { AgentToolPicker } from "@/components/agent-tool-picker";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -30,6 +34,52 @@ const formSchema = z.object({
   defaultModelId: z.enum(MODEL_IDS),
   description: z.string().trim().max(500),
   name: z.string().trim().min(1).max(100),
+  subAgents: z
+    .array(
+      z.object({
+        alias: z
+          .string()
+          .trim()
+          .min(1)
+          .max(32)
+          .regex(/^[\w-]+$/, "Alias may only contain letters, numbers, hyphens, and underscores."),
+        childAgentId: z.string().min(1),
+        descriptionOverride: z.string().trim().max(1024),
+      }),
+    )
+    .superRefine((items, ctx) => {
+      const seenAliases = new Map<string, number>();
+      const seenChildIds = new Map<string, number>();
+
+      for (const [i, item] of items.entries()) {
+        const alias = item.alias.trim();
+        const prev = seenAliases.get(alias);
+
+        if (prev === undefined) {
+          seenAliases.set(alias, i);
+        } else {
+          ctx.addIssue({ code: "custom", message: "Alias must be unique.", path: [i, "alias"] });
+          ctx.addIssue({ code: "custom", message: "Alias must be unique.", path: [prev, "alias"] });
+        }
+
+        const prevChild = seenChildIds.get(item.childAgentId);
+
+        if (prevChild === undefined) {
+          seenChildIds.set(item.childAgentId, i);
+        } else {
+          ctx.addIssue({
+            code: "custom",
+            message: "Each agent can only be added once.",
+            path: [i, "childAgentId"],
+          });
+          ctx.addIssue({
+            code: "custom",
+            message: "Each agent can only be added once.",
+            path: [prevChild, "childAgentId"],
+          });
+        }
+      }
+    }),
   systemPrompt: z.string().trim().min(1).max(20_000),
   tools: z.array(
     z.object({
@@ -45,12 +95,14 @@ interface InitialAgent {
   description: null | string;
   id: string;
   name: string;
+  subAgents: { alias: string; childAgentId: string; descriptionOverride: null | string }[];
   systemPrompt: string;
   tools: { config: unknown; toolId: string }[];
 }
 
 interface Props {
   initialAgent?: InitialAgent;
+  ownedAgents?: OwnedAgent[];
 }
 
 const DEFAULT_MODEL_ID: ModelId = "anthropic/claude-haiku-4.5";
@@ -63,18 +115,61 @@ const resolveModelId = (incoming: string | undefined): ModelId => {
   return incoming && isModelId(incoming) ? incoming : DEFAULT_MODEL_ID;
 };
 
-export const AgentForm = ({ initialAgent }: Props) => {
+const isStringArray = (v: unknown): v is string[] => {
+  return Array.isArray(v) && v.every((i) => typeof i === "string");
+};
+
+const isRecord = (v: unknown): v is Record<string, unknown> => {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+};
+
+const extractSubAgentErrors = (validationErrors: unknown): { message: string }[] => {
+  if (!isRecord(validationErrors)) return [];
+
+  const { subAgents } = validationErrors;
+
+  if (!isRecord(subAgents)) return [];
+
+  const messages = flatMap(Object.values(subAgents), (v) => {
+    if (isStringArray(v)) return v;
+
+    if (isRecord(v)) {
+      const { childAgentId } = v;
+
+      return isRecord(childAgentId) && isStringArray(childAgentId._errors)
+        ? childAgentId._errors
+        : [];
+    }
+
+    return [];
+  });
+
+  return compact(messages).map((message) => ({ message }));
+};
+
+const DEFAULT_OWNED_AGENTS: OwnedAgent[] = [];
+
+export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: Props) => {
   const router = useRouter();
   const isEdit = Boolean(initialAgent);
+  const [subAgentErrors, setSubAgentErrors] = useState<{ message: string }[]>([]);
 
   const create = useAction(createAgentAction, {
+    onError: ({ error }) => {
+      setSubAgentErrors(extractSubAgentErrors(error.validationErrors));
+    },
     onSuccess: ({ data }) => {
+      setSubAgentErrors([]);
       router.push(`/agents/${data.id}`);
     },
   });
 
   const update = useAction(updateAgentAction, {
+    onError: ({ error }) => {
+      setSubAgentErrors(extractSubAgentErrors(error.validationErrors));
+    },
     onSuccess: ({ data }) => {
+      setSubAgentErrors([]);
       router.push(`/agents/${data.agentId}`);
     },
   });
@@ -87,6 +182,14 @@ export const AgentForm = ({ initialAgent }: Props) => {
       defaultModelId: resolveModelId(initialAgent?.defaultModelId),
       description: initialAgent?.description ?? "",
       name: initialAgent?.name ?? "",
+      subAgents:
+        initialAgent?.subAgents.map((s) => {
+          return {
+            alias: s.alias,
+            childAgentId: s.childAgentId,
+            descriptionOverride: s.descriptionOverride ?? "",
+          };
+        }) ?? [],
       systemPrompt: initialAgent?.systemPrompt ?? "",
       tools: initialToolSelections(initialAgent?.tools),
     },
@@ -99,6 +202,13 @@ export const AgentForm = ({ initialAgent }: Props) => {
         defaultModelId: value.defaultModelId,
         description: value.description.trim() || undefined,
         name: value.name.trim(),
+        subAgents: value.subAgents.map((s) => {
+          return {
+            alias: s.alias.trim(),
+            childAgentId: s.childAgentId,
+            descriptionOverride: s.descriptionOverride.trim() || undefined,
+          };
+        }),
         systemPrompt: value.systemPrompt.trim(),
         tools,
       };
@@ -260,6 +370,27 @@ export const AgentForm = ({ initialAgent }: Props) => {
                   }}
                   value={field.state.value}
                 />
+              </Field>
+            );
+          }}
+        </form.Field>
+        <form.Field mode="array" name="subAgents">
+          {(field) => {
+            return (
+              <Field data-invalid={subAgentErrors.length > 0 || undefined}>
+                <FieldLabel>Sub-agents</FieldLabel>
+                <FieldDescription>
+                  Other agents this agent can delegate tasks to as tools.
+                </FieldDescription>
+                <AgentSubagentPicker
+                  currentAgentId={initialAgent?.id}
+                  onChange={(next) => {
+                    field.handleChange(next);
+                  }}
+                  ownedAgents={ownedAgents}
+                  value={field.state.value}
+                />
+                <FieldError errors={subAgentErrors} />
               </Field>
             );
           }}

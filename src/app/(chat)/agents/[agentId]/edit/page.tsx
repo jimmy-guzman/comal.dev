@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { AgentForm } from "@/components/agent-form";
 import { appRuntime } from "@/db/service";
-import { getAgentForUser } from "@/lib/agents";
+import { getAgentForUser, listAgentsForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 
 interface Props {
@@ -18,10 +18,13 @@ export default async function EditAgentPage({ params }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const agent = await appRuntime.runPromise(
-    getAgentForUser(agentId, session.user.id).pipe(
-      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
-    ),
+  const [agent, ownedAgents] = await appRuntime.runPromise(
+    Effect.all([
+      getAgentForUser(agentId, session.user.id).pipe(
+        Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+      ),
+      listAgentsForUser(session.user.id),
+    ]),
   );
 
   if (!agent) notFound();
@@ -38,9 +41,11 @@ export default async function EditAgentPage({ params }: Props) {
           description: agent.description,
           id: agent.id,
           name: agent.name,
+          subAgents: agent.subAgents,
           systemPrompt: agent.systemPrompt,
           tools: agent.tools,
         }}
+        ownedAgents={ownedAgents}
       />
     </div>
   );

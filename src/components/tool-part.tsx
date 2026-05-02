@@ -3,6 +3,8 @@
 import type { DynamicToolUIPart, ToolUIPart } from "ai";
 
 import { getToolName } from "ai";
+import { BotIcon } from "lucide-react";
+import { z } from "zod";
 
 import {
   Confirmation,
@@ -21,21 +23,120 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { SUBAGENT_PREFIX } from "@/lib/subagent-prefix";
+import { cn } from "@/lib/utils";
 
 interface ToolPartProps {
   addToolApprovalResponse: (response: { approved: boolean; id: string }) => void;
   part: DynamicToolUIPart | ToolUIPart;
 }
 
+const messagePartSchema = z.union([
+  z.object({ text: z.string(), type: z.literal("text") }),
+  z.object({ type: z.string() }).loose(),
+]);
+
+const messageSchema = z.object({
+  id: z.string(),
+  parts: z.array(messagePartSchema),
+  role: z.string(),
+});
+
+const subagentOutputSchema = z.object({
+  messages: z.array(messageSchema).optional(),
+  runId: z.string(),
+  status: z.enum(["done", "running"]),
+  text: z.string().optional(),
+});
+
+const isSubagentOutput = (output: unknown): output is z.infer<typeof subagentOutputSchema> => {
+  return subagentOutputSchema.safeParse(output).success;
+};
+
+const SubagentMessages = ({ messages }: { messages: z.infer<typeof messageSchema>[] }) => {
+  const assistantMessages = messages.filter((m) => m.role === "assistant");
+
+  if (assistantMessages.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <h4 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+        Transcript
+      </h4>
+      <div className="flex flex-col gap-2">
+        {assistantMessages.map((message) => {
+          const text = message.parts
+            .flatMap((part) => (part.type === "text" ? [part.text] : []))
+            .join("");
+
+          if (!text.trim()) return null;
+
+          return (
+            <div className="bg-muted/50 rounded-md p-3 text-xs" key={message.id}>
+              <MessageResponse className="text-xs">{text}</MessageResponse>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const SubagentOutput = ({ output }: { output: z.infer<typeof subagentOutputSchema> }) => {
+  const messages = output.messages ?? [];
+  const isRunning = output.status === "running";
+
+  return (
+    <Collapsible defaultOpen={isRunning}>
+      <CollapsibleTrigger
+        className={cn(
+          "flex w-full items-center justify-between gap-2 text-xs",
+          "text-muted-foreground hover:text-foreground transition-colors",
+        )}
+      >
+        <span className="font-medium">{isRunning ? "Running..." : "View transcript"}</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="mt-2">
+        {output.status === "done" && output.text?.trim() ? (
+          <MessageResponse className="text-xs">{output.text}</MessageResponse>
+        ) : messages.length > 0 ? (
+          <SubagentMessages messages={messages} />
+        ) : (
+          <p className="text-muted-foreground text-xs">No messages yet.</p>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
+
 export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
   const approvalId = part.approval?.id ?? "";
-  const toolName = getToolName(part);
+  const rawName = getToolName(part);
+  const isSubagent = rawName.startsWith(SUBAGENT_PREFIX);
+  const toolName = isSubagent ? rawName.slice(SUBAGENT_PREFIX.length) : rawName;
+
+  const subagentResult =
+    typeof part.output === "object" && part.output !== null && isSubagentOutput(part.output)
+      ? part.output
+      : null;
+
   const output =
     typeof part.output === "string" ? (
       <MessageResponse>{part.output}</MessageResponse>
     ) : (
       part.output
     );
+
+  const subagentIcon = isSubagent ? (
+    <BotIcon className="text-muted-foreground size-4" />
+  ) : undefined;
+  const subagentBadge = isSubagent ? (
+    <Badge className="rounded-full text-[10px]" variant="outline">
+      Sub-agent
+    </Badge>
+  ) : undefined;
 
   return (
     <>
@@ -67,14 +168,26 @@ export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
         </ConfirmationActions>
       </Confirmation>
       <Tool>
-        {part.type === "dynamic-tool" ? (
-          <ToolHeader state={part.state} toolName={toolName} type={part.type} />
+        {isSubagent ? (
+          <ToolHeader
+            badge={subagentBadge}
+            icon={subagentIcon}
+            state={part.state}
+            toolName={toolName}
+            type={part.type}
+          />
+        ) : part.type === "dynamic-tool" ? (
+          <ToolHeader state={part.state} toolName={part.toolName} type={part.type} />
         ) : (
           <ToolHeader state={part.state} type={part.type} />
         )}
         <ToolContent>
           <ToolInput input={part.input} />
-          <ToolOutput errorText={part.errorText} output={output} />
+          {subagentResult ? (
+            <SubagentOutput output={subagentResult} />
+          ) : (
+            <ToolOutput errorText={part.errorText} output={output} />
+          )}
         </ToolContent>
       </Tool>
     </>
