@@ -1,6 +1,6 @@
 # comal.dev
 
-Create AI agents that are actually yours. Pick a model, write a system prompt, attach some tools, and start chatting.
+Create AI agents that are yours. Pick a model, write a system prompt, attach some tools, and start chatting.
 
 ## About
 
