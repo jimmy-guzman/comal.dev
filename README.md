@@ -1,14 +1,14 @@
 # comal.dev
 
-Build your own AI agents. Pick a model, write a system prompt, choose tools, chat.
+Create AI agents that are actually yours. Pick a model, write a system prompt, attach some tools, and start chatting.
 
 ## About
 
-A web app for creating private, runtime-defined AI agents. Each agent is yours: your system prompt, your model, your selected tools. Start chatting anonymously, sign in with GitHub to keep your history.
+A web app for building private, runtime-defined AI agents. The system prompt, model choice, and tool selection are all per-agent and stored under your account. You can start chatting anonymously and sign in with GitHub if you want to keep the history.
 
 ## Architecture
 
-High-level view of how a chat request flows through the app.
+How a chat request flows through the app:
 
 ```mermaid
 flowchart TB
@@ -69,7 +69,7 @@ flowchart TB
 - Streaming chat with markdown, code, math, mermaid
 - Approval-gated tools that pause and ask before running
 - Conversation history with per-conversation model switching
-- Delegate to sub-agents — let an agent call other agents you own as tools
+- Sub-agents: let an agent call other agents you own as tools
 
 ## Tools
 

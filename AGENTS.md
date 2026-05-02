@@ -6,11 +6,37 @@ Agent-focused notes for this repo. For humans, see [README.md](README.md).
 
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This version has breaking changes. APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 
 <!-- END:nextjs-agent-rules -->
 
-                                                              |
+## Tech stack
+
+- [Next.js](https://nextjs.org/llms.txt)
+- [Vercel AI SDK](https://ai-sdk.dev/llms.txt)
+- [Better Auth](https://better-auth.com/llms.txt)
+- [Drizzle ORM](https://orm.drizzle.team/llms.txt)
+- [shadcn/ui](https://ui.shadcn.com/llms.txt)
+- [Upstash](https://upstash.com/docs/llms.txt)
+- [Bun](https://bun.sh/llms.txt)
+- [es-toolkit](https://es-toolkit.dev/llms-full.txt)
+- React 19
+- TypeScript
+- Tailwind CSS v4
+- next-safe-action
+
+<!-- intent-skills:start -->
+
+## Skill Loading
+
+Before substantial work:
+
+- Skill check: run `npx @tanstack/intent@latest list`, or use skills already listed in context.
+- Skill guidance: if one local skill clearly matches the task, run `npx @tanstack/intent@latest load <package>#<skill>` and follow the returned `SKILL.md`.
+- Monorepos: when working across packages, run the skill check from the workspace root and prefer the local skill for the package being changed.
+- Multiple matches: prefer the most specific local skill for the package or concern you are changing; load additional skills only when the task spans multiple packages or concerns.
+  <!-- intent-skills:end -->
+                                                |
 
 ## Conventions
 
@@ -33,9 +59,9 @@ When changing API client types or AI SDK-related code, run `bun run lint` and `b
 - **Cycle prevention is enforced at both write time and runtime.** `src/lib/agent-graph.ts` provides a DFS helper used by `create-agent` and `update-agent` actions to reject cycles before they reach the database. Runtime depth tracking (`MAX_DEPTH`) is a second safety net. Self-links are blocked by a DB CHECK constraint and an explicit action guard.
 - **Sub-agent tool output shape:** preliminary yields send `{ runId, status: "running", messages: UIMessage[] }`; the final return sends `{ runId, status: "done", text: string }`. Preliminary tool-output events are not persisted to the database (only the final result is stored). `src/components/tool-part.tsx` detects this shape and renders a collapsible transcript of the child's assistant messages.
 - **Server actions own all writes.** `src/actions/{create,update,delete}-agent.ts` use `next-safe-action`. Mutations validate against `agentInputSchema` (`src/lib/agent-input-schema.ts`), which `superRefine`s tool ids against the registry. `assertAgentOwnership` gates updates; all actions `revalidatePath("/", "layout")` on success.
-- **Persistence is Effect-based.** Use the `Database` `Context.Tag` and `Effect.provide(DatabaseLive)` (or `runWithDb`). Neon HTTP's `db.transaction()` is not supported and throws at runtime, but `db.batch([...])` is — it executes the array of queries atomically via Neon's HTTP transaction endpoint and is the correct primitive when you need multiple writes to commit together. For a single write, sequence inside a single `tryPromise`.
+- **Persistence is Effect-based.** Use the `Database` `Context.Tag` and `Effect.provide(DatabaseLive)` (or `runWithDb`). Neon HTTP's `db.transaction()` is not supported and throws at runtime, but `db.batch([...])` is: it executes the array of queries atomically via Neon's HTTP transaction endpoint and is the correct primitive when you need multiple writes to commit together. For a single write, sequence inside a single `tryPromise`.
 - **Generated API clients live in `src/clients/<name>/`.** Each is produced by `bun run openapi-ts` from a spec; treat `*.gen.ts` and the barrel `index.ts` as build output and do not hand-edit. Tools import SDK functions and types from the barrel (`@/clients/<name>`) only. Auth is passed per-call via the `auth` option on each SDK function (see `src/agents/tools/tmdb/*.ts`); `client.setConfig` is avoided so tools don't mutate a shared singleton. Tools are intentionally thin pass-throughs: they call one SDK function, surface `error` as a thrown `Error`, and return raw `data` so the model gets the upstream shape it already knows.
-- **Client-side stores are React Context + `useState`, split across three files.** Context (and its types) in `src/components/<name>-context.ts`, hook in `src/hooks/use-<name>.ts`, provider component in `src/components/<name>-provider.tsx`. The split is mandatory: keeping the hook and context in the same file as the provider trips `react-refresh/only-export-components`. Server components own the source of truth and pass it as the provider's `initial` prop; the provider re-seeds local state when `initial` changes by storing the previous value in state and resetting during render (do not use `useEffect` for this — it cascades renders and trips `react-hooks/set-state-in-effect`). Mutations from streaming responses (e.g. AI SDK `data-*` parts) call hook setters directly. The conversations sidebar (`src/components/conversations-provider.tsx`, `src/hooks/use-conversations.ts`) is the canonical example.
+- **Client-side stores are React Context + `useState`, split across three files.** Context (and its types) in `src/components/<name>-context.ts`, hook in `src/hooks/use-<name>.ts`, provider component in `src/components/<name>-provider.tsx`. The split is mandatory: keeping the hook and context in the same file as the provider trips `react-refresh/only-export-components`. Server components own the source of truth and pass it as the provider's `initial` prop; the provider re-seeds local state when `initial` changes by storing the previous value in state and resetting during render (do not use `useEffect` for this; it cascades renders and trips `react-hooks/set-state-in-effect`). Mutations from streaming responses (e.g. AI SDK `data-*` parts) call hook setters directly. The conversations sidebar (`src/components/conversations-provider.tsx`, `src/hooks/use-conversations.ts`) is the canonical example.
 
 ## Forms
 
@@ -130,6 +156,9 @@ When changing API client types or AI SDK-related code, run `bun run lint` and `b
 
 - **Sentence case subheadings.** Write `## Like this` not `## Like This`.
   Subheadings are not titles. Sentence case reads more naturally in technical prose and avoids the stiffness of title case. Exception: proper nouns and acronyms follow their standard casing (e.g. `## Working with TypeScript`).
+
+- **Humanize prose with the `humanizer` skill.** When writing or editing docs, READMEs, or any user-facing text, load the skill and apply it before finishing.
+  AI-generated writing is recognizable. The skill identifies specific patterns (em dash overuse, rule of three, vague attribution, inline-header lists, promotional language) and gives concrete rewrites. Loading it takes one command; not loading it means shipping slop.
 
 ## Pausing
 
