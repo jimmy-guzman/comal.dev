@@ -35,7 +35,7 @@ interface ToolPartProps {
 
 const messagePartSchema = z.union([
   z.object({ text: z.string(), type: z.literal("text") }),
-  z.object({ type: z.string() }).passthrough(),
+  z.object({ type: z.string() }).loose(),
 ]);
 
 const messageSchema = z.object({
