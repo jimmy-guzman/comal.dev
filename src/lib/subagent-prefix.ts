@@ -1,1 +1,1 @@
-export const SUBAGENT_PREFIX = "subagent:" as const;
+export const SUBAGENT_PREFIX = "subagent_" as const;
