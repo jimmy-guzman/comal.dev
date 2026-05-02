@@ -12,7 +12,7 @@ interface Props {
 
 export const ConversationsSeed = ({ conversations }: Props) => {
   const { seedConversations } = useConversations();
-  const [previous, setPrevious] = useState(conversations);
+  const [previous, setPrevious] = useState<null | RecentConversation[]>(null);
 
   if (conversations !== previous) {
     setPrevious(conversations);
