@@ -9,7 +9,7 @@ import { NotFoundError } from "@/lib/errors";
 
 import type { AgentConfig } from "./types";
 
-import { buildSubagentTool } from "./subagent";
+import { buildSubagentTool, SUBAGENT_PREFIX } from "./subagent";
 import { buildTool } from "./tools/build";
 import { tools as toolRegistry } from "./tools/registry";
 
@@ -89,7 +89,7 @@ const loadSubagentTools = (parentId: string, ownerId: string) => {
     const result: Record<string, Tool> = {};
 
     for (const row of rows) {
-      result[row.alias] = buildSubagentTool({
+      result[`${SUBAGENT_PREFIX}${row.alias}`] = buildSubagentTool({
         childDescription: row.childDescription ?? "",
         childName: row.childName,
         link: {

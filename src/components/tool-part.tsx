@@ -3,8 +3,10 @@
 import type { DynamicToolUIPart, ToolUIPart, UIMessage } from "ai";
 
 import { getToolName } from "ai";
+import { BotIcon } from "lucide-react";
 import { z } from "zod";
 
+import { SUBAGENT_PREFIX } from "@/agents/subagent";
 import {
   Confirmation,
   ConfirmationAccepted,
@@ -22,6 +24,7 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
+import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 
@@ -97,7 +100,9 @@ const SubagentOutput = ({ output }: { output: z.infer<typeof subagentOutputSchem
 
 export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
   const approvalId = part.approval?.id ?? "";
-  const toolName = getToolName(part);
+  const rawName = getToolName(part);
+  const isSubagent = part.type === "dynamic-tool" && rawName.startsWith(SUBAGENT_PREFIX);
+  const toolName = isSubagent ? rawName.slice(SUBAGENT_PREFIX.length) : rawName;
 
   const subagentResult =
     typeof part.output === "object" && part.output !== null && isSubagentOutput(part.output)
@@ -110,6 +115,15 @@ export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
     ) : (
       part.output
     );
+
+  const subagentIcon = isSubagent ? (
+    <BotIcon className="text-muted-foreground size-4" />
+  ) : undefined;
+  const subagentBadge = isSubagent ? (
+    <Badge className="rounded-full text-[10px]" variant="outline">
+      Sub-agent
+    </Badge>
+  ) : undefined;
 
   return (
     <>
@@ -142,7 +156,13 @@ export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
       </Confirmation>
       <Tool>
         {part.type === "dynamic-tool" ? (
-          <ToolHeader state={part.state} toolName={toolName} type={part.type} />
+          <ToolHeader
+            badge={subagentBadge}
+            icon={subagentIcon}
+            state={part.state}
+            toolName={toolName}
+            type={part.type}
+          />
         ) : (
           <ToolHeader state={part.state} type={part.type} />
         )}

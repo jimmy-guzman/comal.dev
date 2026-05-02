@@ -52,6 +52,7 @@ flowchart TB
   ChatAPI --> Loader
   Loader --> Neon
   Loader --> Registry
+  Loader -.->|recurses for sub-agents| Loader
   ChatAPI --> OpenRouter
   ChatAPI --> Neon
 
@@ -68,6 +69,7 @@ flowchart TB
 - Streaming chat with markdown, code, math, mermaid
 - Approval-gated tools that pause and ask before running
 - Conversation history with per-conversation model switching
+- Delegate to sub-agents — let an agent call other agents you own as tools
 
 ## Tools
 
@@ -83,6 +85,8 @@ flowchart TB
 - **TMDB discover TV** — Discovers TV series on TMDB by genre, first-air year, language, and sort order.
 - **TMDB movie details** — Fetches full TMDB metadata for a movie by id.
 - **TMDB TV details** — Fetches full TMDB metadata for a TV series by id.
+
+Agents can also call other agents you own as sub-agent tools, configured per-agent in the agent form.
 
 ## Tech stack
 
