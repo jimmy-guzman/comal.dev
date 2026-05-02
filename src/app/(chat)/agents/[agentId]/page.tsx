@@ -48,19 +48,14 @@ export default async function AgentPage({ params }: Props) {
             agentId={agentId}
             agentName={agent.name}
             trigger={
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    aria-label="Delete agent"
-                    className="aspect-square px-0 sm:aspect-auto sm:px-2.5"
-                    variant="outline"
-                  >
-                    <Trash2Icon />
-                    <span className="hidden sm:inline">Delete</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Delete</TooltipContent>
-              </Tooltip>
+              <Button
+                aria-label="Delete agent"
+                className="aspect-square px-0 sm:aspect-auto sm:px-2.5"
+                variant="outline"
+              >
+                <Trash2Icon />
+                <span className="hidden sm:inline">Delete</span>
+              </Button>
             }
           />
           <Tooltip>
