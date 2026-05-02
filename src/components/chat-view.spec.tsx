@@ -81,7 +81,7 @@ describe("ChatView", () => {
     const user = userEvent.setup();
 
     render(
-      <ConversationsProvider initial={[]}>
+      <ConversationsProvider>
         <ChatView
           agentId="agent-1"
           agentName="Agent One"
