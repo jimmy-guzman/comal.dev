@@ -35,7 +35,7 @@ export type ToolHeaderProps = {
   className?: string;
   icon?: ReactNode;
 } & (
-  | { type: ToolUIPart["type"]; state: ToolUIPart["state"]; toolName?: never }
+  | { type: ToolUIPart["type"]; state: ToolUIPart["state"]; toolName?: string }
   | {
       type: DynamicToolUIPart["type"];
       state: DynamicToolUIPart["state"];
@@ -80,7 +80,7 @@ export const ToolHeader = ({
   toolName,
   ...props
 }: ToolHeaderProps) => {
-  const derivedName = type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
+  const derivedName = toolName ?? type.split("-").slice(1).join("-");
 
   return (
     <CollapsibleTrigger

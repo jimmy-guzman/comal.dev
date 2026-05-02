@@ -101,7 +101,7 @@ const SubagentOutput = ({ output }: { output: z.infer<typeof subagentOutputSchem
 export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
   const approvalId = part.approval?.id ?? "";
   const rawName = getToolName(part);
-  const isSubagent = part.type === "dynamic-tool" && rawName.startsWith(SUBAGENT_PREFIX);
+  const isSubagent = rawName.startsWith(SUBAGENT_PREFIX);
   const toolName = isSubagent ? rawName.slice(SUBAGENT_PREFIX.length) : rawName;
 
   const subagentResult =
@@ -155,7 +155,7 @@ export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
         </ConfirmationActions>
       </Confirmation>
       <Tool>
-        {part.type === "dynamic-tool" ? (
+        {isSubagent ? (
           <ToolHeader
             badge={subagentBadge}
             icon={subagentIcon}
@@ -163,6 +163,8 @@ export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
             toolName={toolName}
             type={part.type}
           />
+        ) : part.type === "dynamic-tool" ? (
+          <ToolHeader state={part.state} toolName={part.toolName} type={part.type} />
         ) : (
           <ToolHeader state={part.state} type={part.type} />
         )}
