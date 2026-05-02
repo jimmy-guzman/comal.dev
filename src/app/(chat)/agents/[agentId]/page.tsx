@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { PencilIcon, PlusIcon } from "lucide-react";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -47,16 +47,7 @@ export default async function AgentPage({ params }: Props) {
           <DeleteAgentButton
             agentId={agentId}
             agentName={agent.name}
-            trigger={
-              <Button
-                aria-label="Delete agent"
-                className="aspect-square px-0 sm:aspect-auto sm:px-2.5"
-                variant="outline"
-              >
-                <Trash2Icon />
-                <span className="hidden sm:inline">Delete</span>
-              </Button>
-            }
+            trigger={<Button variant="outline">Delete</Button>}
           />
           <Tooltip>
             <TooltipTrigger asChild>
