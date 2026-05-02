@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { PencilIcon, PlusIcon } from "lucide-react";
+import { cacheLife, cacheTag } from "next/cache";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -13,6 +14,28 @@ import { getAgentForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 import { listConversationsForAgent } from "@/lib/chat";
 
+async function fetchAgentDetail(agentId: string, userId: string) {
+  "use cache";
+
+  cacheTag(`agent:${agentId}`);
+  cacheLife("minutes");
+
+  return appRuntime.runPromise(
+    getAgentForUser(agentId, userId).pipe(
+      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+    ),
+  );
+}
+
+async function fetchConversationsForAgent(agentId: string, userId: string) {
+  "use cache";
+
+  cacheTag(`conversations:${userId}`);
+  cacheLife("minutes");
+
+  return appRuntime.runPromise(listConversationsForAgent(userId, agentId));
+}
+
 interface Props {
   params: Promise<{ agentId: string }>;
 }
@@ -24,17 +47,12 @@ export default async function AgentPage({ params }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const agent = await appRuntime.runPromise(
-    getAgentForUser(agentId, session.user.id).pipe(
-      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
-    ),
-  );
+  const [agent, conversations] = await Promise.all([
+    fetchAgentDetail(agentId, session.user.id),
+    fetchConversationsForAgent(agentId, session.user.id),
+  ]);
 
   if (!agent) notFound();
-
-  const conversations = await appRuntime.runPromise(
-    listConversationsForAgent(session.user.id, agentId),
-  );
 
   return (
     <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-8 p-4 sm:p-8">

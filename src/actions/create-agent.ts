@@ -2,7 +2,7 @@
 
 import { Cause, Effect, Exit } from "effect";
 import { returnValidationErrors } from "next-safe-action";
-import { revalidatePath } from "next/cache";
+import { updateTag } from "next/cache";
 
 import { appRuntime } from "@/db/service";
 import { detectCycle } from "@/lib/agent-graph";
@@ -65,7 +65,7 @@ export const createAgentAction = authClient
       throw new Error("Failed to create agent.", { cause: Cause.squash(exit.cause) });
     }
 
-    revalidatePath("/", "layout");
+    updateTag(`agents:${ctx.auth.user.id}`);
 
     return exit.value;
   });

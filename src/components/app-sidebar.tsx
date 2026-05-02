@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
+import { useLayoutEffect } from "react";
 
 import { DeleteConversationButton } from "@/components/delete-conversation-button";
 import { NewChatButton } from "@/components/new-chat-button";
@@ -52,6 +53,12 @@ const ConversationItem = ({
 }: ConversationItemProps) => {
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const href = `/agents/${agentId}/conversations/${conversationId}` as const;
+
+  useLayoutEffect(() => {
+    return () => {
+      setDeleteOpen(false);
+    };
+  }, []);
 
   return (
     <SidebarMenuItem>

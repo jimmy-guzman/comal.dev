@@ -3,6 +3,7 @@
 import { MoreHorizontalIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
+import { useLayoutEffect } from "react";
 
 import { DeleteConversationButton } from "@/components/delete-conversation-button";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,12 @@ interface ConversationListItemProps {
 const ConversationListItem = ({ agentId, conversation }: ConversationListItemProps) => {
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const href = `/agents/${agentId}/conversations/${conversation.id}` as const;
+
+  useLayoutEffect(() => {
+    return () => {
+      setDeleteOpen(false);
+    };
+  }, []);
 
   return (
     <Item className="hover:bg-muted relative rounded-md" size="sm">

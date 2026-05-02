@@ -65,23 +65,27 @@ export const getAgentForUser = (agentId: string, userId: string) => {
       return yield* Effect.fail(new NotFoundError({ resource: "agent" }));
     }
 
-    const tools = yield* runQuery(() => {
-      return db
-        .select({ config: agentTool.config, toolId: agentTool.toolId })
-        .from(agentTool)
-        .where(eq(agentTool.agentId, agentId));
-    });
-
-    const subAgents = yield* runQuery(() => {
-      return db
-        .select({
-          alias: agentSubagent.alias,
-          childAgentId: agentSubagent.childAgentId,
-          descriptionOverride: agentSubagent.descriptionOverride,
-        })
-        .from(agentSubagent)
-        .where(eq(agentSubagent.parentAgentId, agentId));
-    });
+    const [tools, subAgents] = yield* Effect.all(
+      [
+        runQuery(() => {
+          return db
+            .select({ config: agentTool.config, toolId: agentTool.toolId })
+            .from(agentTool)
+            .where(eq(agentTool.agentId, agentId));
+        }),
+        runQuery(() => {
+          return db
+            .select({
+              alias: agentSubagent.alias,
+              childAgentId: agentSubagent.childAgentId,
+              descriptionOverride: agentSubagent.descriptionOverride,
+            })
+            .from(agentSubagent)
+            .where(eq(agentSubagent.parentAgentId, agentId));
+        }),
+      ],
+      { concurrency: "unbounded" },
+    );
 
     return { ...row, subAgents, tools };
   });

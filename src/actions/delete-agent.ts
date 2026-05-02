@@ -1,7 +1,7 @@
 "use server";
 
 import { Effect, Exit } from "effect";
-import { revalidatePath } from "next/cache";
+import { updateTag } from "next/cache";
 import { z } from "zod";
 
 import { appRuntime } from "@/db/service";
@@ -33,7 +33,8 @@ export const deleteAgentAction = authClient
       throw new Error("Failed to delete agent.");
     }
 
-    revalidatePath("/", "layout");
+    updateTag(`agents:${ctx.auth.user.id}`);
+    updateTag(`agent:${parsedInput.agentId}`);
 
     return { agentId: parsedInput.agentId };
   });
