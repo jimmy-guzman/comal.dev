@@ -9,8 +9,6 @@ import { openrouter } from "@/lib/openrouter";
 
 import { loadAgent } from "./index";
 
-export const SUBAGENT_PREFIX = "subagent:" as const;
-
 interface SubagentLink {
   alias: string;
   childAgentId: string;

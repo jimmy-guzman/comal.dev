@@ -6,10 +6,11 @@ import { Effect } from "effect";
 import { agent, agentSubagent, agentTool } from "@/db/schemas/agent-schema";
 import { Database, runQuery } from "@/db/service";
 import { NotFoundError } from "@/lib/errors";
+import { SUBAGENT_PREFIX } from "@/lib/subagent-prefix";
 
 import type { AgentConfig } from "./types";
 
-import { buildSubagentTool, SUBAGENT_PREFIX } from "./subagent";
+import { buildSubagentTool } from "./subagent";
 import { buildTool } from "./tools/build";
 import { tools as toolRegistry } from "./tools/registry";
 

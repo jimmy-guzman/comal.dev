@@ -6,7 +6,6 @@ import { getToolName } from "ai";
 import { BotIcon } from "lucide-react";
 import { z } from "zod";
 
-import { SUBAGENT_PREFIX } from "@/agents/subagent";
 import {
   Confirmation,
   ConfirmationAccepted,
@@ -26,6 +25,7 @@ import {
 } from "@/components/ai-elements/tool";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { SUBAGENT_PREFIX } from "@/lib/subagent-prefix";
 import { cn } from "@/lib/utils";
 
 interface ToolPartProps {
