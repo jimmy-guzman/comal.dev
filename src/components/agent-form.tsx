@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "@tanstack/react-form";
+import { useForm, useStore } from "@tanstack/react-form";
 import { compact, flatMap } from "es-toolkit";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
@@ -161,7 +161,10 @@ type TabKey = keyof typeof TAB_FIELDS;
 
 const ErrorDot = () => {
   return (
-    <span aria-hidden="true" className="bg-destructive absolute -top-0.5 -right-0.5 size-1.5 rounded-full" />
+    <span
+      aria-hidden="true"
+      className="bg-destructive absolute -top-0.5 -right-0.5 size-1.5 rounded-full"
+    />
   );
 };
 
@@ -240,7 +243,8 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
     },
   });
 
-  const hasAttempted = form.state.submissionAttempts > 0;
+  const submissionAttempts = useStore(form.store, (s) => s.submissionAttempts);
+  const hasAttempted = submissionAttempts > 0;
 
   const tabHasError = (tab: TabKey): boolean => {
     if (!hasAttempted) return false;
@@ -302,7 +306,8 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
           <FieldGroup>
             <form.Field name="name">
               {(field) => {
-                const isInvalid = (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
+                const isInvalid =
+                  (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid || undefined}>
@@ -327,7 +332,8 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
 
             <form.Field name="description">
               {(field) => {
-                const isInvalid = (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
+                const isInvalid =
+                  (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid || undefined}>
@@ -353,7 +359,8 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
 
             <form.Field name="defaultModelId">
               {(field) => {
-                const isInvalid = (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
+                const isInvalid =
+                  (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid || undefined}>
@@ -400,7 +407,8 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
         <TabsContent className="mt-6" value="prompt">
           <form.Field name="systemPrompt">
             {(field) => {
-              const isInvalid = (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
+              const isInvalid =
+                (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
 
               return (
                 <Field data-invalid={isInvalid || undefined}>
