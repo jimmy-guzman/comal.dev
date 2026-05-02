@@ -8,17 +8,14 @@ import { ConversationsContext } from "@/components/conversations-context";
 
 interface Props {
   children: React.ReactNode;
-  initial: RecentConversation[];
 }
 
-export const ConversationsProvider = ({ children, initial }: Props) => {
-  const [conversations, setConversations] = useState(initial);
-  const [previousInitial, setPreviousInitial] = useState(initial);
+export const ConversationsProvider = ({ children }: Props) => {
+  const [conversations, setConversations] = useState<RecentConversation[]>([]);
 
-  if (initial !== previousInitial) {
-    setPreviousInitial(initial);
-    setConversations(initial);
-  }
+  const seedConversations = useCallback((next: RecentConversation[]) => {
+    setConversations(next);
+  }, []);
 
   const prependConversation = useCallback((conversation: RecentConversation) => {
     setConversations((current) => {
@@ -35,8 +32,8 @@ export const ConversationsProvider = ({ children, initial }: Props) => {
   }, []);
 
   const value = useMemo(() => {
-    return { conversations, prependConversation, updateConversationTitle };
-  }, [conversations, prependConversation, updateConversationTitle]);
+    return { conversations, prependConversation, seedConversations, updateConversationTitle };
+  }, [conversations, prependConversation, seedConversations, updateConversationTitle]);
 
   return <ConversationsContext value={value}>{children}</ConversationsContext>;
 };
