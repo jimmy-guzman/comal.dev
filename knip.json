@@ -6,6 +6,5 @@
     "src/components/ai-elements/**",
     "src/db/schemas/**",
     "src/clients/**/*.ts"
-  ],
-  "ignoreDependencies": ["@testing-library/dom"]
+  ]
 }
