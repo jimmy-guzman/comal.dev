@@ -30,7 +30,7 @@ export default async function EditAgentPage({ params }: Props) {
   if (!agent) notFound();
 
   return (
-    <div className="pb-safe-or-8 px-safe-or-4 sm:px-safe-or-8 mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-6 py-4 sm:py-8">
+    <div className="pb-safe-or-8 px-safe-or-4 sm:px-safe-or-8 mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-6 overflow-y-auto overscroll-y-contain py-4 sm:py-8">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">Edit agent</h1>
         <p className="text-muted-foreground text-sm">{agent.name}</p>

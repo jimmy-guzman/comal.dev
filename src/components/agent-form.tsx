@@ -160,7 +160,9 @@ const TAB_FIELDS = {
 type TabKey = keyof typeof TAB_FIELDS;
 
 const ErrorDot = () => {
-  return <span className="bg-destructive absolute -top-0.5 -right-0.5 size-1.5 rounded-full" />;
+  return (
+    <span aria-hidden="true" className="bg-destructive absolute -top-0.5 -right-0.5 size-1.5 rounded-full" />
+  );
 };
 
 export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: Props) => {
@@ -263,32 +265,44 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
 
   return (
     <form
-      className="flex min-h-0 flex-1 flex-col gap-6"
+      className="flex flex-col gap-6"
       onSubmit={(event) => {
         event.preventDefault();
         void form.handleSubmit();
       }}
     >
-      <Tabs className="flex min-h-0 flex-1 flex-col" defaultValue="basics">
+      <Tabs className="flex flex-col" defaultValue="basics">
         <TabsList className="w-full justify-start" variant="line">
           {(["basics", "prompt", "tools", "sub-agents"] satisfies TabKey[]).map((tab) => {
+            const label =
+              tab === "basics"
+                ? "Basics"
+                : tab === "prompt"
+                  ? "Prompt"
+                  : tab === "tools"
+                    ? "Tools"
+                    : "Sub-agents";
+            const hasError = tabHasError(tab);
+
             return (
-              <TabsTrigger className="relative" key={tab} value={tab}>
-                {tab === "basics" && "Basics"}
-                {tab === "prompt" && "Prompt"}
-                {tab === "tools" && "Tools"}
-                {tab === "sub-agents" && "Sub-agents"}
-                {tabHasError(tab) ? <ErrorDot /> : null}
+              <TabsTrigger
+                aria-label={hasError ? `${label}, has errors` : undefined}
+                className="relative"
+                key={tab}
+                value={tab}
+              >
+                {label}
+                {hasError ? <ErrorDot /> : null}
               </TabsTrigger>
             );
           })}
         </TabsList>
 
-        <TabsContent className="mt-6 flex min-h-0 flex-col" value="basics">
+        <TabsContent className="mt-6" value="basics">
           <FieldGroup>
             <form.Field name="name">
               {(field) => {
-                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+                const isInvalid = (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid || undefined}>
@@ -313,7 +327,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
 
             <form.Field name="description">
               {(field) => {
-                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+                const isInvalid = (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid || undefined}>
@@ -339,7 +353,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
 
             <form.Field name="defaultModelId">
               {(field) => {
-                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+                const isInvalid = (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid || undefined}>
@@ -383,23 +397,20 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
           </FieldGroup>
         </TabsContent>
 
-        <TabsContent className="mt-6 flex min-h-0 flex-1 flex-col" value="prompt">
+        <TabsContent className="mt-6" value="prompt">
           <form.Field name="systemPrompt">
             {(field) => {
-              const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+              const isInvalid = (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
 
               return (
-                <Field
-                  className="flex min-h-0 flex-1 flex-col"
-                  data-invalid={isInvalid || undefined}
-                >
+                <Field data-invalid={isInvalid || undefined}>
                   <FieldLabel htmlFor={field.name}>System prompt</FieldLabel>
                   <FieldDescription>
                     Instructions the model receives at the start of every conversation.
                   </FieldDescription>
                   <Textarea
                     aria-invalid={isInvalid || undefined}
-                    className="min-h-0 flex-1 resize-none font-mono text-xs"
+                    className="field-sizing-content min-h-32 resize-none font-mono text-xs"
                     id={field.name}
                     maxLength={20_000}
                     name={field.name}
@@ -417,7 +428,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
           </form.Field>
         </TabsContent>
 
-        <TabsContent className="mt-6 flex min-h-0 flex-col" value="tools">
+        <TabsContent className="mt-6" value="tools">
           <form.Field mode="array" name="tools">
             {(field) => {
               return (
@@ -438,7 +449,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
           </form.Field>
         </TabsContent>
 
-        <TabsContent className="mt-6 flex min-h-0 flex-col" value="sub-agents">
+        <TabsContent className="mt-6" value="sub-agents">
           <form.Field mode="array" name="subAgents">
             {(field) => {
               return (
@@ -450,6 +461,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
                   <AgentSubagentPicker
                     currentAgentId={initialAgent?.id}
                     onChange={(next) => {
+                      setSubAgentErrors([]);
                       field.handleChange(next);
                     }}
                     ownedAgents={ownedAgents}
