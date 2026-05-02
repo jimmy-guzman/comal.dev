@@ -1,6 +1,6 @@
 "use client";
 
-import type { DynamicToolUIPart, ToolUIPart, UIMessage } from "ai";
+import type { DynamicToolUIPart, ToolUIPart } from "ai";
 
 import { getToolName } from "ai";
 import { BotIcon } from "lucide-react";
@@ -33,8 +33,19 @@ interface ToolPartProps {
   part: DynamicToolUIPart | ToolUIPart;
 }
 
+const messagePartSchema = z.union([
+  z.object({ text: z.string(), type: z.literal("text") }),
+  z.object({ type: z.string() }).passthrough(),
+]);
+
+const messageSchema = z.object({
+  id: z.string(),
+  parts: z.array(messagePartSchema),
+  role: z.string(),
+});
+
 const subagentOutputSchema = z.object({
-  messages: z.array(z.unknown()).optional(),
+  messages: z.array(messageSchema).optional(),
   runId: z.string(),
   status: z.enum(["done", "running"]),
   text: z.string().optional(),
@@ -44,7 +55,7 @@ const isSubagentOutput = (output: unknown): output is z.infer<typeof subagentOut
   return subagentOutputSchema.safeParse(output).success;
 };
 
-const SubagentMessages = ({ messages }: { messages: UIMessage[] }) => {
+const SubagentMessages = ({ messages }: { messages: z.infer<typeof messageSchema>[] }) => {
   const assistantMessages = messages.filter((m) => m.role === "assistant");
 
   if (assistantMessages.length === 0) return null;
@@ -74,7 +85,7 @@ const SubagentMessages = ({ messages }: { messages: UIMessage[] }) => {
 };
 
 const SubagentOutput = ({ output }: { output: z.infer<typeof subagentOutputSchema> }) => {
-  const messages = (output.messages ?? []) as UIMessage[];
+  const messages = output.messages ?? [];
   const isRunning = output.status === "running";
 
   return (
@@ -88,7 +99,9 @@ const SubagentOutput = ({ output }: { output: z.infer<typeof subagentOutputSchem
         <span className="font-medium">{isRunning ? "Running..." : "View transcript"}</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-2">
-        {messages.length > 0 ? (
+        {output.status === "done" && output.text?.trim() ? (
+          <MessageResponse className="text-xs">{output.text}</MessageResponse>
+        ) : messages.length > 0 ? (
           <SubagentMessages messages={messages} />
         ) : (
           <p className="text-muted-foreground text-xs">No messages yet.</p>
