@@ -28,7 +28,7 @@ async function fetchSidebarConversations(userId: string) {
   return appRuntime.runPromise(listRecentConversationsForUser(userId, 20));
 }
 
-async function SidebarShell({ children }: { children: React.ReactNode }) {
+async function SidebarAsync() {
   const session = await auth.api.getSession({ headers: await headers() });
   const isSignedIn = Boolean(session?.user) && !session?.user.isAnonymous;
 
@@ -54,7 +54,6 @@ async function SidebarShell({ children }: { children: React.ReactNode }) {
         agents={agents.map((a) => ({ id: a.id, name: a.name }))}
         isSignedIn={isSignedIn}
       />
-      {children}
     </ConversationsProvider>
   );
 }
@@ -63,15 +62,14 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   return (
     <SidebarProvider defaultOpen={false}>
       <Suspense>
-        <SidebarShell>
-          <SidebarInset>
-            <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-              <SidebarTrigger />
-            </header>
-            {children}
-          </SidebarInset>
-        </SidebarShell>
+        <SidebarAsync />
       </Suspense>
+      <SidebarInset>
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+          <SidebarTrigger />
+        </header>
+        <Suspense>{children}</Suspense>
+      </SidebarInset>
     </SidebarProvider>
   );
 }

@@ -17,9 +17,9 @@ async function fetchAgentDetail(agentId: string, userId: string) {
   cacheLife("minutes");
 
   return appRuntime.runPromise(
-    getAgentForUser(agentId, userId).pipe(Effect.catchAll(() => {
-      return Effect.succeed(null);
-    })),
+    getAgentForUser(agentId, userId).pipe(
+      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+    ),
   );
 }
 
@@ -38,7 +38,7 @@ export default async function ConversationPage({ params }: Props) {
     fetchAgentDetail(agentId, session.user.id),
     appRuntime.runPromise(
       getConversationWithEvents(session.user.id, conversationId).pipe(
-        Effect.catchAll(() => Effect.succeed(null)),
+        Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
       ),
     ),
   ]);
