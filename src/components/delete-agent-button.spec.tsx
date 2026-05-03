@@ -53,10 +53,10 @@ describe("DeleteAgentButton", () => {
 
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "delete" }));
 
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
-    expect(screen.getByText("Delete My Agent?")).toBeInTheDocument();
+    expect(screen.getByText("delete My Agent?")).toBeInTheDocument();
   });
 
   it("should open the dialog when a custom trigger is clicked", async () => {
@@ -77,16 +77,16 @@ describe("DeleteAgentButton", () => {
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
   });
 
-  it("should call execute with agentId when Delete is confirmed", async () => {
+  it("should call execute with agentId when delete is confirmed", async () => {
     const user = userEvent.setup();
 
     render(<DeleteAgentButton agentId="agent-1" agentName="My Agent" />);
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "delete" }));
 
     const dialog = screen.getByRole("alertdialog");
 
-    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+    await user.click(within(dialog).getByRole("button", { name: "delete" }));
 
     expect(mockExecute).toHaveBeenCalledWith({ agentId: "agent-1" });
   });
@@ -96,28 +96,28 @@ describe("DeleteAgentButton", () => {
 
     render(<DeleteAgentButton agentId="agent-1" agentName="My Agent" />);
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "delete" }));
 
     const dialog = screen.getByRole("alertdialog");
 
-    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+    await user.click(within(dialog).getByRole("button", { name: "delete" }));
 
     expect(mockPush).toHaveBeenCalledWith("/agents");
   });
 
-  it("should disable the dialog buttons and show Deleting... while pending", async () => {
+  it("should disable the dialog buttons and show deleting... while pending", async () => {
     actionState.isPending = true;
 
     const user = userEvent.setup();
 
     render(<DeleteAgentButton agentId="agent-1" agentName="My Agent" />);
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "delete" }));
 
     const dialog = screen.getByRole("alertdialog");
 
-    expect(within(dialog).getByRole("button", { name: "Deleting..." })).toBeDisabled();
-    expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "deleting..." })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "cancel" })).toBeDisabled();
   });
 
   it("should show a server error when the action fails", async () => {
@@ -127,7 +127,7 @@ describe("DeleteAgentButton", () => {
 
     render(<DeleteAgentButton agentId="agent-1" agentName="My Agent" />);
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "delete" }));
 
     expect(screen.getByRole("alert")).toHaveTextContent("Something went wrong.");
   });
