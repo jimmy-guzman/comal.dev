@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, render, renderHook, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import type { RecentConversation } from "@/components/conversations-context";
@@ -15,6 +15,42 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 describe("ConversationsProvider", () => {
+  it("should expose the initial list passed as a prop", () => {
+    const { result } = renderHook(() => useConversations(), {
+      wrapper: ({ children }) => {
+        return (
+          <ConversationsProvider initial={[conv("1"), conv("2")]}>{children}</ConversationsProvider>
+        );
+      },
+    });
+
+    expect(result.current.conversations.map((c) => c.id)).toStrictEqual(["1", "2"]);
+  });
+
+  it("should re-seed state when the initial prop changes", () => {
+    const Reader = () => {
+      const { conversations } = useConversations();
+
+      return <div>{conversations.map((c) => c.id).join(",")}</div>;
+    };
+
+    const { rerender } = render(
+      <ConversationsProvider initial={[conv("1")]}>
+        <Reader />
+      </ConversationsProvider>,
+    );
+
+    expect(screen.getByText("1")).toBeInTheDocument();
+
+    rerender(
+      <ConversationsProvider initial={[conv("2"), conv("3")]}>
+        <Reader />
+      </ConversationsProvider>,
+    );
+
+    expect(screen.getByText("2,3")).toBeInTheDocument();
+  });
+
   it("should expose the initial list to consumers after seeding", () => {
     const { result } = renderHook(() => useConversations(), { wrapper });
 

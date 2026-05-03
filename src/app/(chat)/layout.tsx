@@ -4,7 +4,6 @@ import { Suspense } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { ConversationsProvider } from "@/components/conversations-provider";
-import { ConversationsSeed } from "@/components/conversations-seed";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { appRuntime } from "@/db/service";
 import { listAgentsForUser } from "@/lib/agents";
@@ -29,7 +28,7 @@ async function fetchSidebarConversations(userId: string) {
   return appRuntime.runPromise(listRecentConversationsForUser(userId, 20));
 }
 
-async function SidebarAsync() {
+async function SidebarAsync({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
   const isSignedIn = Boolean(session?.user) && !session?.user.isAnonymous;
 
@@ -50,30 +49,29 @@ async function SidebarAsync() {
   });
 
   return (
-    <>
+    <ConversationsProvider initial={initialConversations}>
       <AppSidebar
         agents={agents.map((a) => ({ id: a.id, name: a.name }))}
         isSignedIn={isSignedIn}
       />
-      <ConversationsSeed conversations={initialConversations} />
-    </>
+      {children}
+    </ConversationsProvider>
   );
 }
 
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider defaultOpen={false}>
-      <ConversationsProvider>
-        <Suspense>
-          <SidebarAsync />
-        </Suspense>
-        <SidebarInset>
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-            <SidebarTrigger />
-          </header>
-          <Suspense>{children}</Suspense>
-        </SidebarInset>
-      </ConversationsProvider>
+      <Suspense>
+        <SidebarAsync>
+          <SidebarInset>
+            <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+              <SidebarTrigger />
+            </header>
+            {children}
+          </SidebarInset>
+        </SidebarAsync>
+      </Suspense>
     </SidebarProvider>
   );
 }

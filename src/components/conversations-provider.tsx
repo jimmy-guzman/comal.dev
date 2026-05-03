@@ -15,6 +15,12 @@ interface Props {
 
 export const ConversationsProvider = ({ children, initial = DEFAULT_INITIAL }: Props) => {
   const [conversations, setConversations] = useState<RecentConversation[]>(initial);
+  const [prevInitial, setPrevInitial] = useState(initial);
+
+  if (initial !== prevInitial) {
+    setPrevInitial(initial);
+    setConversations(initial);
+  }
 
   const seedConversations = useCallback((next: RecentConversation[]) => {
     setConversations(next);
