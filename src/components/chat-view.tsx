@@ -4,7 +4,7 @@ import type { FileUIPart, UIMessage } from "ai";
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { ModelId } from "@/config/models";
 import type { ChatErrorInfo, ChatErrorKind } from "@/lib/chat/errors";
@@ -130,6 +130,7 @@ export const ChatView = ({
   const [modelId, setModelId] = useState(initialModelId);
   const { prependConversation, updateConversationTitle } = useConversations();
   const userInteractedRef = useRef(false);
+  const hiddenRef = useRef(false);
 
   /**
    * useChat captures the transport on first render via an internal ref, so a
@@ -183,11 +184,14 @@ export const ChatView = ({
     messages,
     regenerate,
     sendMessage: sendMessageRaw,
+    setMessages,
     status,
     stop,
   } = useChat({
     messages: initialMessages,
     onData: (dataPart) => {
+      if (hiddenRef.current) return;
+
       if (dataPart.type === "data-conversation-created") {
         const data = dataPart.data as { id?: unknown };
 
@@ -222,6 +226,21 @@ export const ChatView = ({
     sendAutomaticallyWhen,
     transport,
   });
+
+  useLayoutEffect(() => {
+    if (initialConversationId !== null) return undefined;
+
+    hiddenRef.current = false;
+
+    return () => {
+      hiddenRef.current = true;
+      void stop();
+      setConversationId(initialConversationId);
+      setModelId(initialModelId);
+      setMessages([]);
+      userInteractedRef.current = false;
+    };
+  }, [initialConversationId, initialModelId, setMessages, stop]);
 
   const sendMessage: typeof sendMessageRaw = (...args) => {
     userInteractedRef.current = true;
