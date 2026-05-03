@@ -249,7 +249,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
                   onChange={(event) => {
                     field.handleChange(event.target.value);
                   }}
-                  placeholder="Research assistant"
+                  placeholder="research assistant"
                   value={field.state.value}
                 />
                 {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
@@ -265,7 +265,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
             return (
               <Field data-invalid={isInvalid || undefined}>
                 <FieldLabel htmlFor={field.name}>description</FieldLabel>
-                <FieldDescription>Shown on the agent card. Optional.</FieldDescription>
+                <FieldDescription>shown on the agent card. optional.</FieldDescription>
                 <Input
                   aria-invalid={isInvalid || undefined}
                   id={field.name}
@@ -275,7 +275,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
                   onChange={(event) => {
                     field.handleChange(event.target.value);
                   }}
-                  placeholder="What this agent is good at"
+                  placeholder="what this agent is good at"
                   value={field.state.value}
                 />
                 {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
@@ -292,7 +292,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
               <Field data-invalid={isInvalid || undefined}>
                 <FieldLabel htmlFor={field.name}>default model</FieldLabel>
                 <FieldDescription>
-                  Used for the first turn of new conversations. Switchable per conversation later.
+                  used for the first turn of new conversations. switchable per conversation later.
                 </FieldDescription>
                 <Select
                   name={field.name}
@@ -335,7 +335,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
               <Field data-invalid={isInvalid || undefined}>
                 <FieldLabel htmlFor={field.name}>system prompt</FieldLabel>
                 <FieldDescription>
-                  Instructions the model receives at the start of every conversation.
+                  instructions the model receives at the start of every conversation.
                 </FieldDescription>
                 <Textarea
                   aria-invalid={isInvalid || undefined}
@@ -347,7 +347,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
                   onChange={(event) => {
                     field.handleChange(event.target.value);
                   }}
-                  placeholder="You are a helpful assistant..."
+                  placeholder="you are a helpful assistant..."
                   value={field.state.value}
                 />
                 {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
@@ -362,7 +362,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
               <Field>
                 <FieldLabel>tools</FieldLabel>
                 <FieldDescription>
-                  Pick from the library and configure each tool's behavior.
+                  pick from the library and configure each tool's behavior.
                 </FieldDescription>
                 <AgentToolPicker
                   onChange={(next) => {
@@ -380,7 +380,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
               <Field data-invalid={subAgentErrors.length > 0 || undefined}>
                 <FieldLabel>sub-agents</FieldLabel>
                 <FieldDescription>
-                  Other agents this agent can delegate tasks to as tools.
+                  other agents this agent can delegate tasks to as tools.
                 </FieldDescription>
                 <AgentSubagentPicker
                   currentAgentId={initialAgent?.id}

@@ -160,7 +160,7 @@ export const AgentToolLibrary = ({ onChange, value }: Props) => {
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
-                              aria-label={`Configure ${tool.name}`}
+                              aria-label={`configure ${tool.name}`}
                               onClick={(event) => {
                                 event.stopPropagation();
                               }}

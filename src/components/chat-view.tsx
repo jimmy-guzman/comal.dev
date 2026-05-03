@@ -307,7 +307,7 @@ export const ChatView = ({
           {messages.length === 0 ? (
             <ConversationEmptyState
               description="ask anything or pick a suggestion below."
-              title="start a conversation"
+              title="Start a conversation"
             />
           ) : (
             messages.map((message, index) => {

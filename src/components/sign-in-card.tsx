@@ -36,7 +36,7 @@ export function SignInCard({ className, previewDisabled = false, ...props }: Sig
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle>save your work</CardTitle>
+          <CardTitle>Save your work</CardTitle>
           <CardDescription>
             {previewDisabled
               ? "GitHub sign-in is disabled on preview deployments. use the production site to sign in."

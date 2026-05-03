@@ -96,7 +96,7 @@ export const updateAgentAction = authClient
       if (cycle) {
         returnValidationErrors(inputSchema, {
           subAgents: {
-            _errors: [`Sub-agent selection would create a cycle: ${cycle.join(" -> ")}.`],
+            _errors: [`sub-agent selection would create a cycle: ${cycle.join(" -> ")}.`],
           },
         });
       }

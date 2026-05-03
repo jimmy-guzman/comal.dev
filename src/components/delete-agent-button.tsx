@@ -42,7 +42,7 @@ export const DeleteAgentButton = ({ agentId, agentName, trigger }: Props) => {
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>delete {agentName}?</AlertDialogTitle>
+          <AlertDialogTitle>Delete {agentName}?</AlertDialogTitle>
           <AlertDialogDescription>
             this agent and all of its conversations will be permanently deleted. this cannot be
             undone.

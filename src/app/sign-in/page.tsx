@@ -14,7 +14,7 @@ async function SignInContent() {
   return isLinked ? (
     <Card>
       <CardHeader>
-        <CardTitle>you&apos;re signed in</CardTitle>
+        <CardTitle>You&apos;re signed in</CardTitle>
         <CardDescription>your conversations are being saved to your account.</CardDescription>
       </CardHeader>
     </Card>

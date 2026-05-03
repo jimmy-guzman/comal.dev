@@ -1,10 +1,16 @@
 # Design principles
 
-## Lowercase aesthetic
+## Text casing
 
-All user-facing text is lowercase -- labels, button text, headings, placeholders, toast messages, tooltips, etc. This applies everywhere in the UI, not just forms.
+Three tiers, each with a distinct role:
 
-Proper nouns (e.g. GitHub) keep their standard casing. Screen-reader-only strings follow the same rule.
+**UPPERCASE** for structural section labels. These are static, non-sentence strings that orient the user within a layout — `h1`–`h4` section labels, sidebar group labels, named section spans (e.g. `INSTRUCTIONS`, `TOOLS`).
+
+**Sentence case** for contextual headings and body content. Contextual headings are titles that read as natural language or reference dynamic content — `CardTitle`, `AlertDialogTitle`, `ConversationEmptyState` title, `DialogTitle`. Body content is any descriptive prose — `CardDescription`, `AlertDialogDescription`, `p`, `ItemDescription`, `AlertDescription`.
+
+**lowercase** for UI elements. Everything a user acts on or reads as a control — buttons, labels, placeholders, badges, nav items, tooltips, `aria-label`, `FieldLabel`, `FieldDescription`, `CommandEmpty`, dropdown items, status labels, toast messages, validation errors.
+
+Proper nouns (e.g. GitHub) keep their standard casing at every tier.
 
 ## Icons
 

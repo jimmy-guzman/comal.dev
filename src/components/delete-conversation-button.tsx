@@ -63,7 +63,7 @@ export const DeleteConversationButton = ({
       {trigger ? <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger> : null}
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>delete conversation?</AlertDialogTitle>
+          <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
           <AlertDialogDescription>
             this conversation and all its messages will be permanently deleted. this cannot be
             undone.

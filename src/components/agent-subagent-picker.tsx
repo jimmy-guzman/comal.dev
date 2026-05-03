@@ -116,7 +116,7 @@ const SubAgentRow = ({
       <div className="mb-3 flex items-center justify-between gap-2">
         <span className="text-sm font-medium">{name}</span>
         <Button
-          aria-label={`Remove ${name}`}
+          aria-label={`remove ${name}`}
           onClick={onRemove}
           size="icon-sm"
           type="button"
@@ -129,7 +129,7 @@ const SubAgentRow = ({
         <Field data-invalid={isAliasInvalid || undefined}>
           <FieldLabel className="text-xs">alias</FieldLabel>
           <FieldDescription className="text-xs">
-            How the parent agent refers to this sub-agent. Letters, numbers, hyphens, and
+            how the parent agent refers to this sub-agent. letters, numbers, hyphens, and
             underscores only.
           </FieldDescription>
           <Input
@@ -149,8 +149,8 @@ const SubAgentRow = ({
         <Field>
           <FieldLabel className="text-xs">description override</FieldLabel>
           <FieldDescription className="text-xs">
-            Replaces the sub-agent's description when the parent chooses which tool to call.
-            Optional.
+            replaces the sub-agent's description when the parent chooses which tool to call.
+            optional.
           </FieldDescription>
           <Input
             className="text-xs"

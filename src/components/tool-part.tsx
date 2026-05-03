@@ -62,7 +62,7 @@ const SubagentMessages = ({ messages }: { messages: z.infer<typeof messageSchema
 
   return (
     <div className="flex flex-col gap-2">
-      <h4 className="text-muted-foreground text-xs font-medium tracking-wide">transcript</h4>
+      <h4 className="text-muted-foreground text-xs font-medium tracking-wide">TRANSCRIPT</h4>
       <div className="flex flex-col gap-2">
         {assistantMessages.map((message) => {
           const text = message.parts

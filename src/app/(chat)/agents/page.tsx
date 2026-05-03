@@ -43,7 +43,7 @@ export default async function AgentsPage() {
           href="/agents/new"
         >
           <Card className="text-muted-foreground group-hover:border-foreground/30 group-hover:bg-accent/30 group-hover:text-foreground flex h-full items-center justify-center border-dashed transition-colors">
-            <div className="flex items-center gap-2 text-sm">New agent</div>
+            <div className="flex items-center gap-2 text-sm">new agent</div>
           </Card>
         </Link>
       </div>

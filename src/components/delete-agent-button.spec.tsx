@@ -56,7 +56,7 @@ describe("DeleteAgentButton", () => {
     await user.click(screen.getByRole("button", { name: "delete" }));
 
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
-    expect(screen.getByText("delete My Agent?")).toBeInTheDocument();
+    expect(screen.getByText("Delete My Agent?")).toBeInTheDocument();
   });
 
   it("should open the dialog when a custom trigger is clicked", async () => {

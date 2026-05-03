@@ -54,7 +54,7 @@ export type AgentInstructionsProps = ComponentProps<"div"> & {
 export const AgentInstructions = memo(
   ({ className, children, ...props }: AgentInstructionsProps) => (
     <div className={cn("space-y-2", className)} {...props}>
-      <span className="text-muted-foreground text-sm font-medium">Instructions</span>
+      <span className="text-muted-foreground text-sm font-medium">INSTRUCTIONS</span>
       <div className="bg-muted/50 text-muted-foreground rounded-md p-3 text-sm">
         <p>{children}</p>
       </div>
@@ -66,7 +66,7 @@ export type AgentToolsProps = ComponentProps<typeof Accordion>;
 
 export const AgentTools = memo(({ className, ...props }: AgentToolsProps) => (
   <div className={cn("space-y-2", className)}>
-    <span className="text-muted-foreground text-sm font-medium">Tools</span>
+    <span className="text-muted-foreground text-sm font-medium">TOOLS</span>
     <Accordion className="rounded-md border" {...props} />
   </div>
 ));
@@ -98,7 +98,7 @@ export type AgentOutputProps = ComponentProps<"div"> & {
 
 export const AgentOutput = memo(({ className, schema, ...props }: AgentOutputProps) => (
   <div className={cn("space-y-2", className)} {...props}>
-    <span className="text-muted-foreground text-sm font-medium">Output Schema</span>
+    <span className="text-muted-foreground text-sm font-medium">OUTPUT SCHEMA</span>
     <div className="bg-muted/50 rounded-md">
       <CodeBlock code={schema} language="typescript" />
     </div>

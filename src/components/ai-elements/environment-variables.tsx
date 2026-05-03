@@ -87,7 +87,7 @@ export const EnvironmentVariablesTitle = ({
   ...props
 }: EnvironmentVariablesTitleProps) => (
   <h3 className={cn("font-medium text-sm", className)} {...props}>
-    {children ?? "environment variables"}
+    {children ?? "ENVIRONMENT VARIABLES"}
   </h3>
 );
 
@@ -279,7 +279,7 @@ export const EnvironmentVariableCopyButton = ({
 
   return (
     <Button
-      aria-label="Copy"
+      aria-label="copy"
       className={cn("size-6 shrink-0", className)}
       onClick={copyToClipboard}
       size="icon"
