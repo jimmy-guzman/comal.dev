@@ -65,7 +65,7 @@ flowchart TB
 
 - Private agents with custom system prompts
 - Any model available through OpenRouter
-- Anonymous sessions, GitHub sign-in to persist history
+- Full access without an account - anonymous sessions get the same features as signed-in users, just not persistent across devices
 - Streaming chat with markdown, code, math, mermaid
 - Approval-gated tools that pause and ask before running
 - Conversation history with per-conversation model switching
