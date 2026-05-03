@@ -4,7 +4,6 @@ import type { FileUIPart, UIMessage } from "ai";
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
-import { Trash2Icon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ModelId } from "@/config/models";
@@ -273,13 +272,9 @@ export const ChatView = ({
             conversationId={conversationId}
             redirectAfter
             trigger={
-              <Button
-                className="text-muted-foreground hover:text-destructive"
-                size="icon-sm"
-                variant="ghost"
-              >
-                <Trash2Icon />
-                <span className="sr-only">Delete conversation</span>
+              <Button size="sm" variant="ghost">
+                Delete
+                <span className="sr-only">conversation</span>
               </Button>
             }
           />

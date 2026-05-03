@@ -82,12 +82,12 @@ export const DeleteConversationButton = ({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
           <Button
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             disabled={isPending}
             onClick={() => {
               execute({ conversationId });
             }}
             type="button"
+            variant="destructive"
           >
             {isPending ? "Deleting..." : "Delete"}
           </Button>
