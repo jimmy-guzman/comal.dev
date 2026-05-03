@@ -32,13 +32,12 @@ async function SidebarAsync({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
   const isSignedIn = Boolean(session?.user) && !session?.user.isAnonymous;
 
-  const [agents, conversations] =
-    isSignedIn && session?.user
-      ? await Promise.all([
-          fetchSidebarAgents(session.user.id),
-          fetchSidebarConversations(session.user.id),
-        ])
-      : [[], []];
+  const [agents, conversations] = session?.user
+    ? await Promise.all([
+        fetchSidebarAgents(session.user.id),
+        fetchSidebarConversations(session.user.id),
+      ])
+    : [[], []];
 
   const initialConversations = conversations.map((c) => {
     return {
