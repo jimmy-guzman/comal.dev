@@ -2,6 +2,8 @@
 
 Agent-focused notes for this repo. For humans, see [README.md](README.md).
 
+Design principles live in [DESIGN.md](DESIGN.md).
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontalIcon, Trash2Icon } from "lucide-react";
+import { MoreHorizontalIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useLayoutEffect } from "react";
@@ -96,7 +96,6 @@ const ConversationListItem = ({ agentId, conversation }: ConversationListItemPro
               }}
               variant="destructive"
             >
-              <Trash2Icon />
               Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
