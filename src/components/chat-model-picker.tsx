@@ -55,7 +55,7 @@ export const ChatModelPicker = ({ onValueChange, value }: Props) => {
       <ModelSelectorContent>
         <ModelSelectorInput placeholder="search models..." />
         <ModelSelectorList>
-          <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
+          <ModelSelectorEmpty>no models found.</ModelSelectorEmpty>
           {MODEL_GROUPS.map((group) => {
             return (
               <ModelSelectorGroup heading={group.label} key={group.provider}>

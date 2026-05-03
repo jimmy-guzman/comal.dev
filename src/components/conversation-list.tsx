@@ -78,7 +78,7 @@ const ConversationListItem = ({ agentId, conversation }: ConversationListItemPro
           href={href}
         >
           <ItemTitle>{conversation.title ?? "untitled"}</ItemTitle>
-          <ItemDescription>Last message {formatRelative(conversation.createdAt)}</ItemDescription>
+          <ItemDescription>last message {formatRelative(conversation.createdAt)}</ItemDescription>
         </Link>
       </ItemContent>
       <ItemActions className="relative">

@@ -132,7 +132,7 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
           <SidebarGroupLabel>recent</SidebarGroupLabel>
           <SidebarMenu>
             {conversations.length === 0 ? (
-              <p className="text-muted-foreground px-2 py-2 text-xs">No chats yet.</p>
+              <p className="text-muted-foreground px-2 py-2 text-xs">no chats yet.</p>
             ) : (
               conversations.map((c) => {
                 return (

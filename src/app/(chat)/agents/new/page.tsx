@@ -18,7 +18,7 @@ export default async function NewAgentPage() {
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">new agent</h1>
         <p className="text-muted-foreground text-sm">
-          Pick a model, write a prompt, and choose which tools the agent can use.
+          pick a model, write a prompt, and choose which tools the agent can use.
         </p>
       </div>
       <AgentForm ownedAgents={ownedAgents} />

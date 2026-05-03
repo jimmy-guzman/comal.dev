@@ -62,7 +62,7 @@ const SubagentMessages = ({ messages }: { messages: z.infer<typeof messageSchema
 
   return (
     <div className="flex flex-col gap-2">
-      <h4 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+      <h4 className="text-muted-foreground text-xs font-medium tracking-wide">
         transcript
       </h4>
       <div className="flex flex-col gap-2">
@@ -134,7 +134,7 @@ export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
   ) : undefined;
   const subagentBadge = isSubagent ? (
     <Badge className="rounded-full text-[10px]" variant="outline">
-      Sub-agent
+      sub-agent
     </Badge>
   ) : undefined;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { InfoIcon, Trash2Icon } from "lucide-react";
+import { InfoIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -64,14 +64,15 @@ const AddSubagentPopover = ({
     <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
         <Button size="sm" type="button" variant="outline">
-          Add sub-agent
+          <PlusIcon />
+          add sub-agent
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 p-0">
         <Command>
           <CommandInput placeholder="search agents..." />
           <CommandList>
-            <CommandEmpty>No agents available.</CommandEmpty>
+            <CommandEmpty>no agents available.</CommandEmpty>
             <CommandGroup>
               {available.map((agent) => {
                 return (

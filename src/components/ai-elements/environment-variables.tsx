@@ -105,7 +105,7 @@ export const EnvironmentVariablesToggle = ({
         {showValues ? <EyeIcon size={14} /> : <EyeOffIcon size={14} />}
       </span>
       <Switch
-        aria-label="Toggle value visibility"
+        aria-label="toggle value visibility"
         checked={showValues}
         onCheckedChange={setShowValues}
         {...props}

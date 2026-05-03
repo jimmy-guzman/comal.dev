@@ -624,7 +624,7 @@ export const PromptInput = ({
       if (typeof capacity === "number" && sized.length > capacity) {
         onError?.({
           code: "max_files",
-          message: "Too many files. Some were not added.",
+          message: "too many files. some were not added.",
         });
       }
 
@@ -854,7 +854,7 @@ export const PromptInput = ({
     <>
       <input
         accept={accept}
-        aria-label="Upload files"
+        aria-label="upload files"
         className="hidden"
         multiple={multiple}
         onChange={handleChange}
@@ -1154,7 +1154,7 @@ export const PromptInputSubmit = ({
 
   return (
     <InputGroupButton
-      aria-label={isGenerating ? "Stop" : "Submit"}
+      aria-label={isGenerating ? "stop" : "submit"}
       className={cn(className)}
       onClick={handleClick}
       size={size}

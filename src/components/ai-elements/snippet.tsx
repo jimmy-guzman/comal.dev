@@ -117,7 +117,7 @@ export const SnippetCopyButton = ({
 
   return (
     <InputGroupButton
-      aria-label="Copy"
+      aria-label="copy"
       className={className}
       onClick={copyToClipboard}
       size="icon-sm"

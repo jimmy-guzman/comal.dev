@@ -150,7 +150,7 @@ export const AgentToolConfigEditor = ({ idPrefix, onChange, schema, value }: Pro
   const entries = Object.entries(schema.shape);
 
   if (entries.length === 0) {
-    return <p className="text-muted-foreground text-xs">No configuration.</p>;
+    return <p className="text-muted-foreground text-xs">no configuration.</p>;
   }
 
   return (
