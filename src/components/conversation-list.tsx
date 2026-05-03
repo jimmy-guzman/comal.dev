@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontalIcon } from "lucide-react";
+import { MoreHorizontalIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useLayoutEffect } from "react";
@@ -77,14 +77,14 @@ const ConversationListItem = ({ agentId, conversation }: ConversationListItemPro
           className="flex flex-col gap-1 outline-none after:absolute after:inset-0 after:content-['']"
           href={href}
         >
-          <ItemTitle>{conversation.title ?? "Untitled"}</ItemTitle>
+          <ItemTitle>{conversation.title ?? "untitled"}</ItemTitle>
           <ItemDescription>Last message {formatRelative(conversation.createdAt)}</ItemDescription>
         </Link>
       </ItemContent>
       <ItemActions className="relative">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button aria-label="More options" size="icon-sm" variant="ghost">
+            <Button aria-label="more options" size="icon-sm" variant="ghost">
               <MoreHorizontalIcon />
             </Button>
           </DropdownMenuTrigger>
@@ -96,7 +96,8 @@ const ConversationListItem = ({ agentId, conversation }: ConversationListItemPro
               }}
               variant="destructive"
             >
-              Delete
+              <Trash2Icon />
+              delete
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

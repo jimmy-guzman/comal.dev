@@ -52,7 +52,7 @@ export const updateAgentAction = authClient
           returnValidationErrors(inputSchema, {
             subAgents: {
               [index]: {
-                childAgentId: { _errors: ["An agent cannot be its own sub-agent."] },
+                childAgentId: { _errors: ["an agent cannot be its own sub-agent."] },
               },
             },
           });
@@ -72,7 +72,7 @@ export const updateAgentAction = authClient
         if (!ownedIds.has(sub.childAgentId)) {
           returnValidationErrors(inputSchema, {
             subAgents: {
-              [index]: { childAgentId: { _errors: ["Sub-agent not found."] } },
+              [index]: { childAgentId: { _errors: ["sub-agent not found."] } },
             },
           });
         }

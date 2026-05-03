@@ -69,7 +69,7 @@ const AddSubagentPopover = ({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 p-0">
         <Command>
-          <CommandInput placeholder="Search agents..." />
+          <CommandInput placeholder="search agents..." />
           <CommandList>
             <CommandEmpty>No agents available.</CommandEmpty>
             <CommandGroup>
@@ -126,7 +126,7 @@ const SubAgentRow = ({
       </div>
       <div className="flex flex-col gap-3">
         <Field data-invalid={isAliasInvalid || undefined}>
-          <FieldLabel className="text-xs">Alias</FieldLabel>
+          <FieldLabel className="text-xs">alias</FieldLabel>
           <FieldDescription className="text-xs">
             How the parent agent refers to this sub-agent. Letters, numbers, hyphens, and
             underscores only.
@@ -146,7 +146,7 @@ const SubAgentRow = ({
           {isAliasInvalid ? <FieldError errors={[{ message: aliasError ?? "" }]} /> : null}
         </Field>
         <Field>
-          <FieldLabel className="text-xs">Description override</FieldLabel>
+          <FieldLabel className="text-xs">description override</FieldLabel>
           <FieldDescription className="text-xs">
             Replaces the sub-agent's description when the parent chooses which tool to call.
             Optional.
@@ -200,15 +200,15 @@ export const AgentSubagentPicker = ({ currentAgentId, onChange, ownedAgents, val
     const alias = entry.alias.trim();
 
     if (alias.length === 0) {
-      return "Alias is required.";
+      return "alias is required.";
     }
 
     if (!/^[\w-]+$/.test(alias)) {
-      return "Alias may only contain letters, numbers, hyphens, and underscores.";
+      return "alias may only contain letters, numbers, hyphens, and underscores.";
     }
 
     if ((aliasCounts[alias.toLowerCase()] ?? 0) > 1) {
-      return "Duplicate sub-agent alias.";
+      return "duplicate sub-agent alias.";
     }
 
     return undefined;

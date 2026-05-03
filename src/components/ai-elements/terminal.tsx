@@ -48,7 +48,7 @@ export type TerminalTitleProps = HTMLAttributes<HTMLDivElement>;
 export const TerminalTitle = ({ className, children, ...props }: TerminalTitleProps) => (
   <div className={cn("flex items-center gap-2 text-sm text-zinc-400", className)} {...props}>
     <TerminalIcon className="size-4" />
-    {children ?? "Terminal"}
+    {children ?? "terminal"}
   </div>
 );
 

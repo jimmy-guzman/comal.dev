@@ -204,7 +204,7 @@ export const ChatView = ({
           agentId,
           agentName,
           id: newId,
-          title: "New conversation",
+          title: "new conversation",
         });
         // Update the URL without unmounting the current route. router.replace
         // would navigate to the sibling [conversationId] route, remounting
@@ -291,9 +291,12 @@ export const ChatView = ({
             conversationId={conversationId}
             redirectAfter
             trigger={
-              <Button size="sm" variant="ghost">
-                Delete
-                <span className="sr-only">conversation</span>
+              <Button
+                className="text-muted-foreground hover:text-destructive"
+                size="icon-sm"
+                variant="ghost"
+              >
+                <span className="sr-only">delete conversation</span>
               </Button>
             }
           />
@@ -303,8 +306,8 @@ export const ChatView = ({
         <ConversationContent>
           {messages.length === 0 ? (
             <ConversationEmptyState
-              description="Ask anything or pick a suggestion below."
-              title="Start a conversation"
+              description="ask anything or pick a suggestion below."
+              title="start a conversation"
             />
           ) : (
             messages.map((message, index) => {
@@ -348,7 +351,7 @@ export const ChatView = ({
 
         <PromptInput onSubmit={handleSubmit}>
           <PromptInputBody>
-            <PromptInputTextarea placeholder="Message..." />
+            <PromptInputTextarea placeholder="message..." />
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>

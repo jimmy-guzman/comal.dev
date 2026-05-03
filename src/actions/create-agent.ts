@@ -31,7 +31,7 @@ export const createAgentAction = authClient
         if (!ownedIds.has(sub.childAgentId)) {
           returnValidationErrors(agentInputSchema, {
             subAgents: {
-              [index]: { childAgentId: { _errors: ["Sub-agent not found."] } },
+              [index]: { childAgentId: { _errors: ["sub-agent not found."] } },
             },
           });
         }

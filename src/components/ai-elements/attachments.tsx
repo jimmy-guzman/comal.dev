@@ -73,17 +73,17 @@ export const getMediaCategory = (data: AttachmentData): AttachmentMediaCategory 
 
 export const getAttachmentLabel = (data: AttachmentData): string => {
   if (data.type === "source-document") {
-    return data.title || data.filename || "Source";
+    return data.title || data.filename || "source";
   }
 
   const category = getMediaCategory(data);
-  return data.filename || (category === "image" ? "Image" : "Attachment");
+  return data.filename || (category === "image" ? "image" : "attachment");
 };
 
 const renderAttachmentImage = (url: string, filename: string | undefined, isGrid: boolean) =>
   isGrid ? (
     <img
-      alt={filename || "Image"}
+      alt={filename || "image"}
       className="size-full object-cover"
       height={96}
       src={url}
@@ -91,7 +91,7 @@ const renderAttachmentImage = (url: string, filename: string | undefined, isGrid
     />
   ) : (
     <img
-      alt={filename || "Image"}
+      alt={filename || "image"}
       className="size-full rounded object-cover"
       height={20}
       src={url}
@@ -299,7 +299,7 @@ export type AttachmentRemoveProps = ComponentProps<typeof Button> & {
 };
 
 export const AttachmentRemove = ({
-  label = "Remove",
+  label = "remove",
   className,
   children,
   ...props
@@ -389,6 +389,6 @@ export const AttachmentEmpty = ({ className, children, ...props }: AttachmentEmp
     className={cn("flex items-center justify-center p-4 text-muted-foreground text-sm", className)}
     {...props}
   >
-    {children ?? "No attachments"}
+    {children ?? "no attachments"}
   </div>
 );

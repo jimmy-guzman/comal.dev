@@ -87,7 +87,7 @@ export const EnvironmentVariablesTitle = ({
   ...props
 }: EnvironmentVariablesTitleProps) => (
   <h3 className={cn("font-medium text-sm", className)} {...props}>
-    {children ?? "Environment Variables"}
+    {children ?? "environment variables"}
   </h3>
 );
 
@@ -299,6 +299,6 @@ export const EnvironmentVariableRequired = ({
   ...props
 }: EnvironmentVariableRequiredProps) => (
   <Badge className={cn("text-xs", className)} variant="secondary" {...props}>
-    {children ?? "Required"}
+    {children ?? "required"}
   </Badge>
 );

@@ -1,5 +1,11 @@
 # Design principles
 
+## Lowercase aesthetic
+
+All user-facing text is lowercase -- labels, button text, headings, placeholders, toast messages, tooltips, etc. This applies everywhere in the UI, not just forms.
+
+Proper nouns (e.g. GitHub) keep their standard casing. Screen-reader-only strings follow the same rule.
+
 ## Icons
 
 Use text labels for actions, navigation, and status. Icons should only appear when they add meaning that text cannot.

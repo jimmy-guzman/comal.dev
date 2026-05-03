@@ -21,9 +21,9 @@ export default function ErrorBoundary({ error, unstable_retry }: Props) {
       <div className="flex flex-col items-center gap-4 text-center">
         <Image alt="comal.dev mascot" height={80} priority src="/mascot.svg" width={80} />
         <div className="flex flex-col gap-2">
-          <h1 className="text-4xl font-semibold tracking-tight">Something went wrong</h1>
+          <h1 className="text-4xl font-semibold tracking-tight">something went wrong</h1>
           <p className="text-muted-foreground max-w-sm text-sm">
-            An unexpected error occurred. You can try again, or come back in a moment.
+            an unexpected error occurred. you can try again, or come back in a moment.
           </p>
         </div>
       </div>

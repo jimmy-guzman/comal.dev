@@ -63,9 +63,9 @@ export const DeleteConversationButton = ({
       {trigger ? <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger> : null}
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
+          <AlertDialogTitle>delete conversation?</AlertDialogTitle>
           <AlertDialogDescription>
-            This conversation and all its messages will be permanently deleted. This cannot be
+            this conversation and all its messages will be permanently deleted. this cannot be
             undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -80,7 +80,7 @@ export const DeleteConversationButton = ({
           </p>
         ) : null}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isPending}>cancel</AlertDialogCancel>
           <Button
             disabled={isPending}
             onClick={() => {
@@ -89,7 +89,7 @@ export const DeleteConversationButton = ({
             type="button"
             variant="destructive"
           >
-            {isPending ? "Deleting..." : "Delete"}
+            {isPending ? "deleting..." : "delete"}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontalIcon } from "lucide-react";
+import { MoreHorizontalIcon, Trash2Icon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -74,7 +74,7 @@ const ConversationItem = ({
         <SidebarMenuAction asChild showOnHover>
           <DropdownMenuTrigger>
             <MoreHorizontalIcon />
-            <span className="sr-only">More options</span>
+            <span className="sr-only">more options</span>
           </DropdownMenuTrigger>
         </SidebarMenuAction>
         <DropdownMenuContent align="start" side="right">
@@ -85,7 +85,8 @@ const ConversationItem = ({
               setDeleteOpen(true);
             }}
           >
-            Delete
+            <Trash2Icon />
+            delete
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -128,7 +129,7 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Recent</SidebarGroupLabel>
+          <SidebarGroupLabel>recent</SidebarGroupLabel>
           <SidebarMenu>
             {conversations.length === 0 ? (
               <p className="text-muted-foreground px-2 py-2 text-xs">No chats yet.</p>
@@ -156,7 +157,7 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
                 asChild
                 isActive={pathname.startsWith("/agents") && !isOnConversation}
               >
-                <Link href="/agents">Agents</Link>
+                <Link href="/agents">agents</Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -166,7 +167,7 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
       {isSignedIn ? null : (
         <SidebarFooter>
           <Button asChild className="w-full" size="sm" variant="outline">
-            <Link href="/sign-in">Sign in to save history</Link>
+            <Link href="/sign-in">sign in to save history</Link>
           </Button>
         </SidebarFooter>
       )}

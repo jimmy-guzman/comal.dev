@@ -103,7 +103,7 @@ export type VoiceSelectorContentProps = ComponentProps<typeof DialogContent> & {
 export const VoiceSelectorContent = ({
   className,
   children,
-  title = "Voice Selector",
+  title = "voice selector",
   ...props
 }: VoiceSelectorContentProps) => (
   <DialogContent aria-describedby={undefined} className={cn("p-0", className)} {...props}>

@@ -40,7 +40,7 @@ export const ChatModelPicker = ({ onValueChange, value }: Props) => {
     <ModelSelector onOpenChange={setOpen} open={open}>
       <ModelSelectorTrigger asChild>
         <Button
-          aria-label="Select model"
+          aria-label="select model"
           className="text-muted-foreground hover:text-foreground h-8 gap-2 px-2 font-medium"
           size="sm"
           variant="ghost"
@@ -53,7 +53,7 @@ export const ChatModelPicker = ({ onValueChange, value }: Props) => {
         </Button>
       </ModelSelectorTrigger>
       <ModelSelectorContent>
-        <ModelSelectorInput placeholder="Search models..." />
+        <ModelSelectorInput placeholder="search models..." />
         <ModelSelectorList>
           <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
           {MODEL_GROUPS.map((group) => {
