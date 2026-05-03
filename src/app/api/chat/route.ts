@@ -12,7 +12,7 @@ import {
 } from "ai";
 import { Data, Effect, Logger } from "effect";
 import { nanoid } from "nanoid";
-import { revalidatePath } from "next/cache";
+import { updateTag } from "next/cache";
 import { headers } from "next/headers";
 import { after } from "next/server";
 import { z } from "zod";
@@ -158,6 +158,7 @@ const generateTitleEffect = (
   conversationId: string,
   modelId: string,
   userText: string,
+  userId: string,
 ): Effect.Effect<string, DatabaseError | LLMError, Database> => {
   return Effect.gen(function* () {
     const { text: title } = yield* Effect.tryPromise({
@@ -174,7 +175,7 @@ const generateTitleEffect = (
 
     yield* updateConversationTitle(conversationId, trimmed);
 
-    revalidatePath("/", "layout");
+    updateTag(`conversations:${userId}`);
 
     return trimmed;
   });
@@ -480,7 +481,7 @@ export async function POST(req: Request) {
 
             const userText = stringifyText(userMessage.parts).slice(0, 500);
             const title = await appRuntime.runPromise(
-              generateTitleEffect(conversationId, convModelId, userText).pipe(
+              generateTitleEffect(conversationId, convModelId, userText, user.id).pipe(
                 Effect.tapError((error) => {
                   return Effect.logError("Title generation failed", error);
                 }),

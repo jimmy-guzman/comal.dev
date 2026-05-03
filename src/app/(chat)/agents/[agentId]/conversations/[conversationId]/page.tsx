@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { cacheLife, cacheTag } from "next/cache";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
@@ -8,6 +9,19 @@ import { getAgentForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 import { projectMessages } from "@/lib/chat/projector";
 import { getConversationWithEvents } from "@/lib/chat/store";
+
+async function fetchAgentDetail(agentId: string, userId: string) {
+  "use cache";
+
+  cacheTag(`agent:${agentId}`);
+  cacheLife("minutes");
+
+  return appRuntime.runPromise(
+    getAgentForUser(agentId, userId).pipe(
+      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+    ),
+  );
+}
 
 interface Props {
   params: Promise<{ agentId: string; conversationId: string }>;
@@ -20,19 +34,16 @@ export default async function ConversationPage({ params }: Props) {
 
   if (!session?.user) notFound();
 
-  const agentEffect = getAgentForUser(agentId, session.user.id).pipe(
-    Effect.catchAll(() => Effect.succeed(null)),
-  );
-
-  const agent = await appRuntime.runPromise(agentEffect);
+  const [agent, conv] = await Promise.all([
+    fetchAgentDetail(agentId, session.user.id),
+    appRuntime.runPromise(
+      getConversationWithEvents(session.user.id, conversationId).pipe(
+        Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+      ),
+    ),
+  ]);
 
   if (!agent) notFound();
-
-  const conv = await appRuntime.runPromise(
-    getConversationWithEvents(session.user.id, conversationId).pipe(
-      Effect.catchAll(() => Effect.succeed(null)),
-    ),
-  );
 
   if (!conv) notFound();
 

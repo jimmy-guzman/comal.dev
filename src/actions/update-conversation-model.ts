@@ -1,7 +1,7 @@
 "use server";
 
 import { Effect, Exit } from "effect";
-import { revalidatePath } from "next/cache";
+import { updateTag } from "next/cache";
 import { z } from "zod";
 
 import { MODEL_IDS } from "@/config/models";
@@ -35,7 +35,7 @@ export const updateConversationModelAction = authClient
       throw new Error("Failed to update conversation model.");
     }
 
-    revalidatePath("/", "layout");
+    updateTag(`conversations:${ctx.auth.user.id}`);
 
     return { modelId: parsedInput.modelId };
   });

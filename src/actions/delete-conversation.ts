@@ -1,7 +1,7 @@
 "use server";
 
 import { Effect, Exit } from "effect";
-import { revalidatePath } from "next/cache";
+import { updateTag } from "next/cache";
 import { z } from "zod";
 
 import { appRuntime } from "@/db/service";
@@ -38,7 +38,7 @@ export const deleteConversationAction = authClient
       throw new Error("Failed to delete conversation.");
     }
 
-    revalidatePath("/", "layout");
+    updateTag(`conversations:${ctx.auth.user.id}`);
 
     return exit.value;
   });

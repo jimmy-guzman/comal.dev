@@ -2,7 +2,7 @@
 
 import { Effect, Exit } from "effect";
 import { returnValidationErrors } from "next-safe-action";
-import { revalidatePath } from "next/cache";
+import { updateTag } from "next/cache";
 import { z } from "zod";
 
 import { appRuntime } from "@/db/service";
@@ -108,7 +108,8 @@ export const updateAgentAction = authClient
       throw new Error("Failed to update agent.");
     }
 
-    revalidatePath("/", "layout");
+    updateTag(`agents:${ctx.auth.user.id}`);
+    updateTag(`agent:${agentId}`);
 
     return { agentId };
   });

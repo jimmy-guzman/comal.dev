@@ -12,6 +12,7 @@ export interface RecentConversation {
 interface ConversationsContextValue {
   conversations: RecentConversation[];
   prependConversation: (conversation: RecentConversation) => void;
+  seedConversations: (conversations: RecentConversation[]) => void;
   updateConversationTitle: (id: string, title: string) => void;
 }
 
