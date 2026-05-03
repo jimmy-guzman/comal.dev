@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircleIcon, RefreshCwIcon } from "lucide-react";
+import { AlertCircleIcon } from "lucide-react";
 
 import type { ChatErrorKind } from "@/lib/chat/errors";
 
@@ -39,7 +39,6 @@ export const ErrorPart = ({ canRetry, data, onRetry }: ErrorPartProps) => {
       {showRetry ? (
         <div className="mt-2">
           <Button onClick={onRetry} size="sm" variant="outline">
-            <RefreshCwIcon />
             Retry
           </Button>
         </div>

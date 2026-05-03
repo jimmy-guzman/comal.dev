@@ -1,6 +1,5 @@
 "use client";
 
-import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
@@ -18,7 +17,6 @@ export const NewChatButton = ({ agents }: Props) => {
     <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
         <SidebarMenuButton>
-          <PlusIcon />
           <span>New chat</span>
         </SidebarMenuButton>
       </PopoverTrigger>

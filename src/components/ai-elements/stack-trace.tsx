@@ -327,6 +327,7 @@ export const StackTraceCopyButton = memo(
 
     return (
       <Button
+        aria-label="Copy"
         className={cn("size-7", className)}
         onClick={copyToClipboard}
         size="icon"

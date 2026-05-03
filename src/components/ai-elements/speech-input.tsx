@@ -293,6 +293,9 @@ export const SpeechInput = ({
 
       {/* Main record button */}
       <Button
+        aria-label={
+          isProcessing ? "Processing" : isListening ? "Stop recording" : "Start recording"
+        }
         className={cn(
           "relative z-10 rounded-full transition-all duration-300",
           isListening
