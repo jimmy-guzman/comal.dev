@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 
 import type { RecentConversation } from "@/components/conversations-context";
 
@@ -12,12 +12,10 @@ interface Props {
 
 export const ConversationsSeed = ({ conversations }: Props) => {
   const { seedConversations } = useConversations();
-  const [previous, setPrevious] = useState<null | RecentConversation[]>(null);
 
-  if (conversations !== previous) {
-    setPrevious(conversations);
+  useEffect(() => {
     seedConversations(conversations);
-  }
+  }, [conversations, seedConversations]);
 
   return null;
 };

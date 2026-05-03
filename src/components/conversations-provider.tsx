@@ -6,12 +6,15 @@ import type { RecentConversation } from "@/components/conversations-context";
 
 import { ConversationsContext } from "@/components/conversations-context";
 
+const DEFAULT_INITIAL: RecentConversation[] = [];
+
 interface Props {
   children: React.ReactNode;
+  initial?: RecentConversation[];
 }
 
-export const ConversationsProvider = ({ children }: Props) => {
-  const [conversations, setConversations] = useState<RecentConversation[]>([]);
+export const ConversationsProvider = ({ children, initial = DEFAULT_INITIAL }: Props) => {
+  const [conversations, setConversations] = useState<RecentConversation[]>(initial);
 
   const seedConversations = useCallback((next: RecentConversation[]) => {
     setConversations(next);
