@@ -1,6 +1,6 @@
 "use client";
 
-import { InfoIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { InfoIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -64,7 +64,6 @@ const AddSubagentPopover = ({
     <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
         <Button size="sm" type="button" variant="outline">
-          <PlusIcon />
           add sub-agent
         </Button>
       </PopoverTrigger>

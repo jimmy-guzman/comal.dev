@@ -1,4 +1,3 @@
-import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 
 import { SidebarMenuButton } from "@/components/ui/sidebar";
@@ -14,7 +13,6 @@ export const NewChatButton = ({ agentId }: Props) => {
   return (
     <SidebarMenuButton asChild>
       <Link href={href}>
-        <PlusIcon />
         <span>new chat</span>
       </Link>
     </SidebarMenuButton>
