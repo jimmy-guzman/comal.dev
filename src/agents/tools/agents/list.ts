@@ -18,6 +18,7 @@ export const buildAgentsList = (_config: unknown, context: ToolContext) => {
             defaultModelId: a.defaultModelId,
             description: a.description,
             id: a.id,
+            isSystem: a.isSystem,
             name: a.name,
           };
         }),

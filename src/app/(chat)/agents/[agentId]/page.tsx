@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ConversationList } from "@/components/conversation-list";
 import { DeleteAgentButton } from "@/components/delete-agent-button";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { appRuntime } from "@/db/service";
 import { getAgentForUser } from "@/lib/agents";
@@ -58,11 +59,7 @@ export default async function AgentPage({ params }: Props) {
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="flex items-center gap-2 text-2xl font-semibold">
             {agent.name}
-            {agent.isSystem && (
-              <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs font-normal">
-                system
-              </span>
-            )}
+            {agent.isSystem && <Badge variant="secondary">system</Badge>}
           </h1>
           <p className="text-muted-foreground text-sm">{agent.description ?? "no description"}</p>
         </div>

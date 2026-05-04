@@ -9,6 +9,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth-schema";
@@ -35,6 +36,9 @@ export const agent = pgTable(
     return [
       index("agent_userId_idx").on(table.userId),
       index("agent_createdAt_idx").on(table.createdAt),
+      uniqueIndex("agent_user_system_unique")
+        .on(table.userId)
+        .where(sql`${table.isSystem} = true`),
     ];
   },
 );
