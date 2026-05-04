@@ -1,6 +1,6 @@
 "use client";
 
-import { InfoIcon, Trash2Icon } from "lucide-react";
+
 import { useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -114,14 +114,8 @@ const SubAgentRow = ({
     <div className="rounded-md border p-3">
       <div className="mb-3 flex items-center justify-between gap-2">
         <span className="text-sm font-medium">{name}</span>
-        <Button
-          aria-label={`remove ${name}`}
-          onClick={onRemove}
-          size="icon-sm"
-          type="button"
-          variant="ghost"
-        >
-          <Trash2Icon />
+        <Button onClick={onRemove} size="sm" type="button" variant="ghost">
+          remove
         </Button>
       </div>
       <div className="flex flex-col gap-3">
@@ -218,7 +212,6 @@ export const AgentSubagentPicker = ({ currentAgentId, onChange, ownedAgents, val
     <div className={cn("flex flex-col gap-3")}>
       {value.length > 0 ? (
         <Alert>
-          <InfoIcon />
           <AlertDescription>
             Tools that require approval will run automatically when an agent is invoked here as a
             sub-agent.
