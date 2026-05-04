@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 
 import { ChatView } from "@/components/chat-view";
 import { appRuntime } from "@/db/service";
-import { getAgentForUser } from "@/lib/agents";
+import { getAgentForUser, listAgentsForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 import { projectMessages } from "@/lib/chat/projector";
 import { getConversationWithEvents } from "@/lib/chat/store";
@@ -34,13 +34,14 @@ export default async function ConversationPage({ params }: Props) {
 
   if (!session?.user) notFound();
 
-  const [agent, conv] = await Promise.all([
+  const [agent, conv, allAgents] = await Promise.all([
     fetchAgentDetail(agentId, session.user.id),
     appRuntime.runPromise(
       getConversationWithEvents(session.user.id, conversationId).pipe(
         Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
       ),
     ),
+    appRuntime.runPromise(listAgentsForUser(session.user.id)),
   ]);
 
   if (!agent) notFound();
@@ -53,6 +54,7 @@ export default async function ConversationPage({ params }: Props) {
     <ChatView
       agentId={agentId}
       agentName={agent.name}
+      agents={allAgents.map((a) => ({ id: a.id, name: a.name }))}
       conversationId={conversationId}
       initialMessages={initialMessages}
       modelId={conv.modelId}

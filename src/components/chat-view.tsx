@@ -9,6 +9,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { ModelId } from "@/config/models";
 import type { ChatErrorInfo, ChatErrorKind } from "@/lib/chat/errors";
 
+import { updateConversationAgentAction } from "@/actions/update-conversation-agent";
 import { updateConversationModelAction } from "@/actions/update-conversation-model";
 import {
   Conversation,
@@ -27,6 +28,7 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
+import { ChatAgentPicker } from "@/components/chat-agent-picker";
 import { ChatModelPicker } from "@/components/chat-model-picker";
 import { DeleteConversationButton } from "@/components/delete-conversation-button";
 import { ErrorPart } from "@/components/error-part";
@@ -112,6 +114,7 @@ const lastMessageHasErrorPart = (messages: UIMessage[]): boolean => {
 interface Props {
   agentId: string;
   agentName: string;
+  agents: { id: string; name: string }[];
   conversationId: null | string;
   initialMessages: UIMessage[];
   modelId: string;
@@ -121,6 +124,7 @@ interface Props {
 export const ChatView = ({
   agentId,
   agentName,
+  agents,
   conversationId: initialConversationId,
   initialMessages,
   modelId: initialModelId,
@@ -128,6 +132,8 @@ export const ChatView = ({
 }: Props) => {
   const [conversationId, setConversationId] = useState<null | string>(initialConversationId);
   const [modelId, setModelId] = useState(initialModelId);
+  const [currentAgentId, setCurrentAgentId] = useState(agentId);
+  const [currentAgentName, setCurrentAgentName] = useState(agentName);
   const { prependConversation, updateConversationTitle } = useConversations();
   const userInteractedRef = useRef(false);
   const hiddenRef = useRef(false);
@@ -142,6 +148,7 @@ export const ChatView = ({
    */
   const conversationIdRef = useRef(conversationId);
   const modelIdRef = useRef(modelId);
+  const agentIdRef = useRef(currentAgentId);
 
   useEffect(() => {
     conversationIdRef.current = conversationId;
@@ -150,6 +157,10 @@ export const ChatView = ({
   useEffect(() => {
     modelIdRef.current = modelId;
   }, [modelId]);
+
+  useEffect(() => {
+    agentIdRef.current = currentAgentId;
+  }, [currentAgentId]);
 
   const sendAutomaticallyWhen = useCallback((options: { messages: UIMessage[] }) => {
     if (!userInteractedRef.current) {
@@ -170,7 +181,7 @@ export const ChatView = ({
     api: "/api/chat",
     body: () => {
       return {
-        agentId,
+        agentId: agentIdRef.current,
         conversationId: conversationIdRef.current,
         modelId: modelIdRef.current,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -201,8 +212,8 @@ export const ChatView = ({
 
         setConversationId(newId);
         prependConversation({
-          agentId,
-          agentName,
+          agentId: agentIdRef.current,
+          agentName: currentAgentName,
           id: newId,
           title: "new conversation",
         });
@@ -210,7 +221,11 @@ export const ChatView = ({
         // would navigate to the sibling [conversationId] route, remounting
         // <ChatView> and aborting the in-flight stream. router.refresh() has
         // the same effect since the new URL maps to a different page component.
-        globalThis.history.replaceState(null, "", `/agents/${agentId}/conversations/${newId}`);
+        globalThis.history.replaceState(
+          null,
+          "",
+          `/agents/${agentIdRef.current}/conversations/${newId}`,
+        );
 
         return;
       }
@@ -237,10 +252,12 @@ export const ChatView = ({
       void stop();
       setConversationId(initialConversationId);
       setModelId(initialModelId);
+      setCurrentAgentId(agentId);
+      setCurrentAgentName(agentName);
       setMessages([]);
       userInteractedRef.current = false;
     };
-  }, [initialConversationId, initialModelId, setMessages, stop]);
+  }, [initialConversationId, initialModelId, agentId, agentName, setMessages, stop]);
 
   const sendMessage: typeof sendMessageRaw = (...args) => {
     userInteractedRef.current = true;
@@ -275,6 +292,19 @@ export const ChatView = ({
     }
   };
 
+  const handleAgentSelect = (newAgentId: string) => {
+    const selected = agents.find((a) => a.id === newAgentId);
+
+    if (selected === undefined) return;
+
+    setCurrentAgentId(newAgentId);
+    setCurrentAgentName(selected.name);
+
+    if (conversationId !== null) {
+      void updateConversationAgentAction({ agentId: newAgentId, conversationId });
+    }
+  };
+
   const isStreaming = status === "streaming";
   const canRetry = status === "ready" || status === "error";
   const liveErrorInfo =
@@ -282,12 +312,13 @@ export const ChatView = ({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-end border-b px-4 py-2">
+      <div className="flex items-center justify-between border-b px-4 py-2">
+        <ChatAgentPicker agents={agents} onValueChange={handleAgentSelect} value={currentAgentId} />
         {conversationId === null ? (
           <div className="h-8" />
         ) : (
           <DeleteConversationButton
-            agentId={agentId}
+            agentId={currentAgentId}
             conversationId={conversationId}
             redirectAfter
             trigger={

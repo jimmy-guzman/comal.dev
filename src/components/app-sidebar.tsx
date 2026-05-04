@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontalIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -10,6 +10,7 @@ import { useLayoutEffect } from "react";
 import { DeleteConversationButton } from "@/components/delete-conversation-button";
 import { NewChatButton } from "@/components/new-chat-button";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,8 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupAction,
+  SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
@@ -106,7 +109,8 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
   const pathname = usePathname();
   const activeMatch = /^\/agents\/[^/]+\/conversations\/([^/]+)/.exec(pathname);
   const activeConversationId = activeMatch?.[1] ?? null;
-  const isOnConversation = activeMatch !== null;
+
+  const mostRecentAgentId = agents.at(0)?.id ?? null;
 
   return (
     <Sidebar>
@@ -123,7 +127,7 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <NewChatButton agents={agents} />
+              <NewChatButton agentId={mostRecentAgentId} />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
@@ -150,18 +154,52 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={pathname.startsWith("/agents") && !isOnConversation}
-              >
-                <Link href="/agents">agents</Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
+        {agents.length > 0 ? (
+          <Collapsible className="group/agents" defaultOpen>
+            <SidebarGroup>
+              <SidebarGroupLabel asChild>
+                <CollapsibleTrigger className="w-full">
+                  AGENTS
+                  <SidebarGroupAction
+                    asChild
+                    className="pointer-events-none data-[state=open]:rotate-180"
+                  >
+                    <ChevronDownIcon />
+                  </SidebarGroupAction>
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {agents.map((agent) => {
+                      const isActive =
+                        pathname.startsWith(`/agents/${agent.id}`) &&
+                        !pathname.includes("/conversations/");
+
+                      return (
+                        <SidebarMenuItem key={agent.id}>
+                          <SidebarMenuButton asChild isActive={isActive}>
+                            <Link href={`/agents/${agent.id}`}>{agent.name}</Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </SidebarGroup>
+          </Collapsible>
+        ) : (
+          <SidebarGroup>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/agents/new"}>
+                  <Link href="/agents/new">create your first agent</Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       {isSignedIn ? null : (
