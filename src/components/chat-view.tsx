@@ -297,11 +297,17 @@ export const ChatView = ({
 
     if (selected === undefined) return;
 
+    const prevAgentId = currentAgentId;
+    const prevAgentName = currentAgentName;
+
     setCurrentAgentId(newAgentId);
     setCurrentAgentName(selected.name);
 
     if (conversationId !== null) {
-      void updateConversationAgentAction({ agentId: newAgentId, conversationId });
+      void updateConversationAgentAction({ agentId: newAgentId, conversationId }).catch(() => {
+        setCurrentAgentId(prevAgentId);
+        setCurrentAgentName(prevAgentName);
+      });
     }
   };
 

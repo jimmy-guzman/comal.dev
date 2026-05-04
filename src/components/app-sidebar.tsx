@@ -173,7 +173,8 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
                   <SidebarMenu>
                     {agents.map((agent) => {
                       const isActive =
-                        pathname.startsWith(`/agents/${agent.id}`) &&
+                        (pathname === `/agents/${agent.id}` ||
+                          pathname.startsWith(`/agents/${agent.id}/`)) &&
                         !pathname.includes("/conversations/");
 
                       return (
