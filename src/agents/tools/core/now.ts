@@ -29,6 +29,6 @@ const coreNow = tool({
   }),
 });
 
-export const buildCoreNow = () => {
+export const buildCoreNow = (_config: unknown, _context: unknown) => {
   return coreNow;
 };

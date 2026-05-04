@@ -5,7 +5,7 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 
 import { appRuntime } from "@/db/service";
-import { assertAgentOwnership, deleteAgent } from "@/lib/agents";
+import { assertAgentOwnership, deleteAgent, getAgentForUser } from "@/lib/agents";
 import { ForbiddenError, NotFoundError } from "@/lib/errors";
 import { authClient } from "@/lib/safe-action";
 
@@ -14,6 +14,15 @@ export const deleteAgentAction = authClient
   .action(async ({ ctx, parsedInput }) => {
     const program = Effect.gen(function* () {
       yield* assertAgentOwnership(parsedInput.agentId, ctx.auth.user.id);
+
+      const agentRow = yield* getAgentForUser(parsedInput.agentId, ctx.auth.user.id);
+
+      if (agentRow.isSystem) {
+        yield* Effect.fail(new ForbiddenError());
+
+        return;
+      }
+
       yield* deleteAgent(parsedInput.agentId);
     });
 

@@ -28,7 +28,14 @@ export default async function AgentsPage() {
             >
               <Card className="group-hover:border-foreground/30 group-hover:bg-accent/30 h-full transition-colors">
                 <CardHeader>
-                  <CardTitle>{a.name}</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    {a.name}
+                    {a.isSystem && (
+                      <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs font-normal">
+                        system
+                      </span>
+                    )}
+                  </CardTitle>
                   <CardDescription className="line-clamp-2">
                     {a.description ?? "no description"}
                   </CardDescription>

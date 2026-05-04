@@ -27,7 +27,7 @@ const webSearch = (needsApproval: boolean) => {
   });
 };
 
-export const buildWebSearch = (config: unknown) => {
+export const buildWebSearch = (config: unknown, _context: unknown) => {
   const { needsApproval } = webSearchMeta.configSchema.parse(config);
 
   return webSearch(needsApproval);

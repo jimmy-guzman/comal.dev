@@ -29,6 +29,6 @@ const tmdbTrendingMovies = tool({
   }),
 });
 
-export const buildTmdbTrendingMovies = () => {
+export const buildTmdbTrendingMovies = (_config: unknown, _context: unknown) => {
   return tmdbTrendingMovies;
 };

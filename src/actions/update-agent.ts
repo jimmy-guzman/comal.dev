@@ -10,6 +10,7 @@ import { detectCycle } from "@/lib/agent-graph";
 import { agentInputSchema } from "@/lib/agent-input-schema";
 import {
   assertAgentOwnership,
+  getAgentForUser,
   listOwnedAgentIds,
   listOwnerSubAgentEdges,
   updateAgent,
@@ -42,6 +43,12 @@ export const updateAgentAction = authClient
       }
 
       throw new Error("Failed to update agent.");
+    }
+
+    const agentRow = await appRuntime.runPromise(getAgentForUser(agentId, ctx.auth.user.id));
+
+    if (agentRow.isSystem) {
+      throw new ForbiddenError();
     }
 
     if (input.subAgents.length > 0) {

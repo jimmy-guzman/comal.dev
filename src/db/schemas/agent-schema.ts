@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   index,
   jsonb,
@@ -19,6 +20,7 @@ export const agent = pgTable(
     defaultModelId: text("default_model_id").notNull(),
     description: text("description"),
     id: text("id").primaryKey(),
+    isSystem: boolean("is_system").default(false).notNull(),
     name: text("name").notNull(),
     systemPrompt: text("system_prompt").notNull(),
     updatedAt: timestamp("updated_at")

@@ -56,18 +56,29 @@ export default async function AgentPage({ params }: Props) {
     <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-8 p-4 sm:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 flex-col gap-1">
-          <h1 className="text-2xl font-semibold">{agent.name}</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            {agent.name}
+            {agent.isSystem && (
+              <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs font-normal">
+                system
+              </span>
+            )}
+          </h1>
           <p className="text-muted-foreground text-sm">{agent.description ?? "no description"}</p>
         </div>
         <div className="flex items-center gap-2">
-          <DeleteAgentButton
-            agentId={agentId}
-            agentName={agent.name}
-            trigger={<Button variant="outline">delete</Button>}
-          />
-          <Button asChild variant="outline">
-            <Link href={`/agents/${agentId}/edit`}>edit</Link>
-          </Button>
+          {!agent.isSystem && (
+            <>
+              <DeleteAgentButton
+                agentId={agentId}
+                agentName={agent.name}
+                trigger={<Button variant="outline">delete</Button>}
+              />
+              <Button asChild variant="outline">
+                <Link href={`/agents/${agentId}/edit`}>edit</Link>
+              </Button>
+            </>
+          )}
           <Button asChild>
             <Link href={`/agents/${agentId}/conversations/new`}>new conversation</Link>
           </Button>

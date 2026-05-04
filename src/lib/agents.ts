@@ -37,6 +37,7 @@ export const listAgentsForUser = (userId: string) => {
           defaultModelId: agent.defaultModelId,
           description: agent.description,
           id: agent.id,
+          isSystem: agent.isSystem,
           name: agent.name,
           updatedAt: agent.updatedAt,
         })
