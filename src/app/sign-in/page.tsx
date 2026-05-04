@@ -15,7 +15,7 @@ async function SignInContent() {
     <Card>
       <CardHeader>
         <CardTitle>You&apos;re signed in</CardTitle>
-        <CardDescription>Your conversations are being saved to your account.</CardDescription>
+        <CardDescription>your conversations are being saved to your account.</CardDescription>
       </CardHeader>
     </Card>
   ) : (

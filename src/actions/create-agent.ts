@@ -31,7 +31,7 @@ export const createAgentAction = authClient
         if (!ownedIds.has(sub.childAgentId)) {
           returnValidationErrors(agentInputSchema, {
             subAgents: {
-              [index]: { childAgentId: { _errors: ["Sub-agent not found."] } },
+              [index]: { childAgentId: { _errors: ["sub-agent not found."] } },
             },
           });
         }
@@ -53,7 +53,7 @@ export const createAgentAction = authClient
       if (cycle) {
         returnValidationErrors(agentInputSchema, {
           subAgents: {
-            _errors: [`Sub-agent selection would create a cycle: ${cycle.join(" -> ")}.`],
+            _errors: [`sub-agent selection would create a cycle: ${cycle.join(" -> ")}.`],
           },
         });
       }

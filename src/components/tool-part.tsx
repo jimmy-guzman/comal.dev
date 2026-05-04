@@ -62,9 +62,7 @@ const SubagentMessages = ({ messages }: { messages: z.infer<typeof messageSchema
 
   return (
     <div className="flex flex-col gap-2">
-      <h4 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-        Transcript
-      </h4>
+      <h4 className="text-muted-foreground text-xs font-medium tracking-wide">TRANSCRIPT</h4>
       <div className="flex flex-col gap-2">
         {assistantMessages.map((message) => {
           const text = message.parts
@@ -96,7 +94,7 @@ const SubagentOutput = ({ output }: { output: z.infer<typeof subagentOutputSchem
           "text-muted-foreground hover:text-foreground transition-colors",
         )}
       >
-        <span className="font-medium">{isRunning ? "Running..." : "View transcript"}</span>
+        <span className="font-medium">{isRunning ? "running..." : "view transcript"}</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-2">
         {output.status === "done" && output.text?.trim() ? (
@@ -104,7 +102,7 @@ const SubagentOutput = ({ output }: { output: z.infer<typeof subagentOutputSchem
         ) : messages.length > 0 ? (
           <SubagentMessages messages={messages} />
         ) : (
-          <p className="text-muted-foreground text-xs">No messages yet.</p>
+          <p className="text-muted-foreground text-xs">no messages yet.</p>
         )}
       </CollapsibleContent>
     </Collapsible>
@@ -134,7 +132,7 @@ export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
   ) : undefined;
   const subagentBadge = isSubagent ? (
     <Badge className="rounded-full text-[10px]" variant="outline">
-      Sub-agent
+      sub-agent
     </Badge>
   ) : undefined;
 
@@ -142,13 +140,13 @@ export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
     <>
       <Confirmation approval={part.approval} state={part.state}>
         <ConfirmationTitle>
-          Allow <strong>{toolName}</strong>?
+          allow <strong>{toolName}</strong>?
         </ConfirmationTitle>
         <ConfirmationRequest>
-          The assistant wants to run <strong>{toolName}</strong>. Do you want to allow this?
+          the assistant wants to run <strong>{toolName}</strong>. do you want to allow this?
         </ConfirmationRequest>
-        <ConfirmationAccepted>Approved</ConfirmationAccepted>
-        <ConfirmationRejected>Rejected</ConfirmationRejected>
+        <ConfirmationAccepted>approved</ConfirmationAccepted>
+        <ConfirmationRejected>rejected</ConfirmationRejected>
         <ConfirmationActions>
           <ConfirmationAction
             onClick={() => {
@@ -156,14 +154,14 @@ export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
             }}
             variant="outline"
           >
-            Reject
+            reject
           </ConfirmationAction>
           <ConfirmationAction
             onClick={() => {
               addToolApprovalResponse({ approved: true, id: approvalId });
             }}
           >
-            Approve
+            approve
           </ConfirmationAction>
         </ConfirmationActions>
       </Confirmation>

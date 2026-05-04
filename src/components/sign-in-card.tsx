@@ -26,7 +26,7 @@ export function SignInCard({ className, previewDisabled = false, ...props }: Sig
         provider: "github",
       });
     } catch {
-      toast.error("Couldn't start sign-in. Please try again.");
+      toast.error("couldn't start sign-in. please try again.");
     } finally {
       setPending(false);
     }
@@ -39,15 +39,15 @@ export function SignInCard({ className, previewDisabled = false, ...props }: Sig
           <CardTitle>Save your work</CardTitle>
           <CardDescription>
             {previewDisabled
-              ? "GitHub sign-in is disabled on preview deployments. Use the production site to sign in."
-              : "Sign in with GitHub to persist your specs across devices."}
+              ? "GitHub sign-in is disabled on preview deployments. use the production site to sign in."
+              : "sign in with GitHub to persist your specs across devices."}
           </CardDescription>
         </CardHeader>
         {previewDisabled ? null : (
           <CardContent>
             <Button className="w-full" disabled={pending} onClick={handleGithub}>
               {pending ? <Spinner data-icon="inline-start" /> : null}
-              Continue with GitHub
+              continue with GitHub
             </Button>
           </CardContent>
         )}

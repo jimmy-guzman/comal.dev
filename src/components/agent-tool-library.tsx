@@ -126,9 +126,9 @@ export const AgentToolLibrary = ({ onChange, value }: Props) => {
       </div>
 
       <Command className="bg-background border">
-        <CommandInput placeholder="Search tools..." />
+        <CommandInput placeholder="search tools..." />
         <CommandList className="max-h-[420px]">
-          <CommandEmpty>No tools match.</CommandEmpty>
+          <CommandEmpty>no tools match.</CommandEmpty>
           {grouped.map(({ group, items }) => {
             return (
               <CommandGroup heading={group.label} key={group.id}>
@@ -160,7 +160,7 @@ export const AgentToolLibrary = ({ onChange, value }: Props) => {
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
-                              aria-label={`Configure ${tool.name}`}
+                              aria-label={`configure ${tool.name}`}
                               onClick={(event) => {
                                 event.stopPropagation();
                               }}

@@ -53,8 +53,8 @@ export type ConversationEmptyStateProps = ComponentProps<"div"> & {
 
 export const ConversationEmptyState = ({
   className,
-  title = "No messages yet",
-  description = "Start a conversation to see messages here",
+  title = "NO MESSAGES YET",
+  description = "start a conversation to see messages here",
   icon,
   children,
   ...props
@@ -94,7 +94,7 @@ export const ConversationScrollButton = ({
 
   return (
     <Button
-      aria-label="Scroll to bottom"
+      aria-label="scroll to bottom"
       className={cn(
         "absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full dark:bg-background dark:hover:bg-muted",
         className,
@@ -155,7 +155,7 @@ export const ConversationDownload = ({
 
   return (
     <Button
-      aria-label="Download conversation"
+      aria-label="download conversation"
       className={cn(
         "absolute top-4 right-4 rounded-full dark:bg-background dark:hover:bg-muted",
         className,

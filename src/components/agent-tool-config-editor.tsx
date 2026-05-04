@@ -21,12 +21,10 @@ interface Props {
 }
 
 const humanize = (key: string) => {
-  const spaced = key
+  return key
     .replaceAll(/[_-]+/g, " ")
     .replaceAll(/([a-z])([A-Z])/g, "$1 $2")
     .toLowerCase();
-
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 };
 
 interface FieldRendererProps {
@@ -80,7 +78,7 @@ const FieldRenderer = ({
           value={stringValue}
         >
           <SelectTrigger id={fieldId}>
-            <SelectValue placeholder="Select..." />
+            <SelectValue placeholder="select..." />
           </SelectTrigger>
           <SelectContent>
             {options.map((option) => {
@@ -143,7 +141,7 @@ const FieldRenderer = ({
   return (
     <Field>
       <FieldLabel>{label}</FieldLabel>
-      <FieldDescription>Unsupported config type.</FieldDescription>
+      <FieldDescription>unsupported config type.</FieldDescription>
     </Field>
   );
 };
@@ -152,7 +150,7 @@ export const AgentToolConfigEditor = ({ idPrefix, onChange, schema, value }: Pro
   const entries = Object.entries(schema.shape);
 
   if (entries.length === 0) {
-    return <p className="text-muted-foreground text-xs">No configuration.</p>;
+    return <p className="text-muted-foreground text-xs">no configuration.</p>;
   }
 
   return (

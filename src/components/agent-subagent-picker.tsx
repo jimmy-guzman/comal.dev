@@ -1,6 +1,6 @@
 "use client";
 
-import { InfoIcon, Trash2Icon } from "lucide-react";
+import { InfoIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -64,14 +64,15 @@ const AddSubagentPopover = ({
     <Popover onOpenChange={setOpen} open={open}>
       <PopoverTrigger asChild>
         <Button size="sm" type="button" variant="outline">
-          Add sub-agent
+          <PlusIcon />
+          add sub-agent
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 p-0">
         <Command>
-          <CommandInput placeholder="Search agents..." />
+          <CommandInput placeholder="search agents..." />
           <CommandList>
-            <CommandEmpty>No agents available.</CommandEmpty>
+            <CommandEmpty>no agents available.</CommandEmpty>
             <CommandGroup>
               {available.map((agent) => {
                 return (
@@ -115,7 +116,7 @@ const SubAgentRow = ({
       <div className="mb-3 flex items-center justify-between gap-2">
         <span className="text-sm font-medium">{name}</span>
         <Button
-          aria-label={`Remove ${name}`}
+          aria-label={`remove ${name}`}
           onClick={onRemove}
           size="icon-sm"
           type="button"
@@ -126,9 +127,9 @@ const SubAgentRow = ({
       </div>
       <div className="flex flex-col gap-3">
         <Field data-invalid={isAliasInvalid || undefined}>
-          <FieldLabel className="text-xs">Alias</FieldLabel>
+          <FieldLabel className="text-xs">alias</FieldLabel>
           <FieldDescription className="text-xs">
-            How the parent agent refers to this sub-agent. Letters, numbers, hyphens, and
+            how the parent agent refers to this sub-agent. letters, numbers, hyphens, and
             underscores only.
           </FieldDescription>
           <Input
@@ -146,10 +147,10 @@ const SubAgentRow = ({
           {isAliasInvalid ? <FieldError errors={[{ message: aliasError ?? "" }]} /> : null}
         </Field>
         <Field>
-          <FieldLabel className="text-xs">Description override</FieldLabel>
+          <FieldLabel className="text-xs">description override</FieldLabel>
           <FieldDescription className="text-xs">
-            Replaces the sub-agent's description when the parent chooses which tool to call.
-            Optional.
+            replaces the sub-agent's description when the parent chooses which tool to call.
+            optional.
           </FieldDescription>
           <Input
             className="text-xs"
@@ -200,15 +201,15 @@ export const AgentSubagentPicker = ({ currentAgentId, onChange, ownedAgents, val
     const alias = entry.alias.trim();
 
     if (alias.length === 0) {
-      return "Alias is required.";
+      return "alias is required.";
     }
 
     if (!/^[\w-]+$/.test(alias)) {
-      return "Alias may only contain letters, numbers, hyphens, and underscores.";
+      return "alias may only contain letters, numbers, hyphens, and underscores.";
     }
 
     if ((aliasCounts[alias.toLowerCase()] ?? 0) > 1) {
-      return "Duplicate sub-agent alias.";
+      return "duplicate sub-agent alias.";
     }
 
     return undefined;

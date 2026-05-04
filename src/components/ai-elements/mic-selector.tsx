@@ -252,7 +252,7 @@ export type MicSelectorInputProps = ComponentProps<typeof CommandInput> & {
 };
 
 export const MicSelectorInput = ({ ...props }: MicSelectorInputProps) => (
-  <CommandInput placeholder="Search microphones..." {...props} />
+  <CommandInput placeholder="search microphones..." {...props} />
 );
 
 export type MicSelectorListProps = Omit<ComponentProps<typeof CommandList>, "children"> & {
@@ -268,7 +268,7 @@ export const MicSelectorList = ({ children, ...props }: MicSelectorListProps) =>
 export type MicSelectorEmptyProps = ComponentProps<typeof CommandEmpty>;
 
 export const MicSelectorEmpty = ({
-  children = "No microphone found.",
+  children = "no microphone found.",
   ...props
 }: MicSelectorEmptyProps) => <CommandEmpty {...props}>{children}</CommandEmpty>;
 

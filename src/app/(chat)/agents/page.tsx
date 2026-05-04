@@ -16,7 +16,7 @@ export default async function AgentsPage() {
 
   return (
     <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-8 p-4 sm:p-8">
-      <h1 className="text-2xl font-semibold">Your agents</h1>
+      <h1 className="text-2xl font-semibold">your agents</h1>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {agents.map((a) => {
@@ -30,7 +30,7 @@ export default async function AgentsPage() {
                 <CardHeader>
                   <CardTitle>{a.name}</CardTitle>
                   <CardDescription className="line-clamp-2">
-                    {a.description ?? "No description"}
+                    {a.description ?? "no description"}
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -43,7 +43,7 @@ export default async function AgentsPage() {
           href="/agents/new"
         >
           <Card className="text-muted-foreground group-hover:border-foreground/30 group-hover:bg-accent/30 group-hover:text-foreground flex h-full items-center justify-center border-dashed transition-colors">
-            <div className="flex items-center gap-2 text-sm">New agent</div>
+            <div className="flex items-center gap-2 text-sm">new agent</div>
           </Card>
         </Link>
       </div>

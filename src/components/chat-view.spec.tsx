@@ -93,7 +93,7 @@ describe("ChatView", () => {
       </ConversationsProvider>,
     );
 
-    const textarea = screen.getByPlaceholderText("Message...");
+    const textarea = screen.getByPlaceholderText("message...");
 
     await user.type(textarea, "first");
     await user.keyboard("{Enter}");

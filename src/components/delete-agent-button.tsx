@@ -38,13 +38,13 @@ export const DeleteAgentButton = ({ agentId, agentName, trigger }: Props) => {
   return (
     <AlertDialog onOpenChange={setOpen} open={open}>
       <AlertDialogTrigger asChild>
-        {trigger ?? <Button variant="outline">Delete</Button>}
+        {trigger ?? <Button variant="outline">delete</Button>}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete {agentName}?</AlertDialogTitle>
           <AlertDialogDescription>
-            This agent and all of its conversations will be permanently deleted. This cannot be
+            this agent and all of its conversations will be permanently deleted. this cannot be
             undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -59,7 +59,7 @@ export const DeleteAgentButton = ({ agentId, agentName, trigger }: Props) => {
           </p>
         ) : null}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isPending}>cancel</AlertDialogCancel>
           <AlertDialogAction
             disabled={isPending}
             onClick={() => {
@@ -67,7 +67,7 @@ export const DeleteAgentButton = ({ agentId, agentName, trigger }: Props) => {
             }}
             variant="destructive"
           >
-            {isPending ? "Deleting..." : "Delete"}
+            {isPending ? "deleting..." : "delete"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

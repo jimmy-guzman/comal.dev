@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, useStore } from "@tanstack/react-form";
+import { useForm } from "@tanstack/react-form";
 import { compact, flatMap } from "es-toolkit";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
@@ -26,7 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { MODEL_GROUPS, MODEL_IDS } from "@/config/models";
 import { initialToolSelections } from "@/lib/agent-tool-selection";
@@ -43,7 +42,7 @@ const formSchema = z.object({
           .trim()
           .min(1)
           .max(32)
-          .regex(/^[\w-]+$/, "Alias may only contain letters, numbers, hyphens, and underscores."),
+          .regex(/^[\w-]+$/, "alias may only contain letters, numbers, hyphens, and underscores."),
         childAgentId: z.string().min(1),
         descriptionOverride: z.string().trim().max(1024),
       }),
@@ -59,8 +58,8 @@ const formSchema = z.object({
         if (prev === undefined) {
           seenAliases.set(alias, i);
         } else {
-          ctx.addIssue({ code: "custom", message: "Alias must be unique.", path: [i, "alias"] });
-          ctx.addIssue({ code: "custom", message: "Alias must be unique.", path: [prev, "alias"] });
+          ctx.addIssue({ code: "custom", message: "alias must be unique.", path: [i, "alias"] });
+          ctx.addIssue({ code: "custom", message: "alias must be unique.", path: [prev, "alias"] });
         }
 
         const prevChild = seenChildIds.get(item.childAgentId);
@@ -70,12 +69,12 @@ const formSchema = z.object({
         } else {
           ctx.addIssue({
             code: "custom",
-            message: "Each agent can only be added once.",
+            message: "each agent can only be added once.",
             path: [i, "childAgentId"],
           });
           ctx.addIssue({
             code: "custom",
-            message: "Each agent can only be added once.",
+            message: "each agent can only be added once.",
             path: [prevChild, "childAgentId"],
           });
         }
@@ -149,24 +148,6 @@ const extractSubAgentErrors = (validationErrors: unknown): { message: string }[]
 };
 
 const DEFAULT_OWNED_AGENTS: OwnedAgent[] = [];
-
-const TAB_FIELDS = {
-  basics: ["name", "description", "defaultModelId"],
-  prompt: ["systemPrompt"],
-  "sub-agents": ["subAgents"],
-  tools: ["tools"],
-} satisfies Record<string, string[]>;
-
-type TabKey = keyof typeof TAB_FIELDS;
-
-const ErrorDot = () => {
-  return (
-    <span
-      aria-hidden="true"
-      className="bg-destructive absolute -top-0.5 -right-0.5 size-1.5 rounded-full"
-    />
-  );
-};
 
 export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: Props) => {
   const router = useRouter();
@@ -243,245 +224,178 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
     },
   });
 
-  const submissionAttempts = useStore(form.store, (s) => s.submissionAttempts);
-  const hasAttempted = submissionAttempts > 0;
-
-  const tabHasError = (tab: TabKey): boolean => {
-    if (!hasAttempted) return false;
-
-    if (tab === "sub-agents") {
-      return (
-        subAgentErrors.length > 0 ||
-        TAB_FIELDS[tab].some((key) => {
-          const meta = form.state.fieldMeta[key as keyof typeof form.state.fieldMeta];
-
-          return meta && meta.errors.length > 0;
-        })
-      );
-    }
-
-    return TAB_FIELDS[tab].some((key) => {
-      const meta = form.state.fieldMeta[key as keyof typeof form.state.fieldMeta];
-
-      return meta && meta.errors.length > 0;
-    });
-  };
-
   return (
     <form
-      className="flex flex-col gap-6"
+      className="flex flex-col gap-8"
       onSubmit={(event) => {
         event.preventDefault();
         void form.handleSubmit();
       }}
     >
-      <Tabs className="flex flex-col" defaultValue="basics">
-        <TabsList className="w-full justify-start" variant="line">
-          {(["basics", "prompt", "tools", "sub-agents"] satisfies TabKey[]).map((tab) => {
-            const label =
-              tab === "basics"
-                ? "Basics"
-                : tab === "prompt"
-                  ? "Prompt"
-                  : tab === "tools"
-                    ? "Tools"
-                    : "Sub-agents";
-            const hasError = tabHasError(tab);
+      <FieldGroup>
+        <form.Field name="name">
+          {(field) => {
+            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
             return (
-              <TabsTrigger
-                aria-label={hasError ? `${label}, has errors` : undefined}
-                className="relative"
-                key={tab}
-                value={tab}
-              >
-                {label}
-                {hasError ? <ErrorDot /> : null}
-              </TabsTrigger>
+              <Field data-invalid={isInvalid || undefined}>
+                <FieldLabel htmlFor={field.name}>name</FieldLabel>
+                <Input
+                  aria-invalid={isInvalid || undefined}
+                  id={field.name}
+                  maxLength={100}
+                  name={field.name}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => {
+                    field.handleChange(event.target.value);
+                  }}
+                  placeholder="research assistant"
+                  value={field.state.value}
+                />
+                {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+              </Field>
             );
-          })}
-        </TabsList>
+          }}
+        </form.Field>
 
-        <TabsContent className="mt-6" value="basics">
-          <FieldGroup>
-            <form.Field name="name">
-              {(field) => {
-                const isInvalid =
-                  (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
+        <form.Field name="description">
+          {(field) => {
+            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-                return (
-                  <Field data-invalid={isInvalid || undefined}>
-                    <FieldLabel htmlFor={field.name}>Name</FieldLabel>
-                    <Input
-                      aria-invalid={isInvalid || undefined}
-                      id={field.name}
-                      maxLength={100}
-                      name={field.name}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => {
-                        field.handleChange(event.target.value);
-                      }}
-                      placeholder="Research assistant"
-                      value={field.state.value}
-                    />
-                    {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
-                  </Field>
-                );
-              }}
-            </form.Field>
+            return (
+              <Field data-invalid={isInvalid || undefined}>
+                <FieldLabel htmlFor={field.name}>description</FieldLabel>
+                <FieldDescription>shown on the agent card. optional.</FieldDescription>
+                <Input
+                  aria-invalid={isInvalid || undefined}
+                  id={field.name}
+                  maxLength={500}
+                  name={field.name}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => {
+                    field.handleChange(event.target.value);
+                  }}
+                  placeholder="what this agent is good at"
+                  value={field.state.value}
+                />
+                {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+              </Field>
+            );
+          }}
+        </form.Field>
 
-            <form.Field name="description">
-              {(field) => {
-                const isInvalid =
-                  (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
+        <form.Field name="defaultModelId">
+          {(field) => {
+            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-                return (
-                  <Field data-invalid={isInvalid || undefined}>
-                    <FieldLabel htmlFor={field.name}>Description</FieldLabel>
-                    <FieldDescription>Shown on the agent card. Optional.</FieldDescription>
-                    <Input
-                      aria-invalid={isInvalid || undefined}
-                      id={field.name}
-                      maxLength={500}
-                      name={field.name}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => {
-                        field.handleChange(event.target.value);
-                      }}
-                      placeholder="What this agent is good at"
-                      value={field.state.value}
-                    />
-                    {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
-                  </Field>
-                );
-              }}
-            </form.Field>
+            return (
+              <Field data-invalid={isInvalid || undefined}>
+                <FieldLabel htmlFor={field.name}>default model</FieldLabel>
+                <FieldDescription>
+                  used for the first turn of new conversations. switchable per conversation later.
+                </FieldDescription>
+                <Select
+                  name={field.name}
+                  onValueChange={(value) => {
+                    if (isModelId(value)) field.handleChange(value);
+                  }}
+                  value={field.state.value}
+                >
+                  <SelectTrigger aria-invalid={isInvalid || undefined} id={field.name}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MODEL_GROUPS.map((group) => {
+                      return (
+                        <SelectGroup key={group.label}>
+                          <SelectLabel>{group.label}</SelectLabel>
+                          {group.models.map((model) => {
+                            return (
+                              <SelectItem key={model.id} value={model.id}>
+                                {model.name}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectGroup>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+              </Field>
+            );
+          }}
+        </form.Field>
 
-            <form.Field name="defaultModelId">
-              {(field) => {
-                const isInvalid =
-                  (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
+        <form.Field name="systemPrompt">
+          {(field) => {
+            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-                return (
-                  <Field data-invalid={isInvalid || undefined}>
-                    <FieldLabel htmlFor={field.name}>Default model</FieldLabel>
-                    <FieldDescription>
-                      Used for the first turn of new conversations. Switchable per conversation
-                      later.
-                    </FieldDescription>
-                    <Select
-                      name={field.name}
-                      onValueChange={(value) => {
-                        if (isModelId(value)) field.handleChange(value);
-                      }}
-                      value={field.state.value}
-                    >
-                      <SelectTrigger aria-invalid={isInvalid || undefined} id={field.name}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MODEL_GROUPS.map((group) => {
-                          return (
-                            <SelectGroup key={group.label}>
-                              <SelectLabel>{group.label}</SelectLabel>
-                              {group.models.map((model) => {
-                                return (
-                                  <SelectItem key={model.id} value={model.id}>
-                                    {model.name}
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectGroup>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                    {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
-                  </Field>
-                );
-              }}
-            </form.Field>
-          </FieldGroup>
-        </TabsContent>
+            return (
+              <Field data-invalid={isInvalid || undefined}>
+                <FieldLabel htmlFor={field.name}>system prompt</FieldLabel>
+                <FieldDescription>
+                  instructions the model receives at the start of every conversation.
+                </FieldDescription>
+                <Textarea
+                  aria-invalid={isInvalid || undefined}
+                  className="min-h-48 font-mono text-xs"
+                  id={field.name}
+                  maxLength={20_000}
+                  name={field.name}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => {
+                    field.handleChange(event.target.value);
+                  }}
+                  placeholder="you are a helpful assistant..."
+                  value={field.state.value}
+                />
+                {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+              </Field>
+            );
+          }}
+        </form.Field>
 
-        <TabsContent className="mt-6" value="prompt">
-          <form.Field name="systemPrompt">
-            {(field) => {
-              const isInvalid =
-                (field.state.meta.isTouched || hasAttempted) && !field.state.meta.isValid;
-
-              return (
-                <Field data-invalid={isInvalid || undefined}>
-                  <FieldLabel htmlFor={field.name}>System prompt</FieldLabel>
-                  <FieldDescription>
-                    Instructions the model receives at the start of every conversation.
-                  </FieldDescription>
-                  <Textarea
-                    aria-invalid={isInvalid || undefined}
-                    className="field-sizing-content min-h-32 resize-none font-mono text-xs"
-                    id={field.name}
-                    maxLength={20_000}
-                    name={field.name}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => {
-                      field.handleChange(event.target.value);
-                    }}
-                    placeholder="You are a helpful assistant..."
-                    value={field.state.value}
-                  />
-                  {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
-                </Field>
-              );
-            }}
-          </form.Field>
-        </TabsContent>
-
-        <TabsContent className="mt-6" value="tools">
-          <form.Field mode="array" name="tools">
-            {(field) => {
-              return (
-                <Field>
-                  <FieldLabel>Tools</FieldLabel>
-                  <FieldDescription>
-                    Pick from the library and configure each tool's behavior.
-                  </FieldDescription>
-                  <AgentToolPicker
-                    onChange={(next) => {
-                      field.handleChange(next);
-                    }}
-                    value={field.state.value}
-                  />
-                </Field>
-              );
-            }}
-          </form.Field>
-        </TabsContent>
-
-        <TabsContent className="mt-6" value="sub-agents">
-          <form.Field mode="array" name="subAgents">
-            {(field) => {
-              return (
-                <Field data-invalid={subAgentErrors.length > 0 || undefined}>
-                  <FieldLabel>Sub-agents</FieldLabel>
-                  <FieldDescription>
-                    Other agents this agent can delegate tasks to as tools.
-                  </FieldDescription>
-                  <AgentSubagentPicker
-                    currentAgentId={initialAgent?.id}
-                    onChange={(next) => {
-                      setSubAgentErrors([]);
-                      field.handleChange(next);
-                    }}
-                    ownedAgents={ownedAgents}
-                    value={field.state.value}
-                  />
-                  <FieldError errors={subAgentErrors} />
-                </Field>
-              );
-            }}
-          </form.Field>
-        </TabsContent>
-      </Tabs>
+        <form.Field mode="array" name="tools">
+          {(field) => {
+            return (
+              <Field>
+                <FieldLabel>tools</FieldLabel>
+                <FieldDescription>
+                  pick from the library and configure each tool's behavior.
+                </FieldDescription>
+                <AgentToolPicker
+                  onChange={(next) => {
+                    field.handleChange(next);
+                  }}
+                  value={field.state.value}
+                />
+              </Field>
+            );
+          }}
+        </form.Field>
+        <form.Field mode="array" name="subAgents">
+          {(field) => {
+            return (
+              <Field data-invalid={subAgentErrors.length > 0 || undefined}>
+                <FieldLabel>sub-agents</FieldLabel>
+                <FieldDescription>
+                  other agents this agent can delegate tasks to as tools.
+                </FieldDescription>
+                <AgentSubagentPicker
+                  currentAgentId={initialAgent?.id}
+                  onChange={(next) => {
+                    field.handleChange(next);
+                  }}
+                  ownedAgents={ownedAgents}
+                  value={field.state.value}
+                />
+                <FieldError errors={subAgentErrors} />
+              </Field>
+            );
+          }}
+        </form.Field>
+      </FieldGroup>
 
       {serverError ? <p className="text-destructive text-sm">{serverError}</p> : null}
 
@@ -494,10 +408,10 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
           type="button"
           variant="ghost"
         >
-          Cancel
+          cancel
         </Button>
         <Button disabled={isPending} type="submit">
-          {isPending ? "Saving..." : isEdit ? "Save changes" : "Create agent"}
+          {isPending ? "saving..." : isEdit ? "save changes" : "create agent"}
         </Button>
       </div>
     </form>
