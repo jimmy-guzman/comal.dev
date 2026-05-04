@@ -463,7 +463,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
               return (
                 <Field
                   data-invalid={
-                    (subAgentErrors.length > 0 || field.state.meta.errors.length > 0) || undefined
+                    subAgentErrors.length > 0 || field.state.meta.errors.length > 0 || undefined
                   }
                 >
                   <FieldLabel>sub-agents</FieldLabel>
