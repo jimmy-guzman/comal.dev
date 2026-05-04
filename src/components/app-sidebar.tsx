@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontalIcon, Trash2Icon } from "lucide-react";
+import { MoreHorizontalIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -85,7 +85,6 @@ const ConversationItem = ({
               setDeleteOpen(true);
             }}
           >
-            <Trash2Icon />
             delete
           </DropdownMenuItem>
         </DropdownMenuContent>
