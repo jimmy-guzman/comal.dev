@@ -63,11 +63,7 @@ export default async function AgentPage({ params }: Props) {
           <DeleteAgentButton
             agentId={agentId}
             agentName={agent.name}
-            trigger={
-              <Button variant="outline">
-                delete
-              </Button>
-            }
+            trigger={<Button variant="outline">delete</Button>}
           />
           <Button asChild variant="outline">
             <Link href={`/agents/${agentId}/edit`}>edit</Link>
