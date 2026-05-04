@@ -10,6 +10,7 @@ export const groups = {
 type ToolGroupId = keyof typeof groups;
 
 export interface ToolMetadata<TConfig extends z.ZodRawShape = z.ZodRawShape> {
+  access: "read" | "read-write" | "write";
   configSchema: z.ZodObject<TConfig>;
   defaultConfig: z.infer<z.ZodObject<TConfig>>;
   description: string;

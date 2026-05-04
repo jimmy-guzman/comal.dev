@@ -3,6 +3,7 @@ import type { NoConfigShape, ToolMetadata } from "../meta";
 import { deepFreeze, noConfigSchema } from "../meta";
 
 export const githubReadMeta = {
+  access: "read",
   configSchema: noConfigSchema,
   defaultConfig: deepFreeze({}),
   description: "Reads files from public GitHub repositories in batch.",

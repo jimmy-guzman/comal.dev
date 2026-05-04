@@ -153,6 +153,7 @@ export const AgentToolLibrary = ({ onChange, value }: Props) => {
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{tool.name}</span>
                           <Badge variant="outline">{group.label}</Badge>
+                          <Badge variant="outline">{tool.access}</Badge>
                         </div>
                         <span className="text-muted-foreground">{tool.description}</span>
                       </div>
