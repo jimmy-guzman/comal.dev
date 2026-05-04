@@ -213,6 +213,19 @@ export const updateConversationModel = (
   });
 };
 
+export const updateConversationAgent = (
+  conversationId: string,
+  agentId: string,
+): Effect.Effect<void, DatabaseError, Database> => {
+  return Effect.gen(function* () {
+    const db = yield* Database;
+
+    yield* runQuery(() => {
+      return db.update(conversation).set({ agentId }).where(eq(conversation.id, conversationId));
+    });
+  });
+};
+
 export const migrateAnonymousUserData = async ({
   anonymousUserId,
   newUserId,

@@ -14,12 +14,12 @@ export default async function HomePage() {
     ? await appRuntime.runPromise(listAgentsForUser(session.user.id))
     : [];
 
-  const ctaHref = session?.user ? "/agents/new" : "/sign-in";
-  const ctaLabel = session?.user
-    ? agents.length === 0
-      ? "create your first agent"
-      : "create an agent"
-    : "sign in to get started";
+  const mostRecent = agents.at(0);
+  const ctaHref =
+    mostRecent === undefined
+      ? ("/agents/new" as const)
+      : (`/agents/${mostRecent.id}/conversations/new` as const);
+  const ctaLabel = mostRecent === undefined ? "create your first agent" : "new chat";
 
   return (
     <div className="pb-safe-or-8 flex min-h-0 flex-1 flex-col items-center justify-center gap-12 p-8">

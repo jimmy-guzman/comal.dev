@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ChatView } from "@/components/chat-view";
 import { appRuntime } from "@/db/service";
-import { getAgentForUser } from "@/lib/agents";
+import { getAgentForUser, listAgentsForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 
 interface Props {
@@ -18,11 +18,14 @@ export default async function NewConversationPage({ params }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const agent = await appRuntime.runPromise(
-    getAgentForUser(agentId, session.user.id).pipe(
-      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+  const [agent, allAgents] = await Promise.all([
+    appRuntime.runPromise(
+      getAgentForUser(agentId, session.user.id).pipe(
+        Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+      ),
     ),
-  );
+    appRuntime.runPromise(listAgentsForUser(session.user.id)),
+  ]);
 
   if (!agent) notFound();
 
@@ -30,6 +33,7 @@ export default async function NewConversationPage({ params }: Props) {
     <ChatView
       agentId={agentId}
       agentName={agent.name}
+      agents={allAgents.map((a) => ({ id: a.id, name: a.name }))}
       conversationId={null}
       initialMessages={[]}
       modelId={agent.defaultModelId}
