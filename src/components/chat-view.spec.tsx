@@ -27,6 +27,10 @@ vi.mock("@/components/chat-model-picker", () => ({
   ChatModelPicker: () => null,
 }));
 
+vi.mock("@/components/chat-agent-picker", () => ({
+  ChatAgentPicker: () => null,
+}));
+
 vi.mock("@/components/message-parts", () => {
   return {
     MessageParts: ({ message }: { message: { id: string; role: string } }) => {
@@ -85,6 +89,7 @@ describe("ChatView", () => {
         <ChatView
           agentId="agent-1"
           agentName="Agent One"
+          agents={[{ id: "agent-1", name: "Agent One" }]}
           conversationId={null}
           initialMessages={[]}
           modelId="gpt-test"
