@@ -138,6 +138,14 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
                 <Link href="/agents">agents</Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === "/tools" || pathname.startsWith("/tools/")}
+              >
+                <Link href="/tools">tools</Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
 
