@@ -1,5 +1,4 @@
 import { Effect } from "effect";
-import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { cacheLife, cacheTag } from "next/cache";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -8,7 +7,6 @@ import { notFound, redirect } from "next/navigation";
 import { ConversationList } from "@/components/conversation-list";
 import { DeleteAgentButton } from "@/components/delete-agent-button";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { appRuntime } from "@/db/service";
 import { getAgentForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
@@ -65,48 +63,14 @@ export default async function AgentPage({ params }: Props) {
           <DeleteAgentButton
             agentId={agentId}
             agentName={agent.name}
-            trigger={
-              <Button
-                aria-label="delete agent"
-                className="aspect-square px-0 sm:aspect-auto sm:px-2.5"
-                variant="outline"
-              >
-                <Trash2Icon />
-                <span className="hidden sm:inline">delete</span>
-              </Button>
-            }
+            trigger={<Button variant="outline">delete</Button>}
           />
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                aria-label="edit agent"
-                asChild
-                className="aspect-square px-0 sm:aspect-auto sm:px-2.5"
-                variant="outline"
-              >
-                <Link href={`/agents/${agentId}/edit`}>
-                  <PencilIcon />
-                  <span className="hidden sm:inline">edit</span>
-                </Link>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>edit</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                aria-label="new conversation"
-                asChild
-                className="aspect-square px-0 sm:aspect-auto sm:px-2.5"
-              >
-                <Link href={`/agents/${agentId}/conversations/new`}>
-                  <PlusIcon />
-                  <span className="hidden sm:inline">new conversation</span>
-                </Link>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>new conversation</TooltipContent>
-          </Tooltip>
+          <Button asChild variant="outline">
+            <Link href={`/agents/${agentId}/edit`}>edit</Link>
+          </Button>
+          <Button asChild>
+            <Link href={`/agents/${agentId}/conversations/new`}>new conversation</Link>
+          </Button>
         </div>
       </div>
 
