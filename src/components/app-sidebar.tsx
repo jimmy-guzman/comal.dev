@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDownIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
+import { MoreHorizontalIcon, Trash2Icon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -10,7 +10,6 @@ import { useLayoutEffect } from "react";
 import { DeleteConversationButton } from "@/components/delete-conversation-button";
 import { NewChatButton } from "@/components/new-chat-button";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,8 +21,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupAction,
-  SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
@@ -133,6 +130,19 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
         </SidebarGroup>
 
         <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname.startsWith("/agents") && activeMatch === null}
+              >
+                <Link href="/agents">agents</Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup>
           <SidebarGroupLabel>RECENT</SidebarGroupLabel>
           <SidebarMenu>
             {conversations.length === 0 ? (
@@ -153,54 +163,6 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
             )}
           </SidebarMenu>
         </SidebarGroup>
-
-        {agents.length > 0 ? (
-          <Collapsible className="group/agents" defaultOpen>
-            <SidebarGroup>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger className="w-full">
-                  AGENTS
-                  <SidebarGroupAction
-                    asChild
-                    className="pointer-events-none data-[state=open]:rotate-180"
-                  >
-                    <ChevronDownIcon />
-                  </SidebarGroupAction>
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {agents.map((agent) => {
-                      const isActive =
-                        (pathname === `/agents/${agent.id}` ||
-                          pathname.startsWith(`/agents/${agent.id}/`)) &&
-                        !pathname.includes("/conversations/");
-
-                      return (
-                        <SidebarMenuItem key={agent.id}>
-                          <SidebarMenuButton asChild isActive={isActive}>
-                            <Link href={`/agents/${agent.id}`}>{agent.name}</Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      );
-                    })}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
-        ) : (
-          <SidebarGroup>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/agents/new"}>
-                  <Link href="/agents/new">create your first agent</Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-        )}
       </SidebarContent>
 
       {isSignedIn ? null : (
