@@ -13,7 +13,7 @@ const printUsage = () => {
     [
       "Usage: bun run worktree:add <branch> [--from <base>] [--link <file>]...",
       "  <branch>          Branch name (also used as the worktree directory name).",
-      "  --from <base>     Base ref to branch from (default: current HEAD).",
+      "  --from <base>     Base ref to branch from (default: origin/main, fetched fresh).",
       "  --link <file>     Additional file at repo root to symlink (repeatable).",
       "                    .env is always linked when present.",
       "",
@@ -96,7 +96,10 @@ const tryGit = (args: string[], options?: { cwd?: string }) => {
 };
 
 const repoRoot = dirname(resolve(git(["rev-parse", "--path-format=absolute", "--git-common-dir"])));
-const { base, branch, extraLinks } = parseArgs(process.argv.slice(2));
+const { base: parsedBase, branch, extraLinks } = parseArgs(process.argv.slice(2));
+
+let base = parsedBase;
+
 const worktreesRoot = resolve(repoRoot, ".worktrees");
 const worktreePath = resolve(worktreesRoot, branch);
 const relBranchPath = relative(worktreesRoot, worktreePath);
@@ -111,11 +114,14 @@ if (existsSync(worktreePath)) {
 
 const branchExists = tryGit(["show-ref", "--verify", `refs/heads/${branch}`], { cwd: repoRoot });
 
+if (!branchExists && base === undefined) {
+  execFileSync("git", ["fetch", "origin", "main"], { cwd: repoRoot, stdio: "inherit" });
+  base = "origin/main";
+}
+
 const worktreeArgs = branchExists
   ? ["worktree", "add", worktreePath, branch]
-  : base === undefined
-    ? ["worktree", "add", worktreePath, "-b", branch]
-    : ["worktree", "add", worktreePath, "-b", branch, base];
+  : ["worktree", "add", worktreePath, "-b", branch, base ?? fail("No base ref available.")];
 
 execFileSync("git", worktreeArgs, { cwd: repoRoot, stdio: "inherit" });
 
