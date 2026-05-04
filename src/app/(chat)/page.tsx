@@ -1,7 +1,6 @@
 import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { appRuntime } from "@/db/service";
@@ -16,10 +15,9 @@ export default async function HomePage() {
     : [];
 
   const mostRecent = agents.at(0);
-
-  if (mostRecent !== undefined) {
-    redirect(`/agents/${mostRecent.id}/conversations/new`);
-  }
+  const ctaHref =
+    mostRecent === undefined ? "/agents/new" : `/agents/${mostRecent.id}/conversations/new`;
+  const ctaLabel = mostRecent === undefined ? "create your first agent" : "new chat";
 
   return (
     <div className="pb-safe-or-8 flex min-h-0 flex-1 flex-col items-center justify-center gap-12 p-8">
@@ -43,7 +41,7 @@ export default async function HomePage() {
       </div>
 
       <Button asChild size="lg">
-        <Link href="/agents/new">create your first agent</Link>
+        <Link href={ctaHref}>{ctaLabel}</Link>
       </Button>
     </div>
   );
