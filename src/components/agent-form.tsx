@@ -461,7 +461,11 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
           <form.Field mode="array" name="subAgents">
             {(field) => {
               return (
-                <Field data-invalid={subAgentErrors.length > 0 || undefined}>
+                <Field
+                  data-invalid={
+                    (subAgentErrors.length > 0 || field.state.meta.errors.length > 0) || undefined
+                  }
+                >
                   <FieldLabel>sub-agents</FieldLabel>
                   <FieldDescription>
                     other agents this agent can delegate tasks to as tools.
@@ -475,7 +479,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
                     ownedAgents={ownedAgents}
                     value={field.state.value}
                   />
-                  <FieldError errors={subAgentErrors} />
+                  <FieldError errors={[...subAgentErrors, ...field.state.meta.errors]} />
                 </Field>
               );
             }}
