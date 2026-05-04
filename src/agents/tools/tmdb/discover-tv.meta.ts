@@ -3,6 +3,7 @@ import type { NoConfigShape, ToolMetadata } from "../meta";
 import { deepFreeze, noConfigSchema } from "../meta";
 
 export const tmdbDiscoverTvMeta = {
+  access: "read",
   configSchema: noConfigSchema,
   defaultConfig: deepFreeze({}),
   description: "Discovers TV series on TMDB by genre, first-air year, language, and sort order.",
