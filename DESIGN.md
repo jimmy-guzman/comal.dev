@@ -14,20 +14,8 @@ Proper nouns (e.g. GitHub) keep their standard casing at every tier.
 
 ## Icons
 
-Use text labels for actions, navigation, and status. Icons should only appear when they add meaning that text cannot.
+Default to text. Use an icon only when the symbol is universally understood without a label (e.g. a close `x`) or when space genuinely rules a label out.
 
-An icon paired with a label that says the same thing wastes space. Icons without labels make users guess. When icons are rare, the ones that do appear actually mean something.
+Do not pair an icon with a label that says the same thing. Do not use icons for decoration. Both patterns add visual noise without adding information.
 
-### When to use an icon
-
-- It is universally understood on its own (e.g. a close `x`)
-- Space genuinely rules out a label
-
-### When not to use an icon
-
-- There is already a text label that describes the action
-- You are using it for decoration
-
-Any icon used without a visible label needs an accessible name via `aria-label` or `title`.
-
-If there is doubt, use text.
+Any icon without a visible label needs an accessible name via `aria-label` or `title`.
