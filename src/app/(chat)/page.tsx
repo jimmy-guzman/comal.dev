@@ -16,7 +16,9 @@ export default async function HomePage() {
 
   const mostRecent = agents.at(0);
   const ctaHref =
-    mostRecent === undefined ? "/agents/new" : `/agents/${mostRecent.id}/conversations/new`;
+    mostRecent === undefined
+      ? ("/agents/new" as const)
+      : (`/agents/${mostRecent.id}/conversations/new` as const);
   const ctaLabel = mostRecent === undefined ? "create your first agent" : "new chat";
 
   return (
