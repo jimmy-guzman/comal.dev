@@ -96,7 +96,10 @@ const tryGit = (args: string[], options?: { cwd?: string }) => {
 };
 
 const repoRoot = dirname(resolve(git(["rev-parse", "--path-format=absolute", "--git-common-dir"])));
-const { base, branch, extraLinks } = parseArgs(process.argv.slice(2));
+const { base: parsedBase, branch, extraLinks } = parseArgs(process.argv.slice(2));
+
+let base = parsedBase;
+
 const worktreesRoot = resolve(repoRoot, ".worktrees");
 const worktreePath = resolve(worktreesRoot, branch);
 const relBranchPath = relative(worktreesRoot, worktreePath);
@@ -118,7 +121,7 @@ if (!branchExists && base === undefined) {
 
 const worktreeArgs = branchExists
   ? ["worktree", "add", worktreePath, branch]
-  : ["worktree", "add", worktreePath, "-b", branch, base];
+  : ["worktree", "add", worktreePath, "-b", branch, base ?? fail("No base ref available.")];
 
 execFileSync("git", worktreeArgs, { cwd: repoRoot, stdio: "inherit" });
 
