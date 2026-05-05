@@ -69,6 +69,18 @@ const git = (args: string[], options?: { cwd?: string }) => {
   }).trim();
 };
 
+const gitOrNull = (args: string[], options?: { cwd?: string }): null | string => {
+  try {
+    return execFileSync("git", args, {
+      cwd: options?.cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+};
+
 const tryGit = (args: string[], options?: { cwd?: string }) => {
   try {
     execFileSync("git", args, { cwd: options?.cwd, stdio: "ignore" });
@@ -88,46 +100,92 @@ if (!existsSync(worktreesRoot)) {
   process.exit(0);
 }
 
-// Fetch with prune so remote tracking info is current.
-execFileSync("git", ["fetch", "--prune", "origin"], { cwd: repoRoot, stdio: "inherit" });
+const fetchPrunedOrigin = () => {
+  execFileSync("git", ["fetch", "--prune", "origin"], { cwd: repoRoot, stdio: "inherit" });
+};
 
-// Determine which local branches are merged into main.
-const mergedOutput = git(["branch", "--merged", "main"], { cwd: repoRoot });
-const mergedBranches = new Set(
-  mergedOutput
-    .split("\n")
-    .map((line) => line.replace(/^\*?\s+/, ""))
-    .filter(Boolean),
-);
+const getMergedBranches = (): Set<string> => {
+  const output = git(["branch", "--merged", "main"], { cwd: repoRoot });
 
-// Check if a branch's remote tracking ref is gone.
+  return new Set(
+    output
+      .split("\n")
+      .map((line) => line.replace(/^\*?\s+/, ""))
+      .filter(Boolean),
+  );
+};
+
 const isRemoteGone = (branch: string): boolean => {
-  const remote = tryGit(["config", "--get", `branch.${branch}.remote`], { cwd: repoRoot });
+  const remote = gitOrNull(["config", "--get", `branch.${branch}.remote`], { cwd: repoRoot });
 
   if (!remote) return false;
 
-  return !tryGit(["rev-parse", "--verify", `refs/remotes/origin/${branch}`], { cwd: repoRoot });
+  const merge = gitOrNull(["config", "--get", `branch.${branch}.merge`], { cwd: repoRoot });
+  const remoteBranch = merge?.startsWith("refs/heads/")
+    ? merge.slice("refs/heads/".length)
+    : branch;
+  const remoteRef = `refs/remotes/${remote}/${remoteBranch}`;
+
+  return !tryGit(["rev-parse", "--verify", remoteRef], { cwd: repoRoot });
 };
 
-// Scan .worktrees/ for directories (each corresponds to a worktree).
-const entries = readdirSync(worktreesRoot, { withFileTypes: true });
-const candidates: { branch: string; reason: string }[] = [];
+const findStaleCandidates = (mergedBranches: Set<string>): { branch: string; reason: string }[] => {
+  const entries = readdirSync(worktreesRoot, { withFileTypes: true });
+  const candidates: { branch: string; reason: string }[] = [];
 
-for (const entry of entries) {
-  if (!entry.isDirectory()) continue;
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
 
-  const branch = entry.name;
-  const worktreePath = resolve(worktreesRoot, branch);
-  const relPath = relative(worktreesRoot, worktreePath);
+    const branch = entry.name;
+    const worktreePath = resolve(worktreesRoot, branch);
+    const relPath = relative(worktreesRoot, worktreePath);
 
-  if (relPath === "" || relPath.startsWith("..") || isAbsolute(relPath)) continue;
+    if (relPath === "" || relPath.startsWith("..") || isAbsolute(relPath)) continue;
 
-  if (mergedBranches.has(branch)) {
-    candidates.push({ branch, reason: "merged into main" });
-  } else if (isRemoteGone(branch)) {
-    candidates.push({ branch, reason: "remote tracking branch gone" });
+    if (mergedBranches.has(branch)) {
+      candidates.push({ branch, reason: "merged into main" });
+    } else if (isRemoteGone(branch)) {
+      candidates.push({ branch, reason: "remote tracking branch gone" });
+    }
   }
-}
+
+  return candidates;
+};
+
+const removeWorktrees = (candidates: { branch: string; reason: string }[]) => {
+  for (const { branch, reason } of candidates) {
+    const worktreePath = resolve(worktreesRoot, branch);
+    const removeArgs = ["worktree", "remove"];
+
+    if (force) removeArgs.push("--force");
+
+    removeArgs.push(worktreePath);
+
+    try {
+      execFileSync("git", removeArgs, { cwd: repoRoot, stdio: "inherit" });
+      process.stdout.write(`Removed worktree ${branch} (${reason})\n`);
+    } catch {
+      process.stderr.write(
+        `Failed to remove worktree ${branch}. Use --force for dirty worktrees.\n`,
+      );
+
+      continue;
+    }
+
+    const deleted = tryGit(["branch", "-d", branch], { cwd: repoRoot });
+
+    if (deleted) {
+      process.stdout.write(`Deleted branch ${branch}\n`);
+    } else {
+      process.stderr.write(`Branch ${branch} not deleted (use git branch -D to force).\n`);
+    }
+  }
+};
+
+fetchPrunedOrigin();
+
+const mergedBranches = getMergedBranches();
+const candidates = findStaleCandidates(mergedBranches);
 
 if (candidates.length === 0) {
   process.stdout.write("No stale worktrees found.\n");
@@ -144,29 +202,4 @@ if (dryRun) {
   process.exit(0);
 }
 
-// Remove each stale worktree and its branch.
-for (const { branch, reason } of candidates) {
-  const worktreePath = resolve(worktreesRoot, branch);
-  const removeArgs = ["worktree", "remove"];
-
-  if (force) removeArgs.push("--force");
-
-  removeArgs.push(worktreePath);
-
-  try {
-    execFileSync("git", removeArgs, { cwd: repoRoot, stdio: "inherit" });
-    process.stdout.write(`Removed worktree ${branch} (${reason})\n`);
-  } catch {
-    process.stderr.write(`Failed to remove worktree ${branch}. Use --force for dirty worktrees.\n`);
-
-    continue;
-  }
-
-  const deleted = tryGit(["branch", "-d", branch], { cwd: repoRoot });
-
-  if (deleted) {
-    process.stdout.write(`Deleted branch ${branch}\n`);
-  } else {
-    process.stderr.write(`Branch ${branch} not deleted (use git branch -D to force).\n`);
-  }
-}
+removeWorktrees(candidates);
