@@ -86,13 +86,13 @@ flowchart TB
 - **TMDB discover TV** — Discovers TV series on TMDB by genre, first-air year, language, and sort order.
 - **TMDB movie details** — Fetches full TMDB metadata for a movie by id.
 - **TMDB TV details** — Fetches full TMDB metadata for a TV series by id.
-- **List agents** — Lists all agents owned by the current user.
-- **Get agent details** — Returns full configuration for a specific agent.
-- **List available tools** — Returns the tool registry with IDs, names, and descriptions.
-- **List available models** — Returns available model providers and their models.
-- **Create agent** — Creates a new agent with smart defaults and tool name resolution.
-- **Update agent** — Updates an existing agent's configuration.
-- **Delete agent** — Deletes an agent owned by the current user.
+- List all agents owned by the current user.
+- Get full configuration for a specific agent.
+- List the tool registry with IDs, names, and descriptions.
+- List available model providers and their models.
+- Create a new agent with smart defaults and tool name resolution.
+- Update an existing agent's configuration.
+- Delete an agent owned by the current user.
 
 Agents can also call other agents you own as sub-agent tools, configured per-agent in the agent form. New users start with Comal, a system agent that can create and configure other agents through conversation.
 
