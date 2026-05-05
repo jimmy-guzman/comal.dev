@@ -18,6 +18,7 @@
     "openapi-ts": "openapi-ts",
     "prepare": "lefthook install",
     "worktree:add": "bun run scripts/worktree-add.ts",
+    "worktree:cleanup": "bun run scripts/worktree-cleanup.ts",
     "worktree:remove": "bun run scripts/worktree-remove.ts"
   },
   "dependencies": {
