@@ -23,7 +23,7 @@ flowchart TB
     Actions[Server actions<br/>agent + conversation CRUD]
     ChatAPI[/api/chat route/]
     Loader[loadAgent<br/>composes agent + tools]
-    Registry[Tool registry<br/>core / web / github / tmdb]
+    Registry[Tool registry<br/>core / web / github / tmdb / agents]
   end
 
   subgraph External
@@ -70,6 +70,7 @@ flowchart TB
 - Approval-gated tools that pause and ask before running
 - Conversation history with per-conversation model switching
 - Sub-agents: let an agent call other agents you own as tools
+- Conversational agent management via Comal, a system agent that can create and configure agents through chat
 
 ## Tools
 
@@ -85,8 +86,15 @@ flowchart TB
 - **TMDB discover TV** — Discovers TV series on TMDB by genre, first-air year, language, and sort order.
 - **TMDB movie details** — Fetches full TMDB metadata for a movie by id.
 - **TMDB TV details** — Fetches full TMDB metadata for a TV series by id.
+- List all agents owned by the current user.
+- Get full configuration for a specific agent.
+- List the tool registry with IDs, names, and descriptions.
+- List available model providers and their models.
+- Create a new agent with smart defaults and tool name resolution.
+- Update an existing agent's configuration.
+- Delete an agent owned by the current user.
 
-Agents can also call other agents you own as sub-agent tools, configured per-agent in the agent form.
+Agents can also call other agents you own as sub-agent tools, configured per-agent in the agent form. New users start with Comal, a system agent that can create and configure other agents through conversation.
 
 ## Tech stack
 
