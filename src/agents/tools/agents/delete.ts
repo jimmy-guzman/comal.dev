@@ -1,6 +1,6 @@
 import { tool } from "ai";
 import { Exit } from "effect";
-import { updateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { appRuntime } from "@/db/service";
@@ -37,8 +37,8 @@ export const buildAgentsDelete = (_config: unknown, context: ToolContext) => {
         return { error: "Failed to delete agent." };
       }
 
-      updateTag(`agents:${context.userId}`);
-      updateTag(`agent:${agentId}`);
+      revalidateTag(`agents:${context.userId}`, "max");
+      revalidateTag(`agent:${agentId}`, "max");
 
       return { agentId, deleted: true };
     },

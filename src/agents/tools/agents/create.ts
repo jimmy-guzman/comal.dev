@@ -1,6 +1,6 @@
 import { tool } from "ai";
 import { Effect, Exit } from "effect";
-import { updateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { MODEL_IDS } from "@/config/models";
@@ -121,7 +121,7 @@ export const buildAgentsCreate = (_config: unknown, context: ToolContext) => {
         return { error: "Failed to create agent." };
       }
 
-      updateTag(`agents:${context.userId}`);
+      revalidateTag(`agents:${context.userId}`, "max");
 
       return { agentId: exit.value.id, name };
     },

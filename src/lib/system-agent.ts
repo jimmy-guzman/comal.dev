@@ -74,17 +74,16 @@ export const getOrCreateSystemAgent = (userId: string) => {
       return yield* Effect.die("System agent insert and select both failed.");
     }
 
-    if (row.id === id) {
-      yield* runQuery(() => {
-        return db.insert(agentTool).values(
-          SYSTEM_AGENT_TOOLS.map((toolId) => ({
-            agentId: id,
-            config: {},
-            toolId,
-          })),
-        );
-      });
-    }
+    yield* runQuery(() => {
+      return db
+        .insert(agentTool)
+        .values(
+          SYSTEM_AGENT_TOOLS.map((toolId) => {
+            return { agentId: row.id, config: {}, toolId };
+          }),
+        )
+        .onConflictDoNothing();
+    });
 
     return row.id;
   });
