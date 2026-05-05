@@ -2,7 +2,6 @@ import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 
-import { provisionSystemAgentAction } from "@/actions/provision-system-agent";
 import { Button } from "@/components/ui/button";
 import { appRuntime } from "@/db/service";
 import { listAgentsForUser } from "@/lib/agents";
@@ -38,17 +37,11 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {mostRecent === undefined ? (
-        <form action={provisionSystemAgentAction}>
-          <Button size="lg" type="submit">
-            get started
-          </Button>
-        </form>
-      ) : (
+      {mostRecent ? (
         <Button asChild size="lg">
           <Link href={`/agents/${mostRecent.id}/conversations/new`}>new chat</Link>
         </Button>
-      )}
+      ) : null}
     </div>
   );
 }

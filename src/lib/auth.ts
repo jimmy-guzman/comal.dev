@@ -1,13 +1,16 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { anonymous, organization } from "better-auth/plugins";
 
 import { db } from "@/db/client";
 import * as schema from "@/db/schemas/auth-schema";
+import { appRuntime } from "@/db/service";
 import { env } from "@/env";
 import { getServerBaseUrl, getServerProductionUrl, LOCAL_URL } from "@/lib/base-url";
 import { migrateAnonymousUserData } from "@/lib/chat";
+import { getOrCreateSystemAgent } from "@/lib/system-agent";
 
 const productionURL = getServerProductionUrl();
 
@@ -26,6 +29,19 @@ export const auth = betterAuth({
     provider: "pg",
     schema,
   }),
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      if (!ctx.context.newSession) {
+        return;
+      }
+
+      const userId = ctx.context.newSession.user.id;
+
+      await appRuntime.runPromise(getOrCreateSystemAgent(userId)).catch(() => {
+        return undefined;
+      });
+    }),
+  },
   plugins: [
     nextCookies(),
     organization({
