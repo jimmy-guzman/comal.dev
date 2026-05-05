@@ -8,6 +8,7 @@ import { Database, runQuery } from "@/db/service";
 import { NotFoundError } from "@/lib/errors";
 import { SUBAGENT_PREFIX } from "@/lib/subagent-prefix";
 
+import type { ToolContext } from "./tools/types";
 import type { AgentConfig } from "./types";
 
 import { buildSubagentTool } from "./subagent";
@@ -24,7 +25,11 @@ const stripApprovalConfig = (config: unknown): unknown => {
   return config;
 };
 
-const buildToolsRecord = (rows: { config: unknown; toolId: string }[], depth: number) => {
+const buildToolsRecord = (
+  rows: { config: unknown; toolId: string }[],
+  depth: number,
+  context: ToolContext,
+) => {
   return Effect.gen(function* () {
     const result: ToolSet = {};
 
@@ -55,7 +60,7 @@ const buildToolsRecord = (rows: { config: unknown; toolId: string }[], depth: nu
         config = validation.value;
       }
 
-      const built = buildTool(row.toolId, config);
+      const built = buildTool(row.toolId, config, context);
 
       if (!built) {
         yield* Effect.logWarning(`no builder registered for "${row.toolId}", skipping`);
@@ -141,7 +146,8 @@ export const loadAgent = (agentId: string, userId: string, depth = 0) => {
         .where(eq(agentTool.agentId, agentId));
     });
 
-    const toolsRecord = yield* buildToolsRecord(toolRows, depth);
+    const toolContext: ToolContext = { userId };
+    const toolsRecord = yield* buildToolsRecord(toolRows, depth, toolContext);
 
     const subagentTools =
       depth === 0 ? yield* loadSubagentTools(agentId, userId) : ({} satisfies ToolSet);

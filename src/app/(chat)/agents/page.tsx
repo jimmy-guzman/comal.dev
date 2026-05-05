@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { appRuntime } from "@/db/service";
 import { listAgentsForUser } from "@/lib/agents";
@@ -28,7 +29,10 @@ export default async function AgentsPage() {
             >
               <Card className="group-hover:border-foreground/30 group-hover:bg-accent/30 h-full transition-colors">
                 <CardHeader>
-                  <CardTitle>{a.name}</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    {a.name}
+                    {a.isSystem && <Badge variant="secondary">system</Badge>}
+                  </CardTitle>
                   <CardDescription className="line-clamp-2">
                     {a.description ?? "no description"}
                   </CardDescription>

@@ -97,6 +97,6 @@ const tmdbDiscoverTv = tool({
     ),
 });
 
-export const buildTmdbDiscoverTv = () => {
+export const buildTmdbDiscoverTv = (_config: unknown, _context: unknown) => {
   return tmdbDiscoverTv;
 };

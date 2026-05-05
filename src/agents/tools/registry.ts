@@ -1,5 +1,12 @@
 import type { ToolMetadata } from "./meta";
 
+import { agentsCreateMeta } from "./agents/create.meta";
+import { agentsDeleteMeta } from "./agents/delete.meta";
+import { agentsGetMeta } from "./agents/get.meta";
+import { agentsListModelsMeta } from "./agents/list-models.meta";
+import { agentsListToolsMeta } from "./agents/list-tools.meta";
+import { agentsListMeta } from "./agents/list.meta";
+import { agentsUpdateMeta } from "./agents/update.meta";
 import { coreNowMeta } from "./core/now.meta";
 import { githubReadMeta } from "./github/read.meta";
 import { groups } from "./meta";
@@ -15,6 +22,13 @@ import { webFetchMeta } from "./web/fetch.meta";
 import { webSearchMeta } from "./web/search.meta";
 
 const metadata = Object.freeze([
+  Object.freeze(agentsCreateMeta),
+  Object.freeze(agentsDeleteMeta),
+  Object.freeze(agentsGetMeta),
+  Object.freeze(agentsListMeta),
+  Object.freeze(agentsListModelsMeta),
+  Object.freeze(agentsListToolsMeta),
+  Object.freeze(agentsUpdateMeta),
   Object.freeze(coreNowMeta),
   Object.freeze(githubReadMeta),
   Object.freeze(tmdbDiscoverMovieMeta),

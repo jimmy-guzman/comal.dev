@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const groups = {
+  agents: { id: "agents", label: "Agents" },
   core: { id: "core", label: "Core" },
   github: { id: "github", label: "GitHub" },
   tmdb: { id: "tmdb", label: "TMDB" },

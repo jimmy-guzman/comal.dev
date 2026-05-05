@@ -30,6 +30,6 @@ const githubRead = tool({
   }),
 });
 
-export const buildGithubRead = () => {
+export const buildGithubRead = (_config: unknown, _context: unknown) => {
   return githubRead;
 };

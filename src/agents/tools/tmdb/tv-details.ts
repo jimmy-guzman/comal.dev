@@ -26,6 +26,6 @@ const tmdbTvDetails = tool({
   }),
 });
 
-export const buildTmdbTvDetails = () => {
+export const buildTmdbTvDetails = (_config: unknown, _context: unknown) => {
   return tmdbTvDetails;
 };

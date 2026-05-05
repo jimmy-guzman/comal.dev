@@ -33,6 +33,6 @@ const tmdbSearch = tool({
   }),
 });
 
-export const buildTmdbSearch = () => {
+export const buildTmdbSearch = (_config: unknown, _context: unknown) => {
   return tmdbSearch;
 };

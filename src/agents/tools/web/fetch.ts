@@ -138,7 +138,7 @@ const fetchWithSafeRedirects = async ({ format, signal, url }: FetchArgs) => {
   throw new Error("Too many redirects");
 };
 
-export const buildWebFetch = (config: unknown) => {
+export const buildWebFetch = (config: unknown, _context: unknown) => {
   const { needsApproval } = webFetchMeta.configSchema.parse(config);
 
   return tool({

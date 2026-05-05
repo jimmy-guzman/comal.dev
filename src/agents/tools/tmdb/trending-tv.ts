@@ -29,6 +29,6 @@ const tmdbTrendingTv = tool({
   }),
 });
 
-export const buildTmdbTrendingTv = () => {
+export const buildTmdbTrendingTv = (_config: unknown, _context: unknown) => {
   return tmdbTrendingTv;
 };

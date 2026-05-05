@@ -1,5 +1,21 @@
 import type { Tool } from "ai";
 
+import type { ToolContext } from "./types";
+
+import { buildAgentsCreate } from "./agents/create";
+import { agentsCreateMeta } from "./agents/create.meta";
+import { buildAgentsDelete } from "./agents/delete";
+import { agentsDeleteMeta } from "./agents/delete.meta";
+import { buildAgentsGet } from "./agents/get";
+import { agentsGetMeta } from "./agents/get.meta";
+import { buildAgentsList } from "./agents/list";
+import { buildAgentsListModels } from "./agents/list-models";
+import { agentsListModelsMeta } from "./agents/list-models.meta";
+import { buildAgentsListTools } from "./agents/list-tools";
+import { agentsListToolsMeta } from "./agents/list-tools.meta";
+import { agentsListMeta } from "./agents/list.meta";
+import { buildAgentsUpdate } from "./agents/update";
+import { agentsUpdateMeta } from "./agents/update.meta";
 import { buildCoreNow } from "./core/now";
 import { coreNowMeta } from "./core/now.meta";
 import { buildGithubRead } from "./github/read";
@@ -25,7 +41,14 @@ import { webFetchMeta } from "./web/fetch.meta";
 import { buildWebSearch } from "./web/search";
 import { webSearchMeta } from "./web/search.meta";
 
-const builders = new Map<string, (config: unknown) => Tool>([
+const builders = new Map<string, (config: unknown, context: ToolContext) => Tool>([
+  [agentsCreateMeta.id, buildAgentsCreate],
+  [agentsDeleteMeta.id, buildAgentsDelete],
+  [agentsGetMeta.id, buildAgentsGet],
+  [agentsListMeta.id, buildAgentsList],
+  [agentsListModelsMeta.id, buildAgentsListModels],
+  [agentsListToolsMeta.id, buildAgentsListTools],
+  [agentsUpdateMeta.id, buildAgentsUpdate],
   [coreNowMeta.id, buildCoreNow],
   [githubReadMeta.id, buildGithubRead],
   [tmdbDiscoverMovieMeta.id, buildTmdbDiscoverMovie],
@@ -40,6 +63,6 @@ const builders = new Map<string, (config: unknown) => Tool>([
   [webSearchMeta.id, buildWebSearch],
 ]);
 
-export const buildTool = (id: string, config: unknown) => {
-  return builders.get(id)?.(config);
+export const buildTool = (id: string, config: unknown, context: ToolContext) => {
+  return builders.get(id)?.(config, context);
 };

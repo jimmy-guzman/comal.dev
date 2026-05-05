@@ -26,6 +26,6 @@ const tmdbMovieDetails = tool({
   }),
 });
 
-export const buildTmdbMovieDetails = () => {
+export const buildTmdbMovieDetails = (_config: unknown, _context: unknown) => {
   return tmdbMovieDetails;
 };

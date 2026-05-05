@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 
+import { provisionSystemAgentAction } from "@/actions/provision-system-agent";
 import { Button } from "@/components/ui/button";
 import { appRuntime } from "@/db/service";
 import { listAgentsForUser } from "@/lib/agents";
@@ -15,11 +16,6 @@ export default async function HomePage() {
     : [];
 
   const mostRecent = agents.at(0);
-  const ctaHref =
-    mostRecent === undefined
-      ? ("/agents/new" as const)
-      : (`/agents/${mostRecent.id}/conversations/new` as const);
-  const ctaLabel = mostRecent === undefined ? "create your first agent" : "new chat";
 
   return (
     <div className="pb-safe-or-8 flex min-h-0 flex-1 flex-col items-center justify-center gap-12 p-8">
@@ -42,9 +38,17 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <Button asChild size="lg">
-        <Link href={ctaHref}>{ctaLabel}</Link>
-      </Button>
+      {mostRecent === undefined ? (
+        <form action={provisionSystemAgentAction}>
+          <Button size="lg" type="submit">
+            get started
+          </Button>
+        </form>
+      ) : (
+        <Button asChild size="lg">
+          <Link href={`/agents/${mostRecent.id}/conversations/new`}>new chat</Link>
+        </Button>
+      )}
     </div>
   );
 }

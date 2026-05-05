@@ -105,6 +105,6 @@ const tmdbDiscoverMovie = tool({
     ),
 });
 
-export const buildTmdbDiscoverMovie = () => {
+export const buildTmdbDiscoverMovie = (_config: unknown, _context: unknown) => {
   return tmdbDiscoverMovie;
 };

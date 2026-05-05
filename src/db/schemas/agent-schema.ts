@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   index,
   jsonb,
@@ -8,6 +9,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth-schema";
@@ -19,6 +21,7 @@ export const agent = pgTable(
     defaultModelId: text("default_model_id").notNull(),
     description: text("description"),
     id: text("id").primaryKey(),
+    isSystem: boolean("is_system").default(false).notNull(),
     name: text("name").notNull(),
     systemPrompt: text("system_prompt").notNull(),
     updatedAt: timestamp("updated_at")
@@ -33,6 +36,9 @@ export const agent = pgTable(
     return [
       index("agent_userId_idx").on(table.userId),
       index("agent_createdAt_idx").on(table.createdAt),
+      uniqueIndex("agent_user_system_unique")
+        .on(table.userId)
+        .where(sql`${table.isSystem} = true`),
     ];
   },
 );
