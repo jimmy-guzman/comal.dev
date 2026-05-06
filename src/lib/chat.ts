@@ -6,7 +6,7 @@ import type { DatabaseError } from "@/lib/errors";
 
 import { agent } from "@/db/schemas/agent-schema";
 import { chatEvent, conversation } from "@/db/schemas/chat-schema";
-import { Database, runQuery } from "@/db/service";
+import { Database, runMutation, runQuery } from "@/db/service";
 import { validateEventPayload } from "@/lib/chat/events";
 import { ForbiddenError, NotFoundError, ValidationError } from "@/lib/errors";
 
@@ -110,7 +110,7 @@ export const createConversationWithFirstUserMessage = ({
     const db = yield* Database;
     const id = nanoid();
 
-    yield* runQuery(() => {
+    yield* runMutation(() => {
       return db.transaction(async (tx) => {
         await tx.insert(conversation).values({ agentId, id, modelId, title, userId });
         await tx.insert(chatEvent).values({

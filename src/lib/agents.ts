@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { nanoid } from "nanoid";
 
 import { agent, agentSubagent, agentTool } from "@/db/schemas/agent-schema";
-import { Database, runQuery } from "@/db/service";
+import { Database, runMutation, runQuery } from "@/db/service";
 import { ForbiddenError, NotFoundError } from "@/lib/errors";
 
 interface AgentToolInput {
@@ -119,7 +119,7 @@ export const createAgent = (userId: string, input: AgentInput) => {
     const db = yield* Database;
     const id = nanoid();
 
-    yield* runQuery(() => {
+    yield* runMutation(() => {
       return db.transaction(async (tx) => {
         await tx.insert(agent).values({
           defaultModelId: input.defaultModelId,

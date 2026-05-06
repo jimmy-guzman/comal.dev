@@ -5,7 +5,7 @@ import { Effect } from "effect";
 import type { DatabaseError } from "@/lib/errors";
 
 import { chatEvent } from "@/db/schemas/chat-schema";
-import { appRuntime, Database, runQuery } from "@/db/service";
+import { appRuntime, Database, runMutation } from "@/db/service";
 import { ValidationError } from "@/lib/errors";
 
 import type { MapStreamPartContext } from "./event-mapper";
@@ -35,7 +35,7 @@ export const appendChatEvent = (
 
     const db = yield* Database;
 
-    yield* runQuery(() => {
+    yield* runMutation(() => {
       return db.insert(chatEvent).values({
         conversationId: args.conversationId,
         eventType: args.event.eventType,
