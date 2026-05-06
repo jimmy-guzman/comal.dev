@@ -119,27 +119,27 @@ export const createAgent = (userId: string, input: AgentInput) => {
     const db = yield* Database;
     const id = nanoid();
 
-    const insertAgent = db.insert(agent).values({
-      defaultModelId: input.defaultModelId,
-      description: input.description,
-      id,
-      name: input.name,
-      systemPrompt: input.systemPrompt,
-      userId,
-    });
+    yield* runQuery(() => {
+      return db.transaction(async (tx) => {
+        await tx.insert(agent).values({
+          defaultModelId: input.defaultModelId,
+          description: input.description,
+          id,
+          name: input.name,
+          systemPrompt: input.systemPrompt,
+          userId,
+        });
 
-    const insertTools =
-      input.tools.length > 0
-        ? db.insert(agentTool).values(
+        if (input.tools.length > 0) {
+          await tx.insert(agentTool).values(
             input.tools.map((tool) => {
               return { agentId: id, config: tool.config, toolId: tool.toolId };
             }),
-          )
-        : null;
+          );
+        }
 
-    const insertSubAgents =
-      input.subAgents.length > 0
-        ? db.insert(agentSubagent).values(
+        if (input.subAgents.length > 0) {
+          await tx.insert(agentSubagent).values(
             input.subAgents.map((subAgent) => {
               return {
                 alias: subAgent.alias,
@@ -148,20 +148,10 @@ export const createAgent = (userId: string, input: AgentInput) => {
                 parentAgentId: id,
               };
             }),
-          )
-        : null;
-
-    if (insertTools && insertSubAgents) {
-      yield* runQuery(() => {
-        return db.batch([insertAgent, insertTools, insertSubAgents]);
+          );
+        }
       });
-    } else if (insertTools) {
-      yield* runQuery(() => db.batch([insertAgent, insertTools]));
-    } else if (insertSubAgents) {
-      yield* runQuery(() => db.batch([insertAgent, insertSubAgents]));
-    } else {
-      yield* runQuery(() => insertAgent);
-    }
+    });
 
     return { id };
   });
@@ -171,33 +161,31 @@ export const updateAgent = (agentId: string, input: AgentInput) => {
   return Effect.gen(function* () {
     const db = yield* Database;
 
-    const updateRow = db
-      .update(agent)
-      .set({
-        defaultModelId: input.defaultModelId,
-        description: input.description,
-        name: input.name,
-        systemPrompt: input.systemPrompt,
-      })
-      .where(eq(agent.id, agentId));
+    yield* runQuery(() => {
+      return db.transaction(async (tx) => {
+        await tx
+          .update(agent)
+          .set({
+            defaultModelId: input.defaultModelId,
+            description: input.description,
+            name: input.name,
+            systemPrompt: input.systemPrompt,
+          })
+          .where(eq(agent.id, agentId));
 
-    const deleteTools = db.delete(agentTool).where(eq(agentTool.agentId, agentId));
-    const deleteSubAgents = db
-      .delete(agentSubagent)
-      .where(eq(agentSubagent.parentAgentId, agentId));
+        await tx.delete(agentTool).where(eq(agentTool.agentId, agentId));
+        await tx.delete(agentSubagent).where(eq(agentSubagent.parentAgentId, agentId));
 
-    const insertTools =
-      input.tools.length > 0
-        ? db.insert(agentTool).values(
+        if (input.tools.length > 0) {
+          await tx.insert(agentTool).values(
             input.tools.map((tool) => {
               return { agentId, config: tool.config, toolId: tool.toolId };
             }),
-          )
-        : null;
+          );
+        }
 
-    const insertSubAgents =
-      input.subAgents.length > 0
-        ? db.insert(agentSubagent).values(
+        if (input.subAgents.length > 0) {
+          await tx.insert(agentSubagent).values(
             input.subAgents.map((subAgent) => {
               return {
                 alias: subAgent.alias,
@@ -206,24 +194,10 @@ export const updateAgent = (agentId: string, input: AgentInput) => {
                 parentAgentId: agentId,
               };
             }),
-          )
-        : null;
-
-    if (insertTools && insertSubAgents) {
-      yield* runQuery(() => {
-        return db.batch([updateRow, deleteTools, deleteSubAgents, insertTools, insertSubAgents]);
+          );
+        }
       });
-    } else if (insertTools) {
-      yield* runQuery(() => {
-        return db.batch([updateRow, deleteTools, deleteSubAgents, insertTools]);
-      });
-    } else if (insertSubAgents) {
-      yield* runQuery(() => {
-        return db.batch([updateRow, deleteTools, deleteSubAgents, insertSubAgents]);
-      });
-    } else {
-      yield* runQuery(() => db.batch([updateRow, deleteTools, deleteSubAgents]));
-    }
+    });
   });
 };
 

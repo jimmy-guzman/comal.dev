@@ -22,9 +22,15 @@ const hasRetryableSqlState = (code: string | undefined) => {
   return RETRYABLE_SQLSTATE_PREFIXES.some((prefix) => code.startsWith(prefix));
 };
 
+const isNeonControlPlaneError = (error: NeonDbError) => {
+  return !error.code && error.message.includes("Server error (HTTP status 5");
+};
+
 export const isRetryableDbError = (error: unknown) => {
   if (error instanceof NeonDbError) {
     if (hasRetryableSqlState(error.code)) return true;
+
+    if (isNeonControlPlaneError(error)) return true;
 
     const source = error.sourceError;
 

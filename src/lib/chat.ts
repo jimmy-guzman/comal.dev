@@ -79,10 +79,8 @@ export const listConversationsForAgent = (
 
 /**
  * Atomically inserts a new conversation row and its first user-message event in
- * a single Neon HTTP `db.batch([...])`. This avoids the orphan-row case where a
- * standalone conversation insert succeeds but the subsequent first-event
- * insert fails. Neon HTTP has no multi-statement transactions; `db.batch` runs
- * the given queries atomically via the HTTP transaction endpoint.
+ * a single transaction. This avoids the orphan-row case where a standalone
+ * conversation insert succeeds but the subsequent first-event insert fails.
  */
 export const createConversationWithFirstUserMessage = ({
   agentId,
@@ -113,17 +111,17 @@ export const createConversationWithFirstUserMessage = ({
     const id = nanoid();
 
     yield* runQuery(() => {
-      return db.batch([
-        db.insert(conversation).values({ agentId, id, modelId, title, userId }),
-        db.insert(chatEvent).values({
+      return db.transaction(async (tx) => {
+        await tx.insert(conversation).values({ agentId, id, modelId, title, userId });
+        await tx.insert(chatEvent).values({
           conversationId: id,
           eventType: "user-message",
           messageId: userMessage.id,
           modelId,
           payload: validatedPayload,
           role: "user",
-        }),
-      ]);
+        });
+      });
     });
 
     return { id };
