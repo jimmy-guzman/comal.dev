@@ -18,10 +18,8 @@ const retrySchedule = Schedule.exponential("100 millis").pipe(
 );
 
 /**
- * Wraps a single-statement database query in an Effect with retry on transient failures.
- * For multi-statement atomic writes, pass a `db.batch([...])` call as the query: Neon HTTP
- * does not support `db.transaction()`, but `db.batch([...])` runs the given queries
- * atomically via Neon's HTTP transaction endpoint and is safe to retry as a unit.
+ * Wraps a read query in an Effect with retry on transient connection failures.
+ * Only use for idempotent operations (selects, or writes that are safe to repeat).
  */
 export const runQuery = <A>(query: () => Promise<A>) => {
   return Effect.tryPromise({
@@ -35,4 +33,15 @@ export const runQuery = <A>(query: () => Promise<A>) => {
     }),
     Effect.retry(retrySchedule),
   );
+};
+
+/**
+ * Wraps a write/transaction in an Effect without retry. Use for non-idempotent
+ * mutations where replaying the closure could cause duplicates.
+ */
+export const runMutation = <A>(query: () => Promise<A>) => {
+  return Effect.tryPromise({
+    catch: (cause) => new DatabaseError({ cause }),
+    try: query,
+  });
 };
