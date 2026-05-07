@@ -2,6 +2,8 @@ import { and, desc, eq, inArray, notInArray } from "drizzle-orm";
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
 
+import type { Scorer } from "@/lib/eval-input-schema";
+
 import { agent, agentSubagent, agentTool } from "@/db/schemas/agent-schema";
 import { agentEval } from "@/db/schemas/eval-schema";
 import { Database, runMutation, runQuery } from "@/db/service";
@@ -23,7 +25,7 @@ interface AgentEvalInput {
   id?: string;
   input: string;
   name: string;
-  scorer: string;
+  scorer: Scorer;
 }
 
 interface AgentInput {

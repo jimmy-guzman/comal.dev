@@ -3,6 +3,8 @@ import { Effect, Exit } from "effect";
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
+import type { Scorer } from "@/lib/eval-input-schema";
+
 import { MODEL_IDS } from "@/config/models";
 import { appRuntime } from "@/db/service";
 import { detectCycle } from "@/lib/agent-graph";
@@ -145,7 +147,9 @@ export const buildAgentsUpdate = (_config: unknown, context: ToolContext) => {
         updateAgent(agentId, {
           defaultModelId,
           description,
-          evals: agentExit.value.evals,
+          evals: agentExit.value.evals.map((e) => {
+            return { ...e, scorer: e.scorer as Scorer };
+          }),
           name,
           subAgents: resolvedSubAgents,
           systemPrompt,
