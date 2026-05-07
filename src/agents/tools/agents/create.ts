@@ -110,6 +110,7 @@ export const buildAgentsCreate = (_config: unknown, context: ToolContext) => {
         createAgent(context.userId, {
           defaultModelId: modelId,
           description,
+          evals: [],
           name,
           subAgents: resolvedSubAgents,
           systemPrompt,

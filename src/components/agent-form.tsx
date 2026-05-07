@@ -9,9 +9,11 @@ import { z } from "zod";
 
 import type { OwnedAgent } from "@/components/agent-subagent-picker";
 import type { ModelId } from "@/config/models";
+import type { Scorer } from "@/lib/eval-input-schema";
 
 import { createAgentAction } from "@/actions/create-agent";
 import { updateAgentAction } from "@/actions/update-agent";
+import { AgentEvalPicker } from "@/components/agent-eval-picker";
 import { AgentSubagentPicker } from "@/components/agent-subagent-picker";
 import { AgentToolPicker } from "@/components/agent-tool-picker";
 import { Button } from "@/components/ui/button";
@@ -30,10 +32,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { MODEL_GROUPS, MODEL_IDS } from "@/config/models";
 import { initialToolSelections } from "@/lib/agent-tool-selection";
+import { SCORER_OPTIONS } from "@/lib/eval-input-schema";
 
 const formSchema = z.object({
   defaultModelId: z.enum(MODEL_IDS),
   description: z.string().trim().max(500),
+  evals: z.array(
+    z.object({
+      expected: z.string().trim().min(1).max(10_000),
+      id: z.string().optional(),
+      input: z.string().trim().min(1).max(10_000),
+      name: z.string().trim().min(1).max(200),
+      scorer: z.enum(SCORER_OPTIONS),
+    }),
+  ),
   name: z.string().trim().min(1).max(100),
   subAgents: z
     .array(
@@ -94,6 +106,7 @@ const formSchema = z.object({
 interface InitialAgent {
   defaultModelId: string;
   description: null | string;
+  evals: { expected: string; id: string; input: string; name: string; scorer: Scorer }[];
   id: string;
   name: string;
   subAgents: { alias: string; childAgentId: string; descriptionOverride: null | string }[];
@@ -101,7 +114,15 @@ interface InitialAgent {
   tools: { config: unknown; toolId: string }[];
 }
 
+interface EvalRun {
+  evalId: string;
+  lastRunAt: Date | null;
+  lastRunOutput: null | string;
+  lastRunScore: null | number;
+}
+
 interface Props {
+  evalRuns?: EvalRun[];
   initialAgent?: InitialAgent;
   ownedAgents?: OwnedAgent[];
 }
@@ -152,6 +173,7 @@ const DEFAULT_OWNED_AGENTS: OwnedAgent[] = [];
 
 const TAB_FIELDS = {
   basics: ["name", "description", "defaultModelId"],
+  evals: ["evals"],
   prompt: ["systemPrompt"],
   "sub-agents": ["subAgents"],
   tools: ["tools"],
@@ -168,7 +190,13 @@ const ErrorDot = () => {
   );
 };
 
-export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: Props) => {
+const DEFAULT_EVAL_RUNS: EvalRun[] = [];
+
+export const AgentForm = ({
+  evalRuns = DEFAULT_EVAL_RUNS,
+  initialAgent,
+  ownedAgents = DEFAULT_OWNED_AGENTS,
+}: Props) => {
   const router = useRouter();
   const isEdit = Boolean(initialAgent);
   const [subAgentErrors, setSubAgentErrors] = useState<{ message: string }[]>([]);
@@ -200,6 +228,18 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
     defaultValues: {
       defaultModelId: resolveModelId(initialAgent?.defaultModelId),
       description: initialAgent?.description ?? "",
+      evals:
+        initialAgent?.evals.map(
+          (e): { expected: string; id?: string; input: string; name: string; scorer: Scorer } => {
+            return {
+              expected: e.expected,
+              id: e.id,
+              input: e.input,
+              name: e.name,
+              scorer: e.scorer,
+            };
+          },
+        ) ?? [],
       name: initialAgent?.name ?? "",
       subAgents:
         initialAgent?.subAgents.map((s) => {
@@ -220,6 +260,15 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
       const input = {
         defaultModelId: value.defaultModelId,
         description: value.description.trim() || undefined,
+        evals: value.evals.map((e) => {
+          return {
+            expected: e.expected.trim(),
+            id: e.id,
+            input: e.input.trim(),
+            name: e.name.trim(),
+            scorer: e.scorer,
+          };
+        }),
         name: value.name.trim(),
         subAgents: value.subAgents.map((s) => {
           return {
@@ -277,7 +326,7 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
     >
       <Tabs className="flex flex-col" defaultValue="basics">
         <TabsList className="w-full justify-start" variant="line">
-          {(["basics", "prompt", "tools", "sub-agents"] satisfies TabKey[]).map((tab) => {
+          {(["basics", "prompt", "tools", "sub-agents", "evals"] satisfies TabKey[]).map((tab) => {
             const label =
               tab === "basics"
                 ? "Basics"
@@ -285,7 +334,9 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
                   ? "Prompt"
                   : tab === "tools"
                     ? "Tools"
-                    : "Sub-agents";
+                    : tab === "sub-agents"
+                      ? "Sub-agents"
+                      : "Evals";
             const hasError = tabHasError(tab);
 
             return (
@@ -480,6 +531,30 @@ export const AgentForm = ({ initialAgent, ownedAgents = DEFAULT_OWNED_AGENTS }: 
                     value={field.state.value}
                   />
                   <FieldError errors={[...subAgentErrors, ...field.state.meta.errors]} />
+                </Field>
+              );
+            }}
+          </form.Field>
+        </TabsContent>
+
+        <TabsContent className="mt-6" value="evals">
+          <form.Field mode="array" name="evals">
+            {(field) => {
+              return (
+                <Field>
+                  <FieldLabel>evals</FieldLabel>
+                  <FieldDescription>
+                    test cases for your agent. each eval sends a fixed input and checks the
+                    response.
+                  </FieldDescription>
+                  <AgentEvalPicker
+                    initialRuns={evalRuns}
+                    isEdit={isEdit}
+                    onChange={(next) => {
+                      field.handleChange(next);
+                    }}
+                    value={field.state.value}
+                  />
                 </Field>
               );
             }}

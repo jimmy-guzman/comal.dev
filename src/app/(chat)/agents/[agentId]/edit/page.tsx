@@ -2,10 +2,13 @@ import { Effect } from "effect";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import type { Scorer } from "@/lib/eval-input-schema";
+
 import { AgentForm } from "@/components/agent-form";
 import { appRuntime } from "@/db/service";
 import { getAgentForUser, listAgentsForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
+import { listEvalRunsForAgent } from "@/lib/evals";
 
 interface Props {
   params: Promise<{ agentId: string }>;
@@ -18,12 +21,13 @@ export default async function EditAgentPage({ params }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const [agent, ownedAgents] = await appRuntime.runPromise(
+  const [agent, ownedAgents, evalRuns] = await appRuntime.runPromise(
     Effect.all([
       getAgentForUser(agentId, session.user.id).pipe(
         Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
       ),
       listAgentsForUser(session.user.id),
+      listEvalRunsForAgent(agentId),
     ]),
   );
 
@@ -38,9 +42,11 @@ export default async function EditAgentPage({ params }: Props) {
         <p className="text-muted-foreground text-sm">{agent.name}</p>
       </div>
       <AgentForm
+        evalRuns={evalRuns}
         initialAgent={{
           defaultModelId: agent.defaultModelId,
           description: agent.description,
+          evals: agent.evals.map((e) => ({ ...e, scorer: e.scorer as Scorer })),
           id: agent.id,
           name: agent.name,
           subAgents: agent.subAgents,

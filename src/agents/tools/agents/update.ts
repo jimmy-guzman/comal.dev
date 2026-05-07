@@ -145,6 +145,7 @@ export const buildAgentsUpdate = (_config: unknown, context: ToolContext) => {
         updateAgent(agentId, {
           defaultModelId,
           description,
+          evals: agentExit.value.evals,
           name,
           subAgents: resolvedSubAgents,
           systemPrompt,
