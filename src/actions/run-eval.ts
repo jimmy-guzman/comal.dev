@@ -4,6 +4,8 @@ import { generateText } from "ai";
 import { Effect, Exit } from "effect";
 import { z } from "zod";
 
+import type { Scorer } from "@/lib/eval-input-schema";
+
 import { loadAgent } from "@/agents";
 import { appRuntime } from "@/db/service";
 import { LLMError, NotFoundError } from "@/lib/errors";
@@ -11,6 +13,8 @@ import { scoreEval } from "@/lib/eval-scorer";
 import { createEvalRun, getEvalWithOwnership } from "@/lib/evals";
 import { openrouter } from "@/lib/openrouter";
 import { authClient } from "@/lib/safe-action";
+
+const MAX_OUTPUT_TOKENS = 2048;
 
 export const runEvalAction = authClient
   .inputSchema(z.object({ evalId: z.string().min(1) }))
@@ -23,6 +27,7 @@ export const runEvalAction = authClient
         catch: (cause) => new LLMError({ cause }),
         try: () => {
           return generateText({
+            maxOutputTokens: MAX_OUTPUT_TOKENS,
             messages: [{ content: evalRow.input, role: "user" }],
             model: openrouter(agentConfig.defaultModelId),
             system: agentConfig.systemPrompt,
@@ -32,7 +37,7 @@ export const runEvalAction = authClient
       });
 
       const output = result.text;
-      const score = scoreEval(evalRow.scorer as "contains" | "exact", output, evalRow.expected);
+      const score = scoreEval(evalRow.scorer as Scorer, output, evalRow.expected);
 
       yield* createEvalRun(parsedInput.evalId, score, output);
 

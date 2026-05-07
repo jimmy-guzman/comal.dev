@@ -1,5 +1,5 @@
 {
-  "id": "9dc3500d-3b03-4c4e-87e4-ceeb68220b86",
+  "id": "96feb3b5-4a8d-4051-a9c6-18e8d85c6f3a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1247,7 +1247,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "agent_eval_scorer_valid": {
+          "name": "agent_eval_scorer_valid",
+          "value": "\"agent_eval\".\"scorer\" IN ('contains', 'exact')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.agent_eval_run": {
@@ -1281,7 +1286,7 @@
         },
         "score": {
           "name": "score",
-          "type": "real",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         }
@@ -1317,7 +1322,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "agent_eval_run_score_valid": {
+          "name": "agent_eval_run_score_valid",
+          "value": "\"agent_eval_run\".\"score\" IN (0, 1)"
+        }
+      },
       "isRLSEnabled": false
     }
   },

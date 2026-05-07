@@ -1,4 +1,4 @@
-type Scorer = "contains" | "exact";
+import type { Scorer } from "@/lib/eval-input-schema";
 
 export const scoreEval = (scorer: Scorer, output: string, expected: string): 0 | 1 => {
   if (scorer === "contains") {

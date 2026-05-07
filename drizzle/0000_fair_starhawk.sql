@@ -138,7 +138,8 @@ CREATE TABLE "agent_eval" (
 	"input" text NOT NULL,
 	"name" text NOT NULL,
 	"scorer" text NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "agent_eval_scorer_valid" CHECK ("agent_eval"."scorer" IN ('contains', 'exact'))
 );
 --> statement-breakpoint
 CREATE TABLE "agent_eval_run" (
@@ -146,7 +147,8 @@ CREATE TABLE "agent_eval_run" (
 	"eval_id" text NOT NULL,
 	"id" text PRIMARY KEY NOT NULL,
 	"output" text NOT NULL,
-	"score" real NOT NULL
+	"score" integer NOT NULL,
+	CONSTRAINT "agent_eval_run_score_valid" CHECK ("agent_eval_run"."score" IN (0, 1))
 );
 --> statement-breakpoint
 ALTER TABLE "agent" ADD CONSTRAINT "agent_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

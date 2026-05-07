@@ -3,6 +3,7 @@
 import { CheckCircleIcon, LoaderIcon, PlayIcon, XCircleIcon } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import type { Scorer } from "@/lib/eval-input-schema";
 
@@ -98,6 +99,9 @@ const EvalRow = ({
   const [runResult, setRunResult] = useState<EvalRunResult | null>(null);
 
   const { execute, isPending } = useAction(runEvalAction, {
+    onError: ({ error }) => {
+      toast.error(error.serverError ?? "failed to run eval.");
+    },
     onSuccess: ({ data }) => {
       setRunResult(data);
     },

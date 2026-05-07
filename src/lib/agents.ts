@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, notInArray } from "drizzle-orm";
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
 
@@ -212,7 +212,6 @@ export const updateAgent = (agentId: string, input: AgentInput) => {
 
         await tx.delete(agentTool).where(eq(agentTool.agentId, agentId));
         await tx.delete(agentSubagent).where(eq(agentSubagent.parentAgentId, agentId));
-        await tx.delete(agentEval).where(eq(agentEval.agentId, agentId));
 
         if (input.tools.length > 0) {
           await tx.insert(agentTool).values(
@@ -235,19 +234,35 @@ export const updateAgent = (agentId: string, input: AgentInput) => {
           );
         }
 
-        if (input.evals.length > 0) {
-          await tx.insert(agentEval).values(
-            input.evals.map((evalEntry) => {
-              return {
+        const keepEvalIds = input.evals
+          .map((e) => e.id)
+          .filter((id): id is string => id !== undefined);
+
+        await (keepEvalIds.length > 0
+          ? tx
+              .delete(agentEval)
+              .where(and(eq(agentEval.agentId, agentId), notInArray(agentEval.id, keepEvalIds)))
+          : tx.delete(agentEval).where(eq(agentEval.agentId, agentId)));
+
+        for (const evalEntry of input.evals) {
+          await (evalEntry.id
+            ? tx
+                .update(agentEval)
+                .set({
+                  expected: evalEntry.expected,
+                  input: evalEntry.input,
+                  name: evalEntry.name,
+                  scorer: evalEntry.scorer,
+                })
+                .where(eq(agentEval.id, evalEntry.id))
+            : tx.insert(agentEval).values({
                 agentId,
                 expected: evalEntry.expected,
-                id: evalEntry.id ?? nanoid(),
+                id: nanoid(),
                 input: evalEntry.input,
                 name: evalEntry.name,
                 scorer: evalEntry.scorer,
-              };
-            }),
-          );
+              }));
         }
       });
     });

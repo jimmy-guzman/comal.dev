@@ -1,5 +1,5 @@
-import { relations } from "drizzle-orm";
-import { index, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import { check, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { agent } from "./agent-schema";
 
@@ -20,7 +20,12 @@ export const agentEval = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index("agent_eval_agentId_idx").on(table.agentId)],
+  (table) => {
+    return [
+      index("agent_eval_agentId_idx").on(table.agentId),
+      check("agent_eval_scorer_valid", sql`${table.scorer} IN ('contains', 'exact')`),
+    ];
+  },
 );
 
 export const agentEvalRun = pgTable(
@@ -32,9 +37,14 @@ export const agentEvalRun = pgTable(
       .references(() => agentEval.id, { onDelete: "cascade" }),
     id: text("id").primaryKey(),
     output: text("output").notNull(),
-    score: real("score").notNull(),
+    score: integer("score").notNull(),
   },
-  (table) => [index("agent_eval_run_evalId_idx").on(table.evalId)],
+  (table) => {
+    return [
+      index("agent_eval_run_evalId_idx").on(table.evalId),
+      check("agent_eval_run_score_valid", sql`${table.score} IN (0, 1)`),
+    ];
+  },
 );
 
 export const agentEvalRelations = relations(agentEval, ({ many, one }) => {
