@@ -254,7 +254,7 @@ export const updateAgent = (agentId: string, input: AgentInput) => {
                   name: evalEntry.name,
                   scorer: evalEntry.scorer,
                 })
-                .where(eq(agentEval.id, evalEntry.id))
+                .where(and(eq(agentEval.id, evalEntry.id), eq(agentEval.agentId, agentId)))
             : tx.insert(agentEval).values({
                 agentId,
                 expected: evalEntry.expected,
