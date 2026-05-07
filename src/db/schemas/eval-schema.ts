@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { check, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { check, index, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
 
 import { agent } from "./agent-schema";
 
@@ -23,7 +23,10 @@ export const agentEval = pgTable(
   (table) => {
     return [
       index("agent_eval_agentId_idx").on(table.agentId),
-      check("agent_eval_scorer_valid", sql`${table.scorer} IN ('contains', 'exact')`),
+      check(
+        "agent_eval_scorer_valid",
+        sql`${table.scorer} IN ('contains', 'exact', 'levenshtein')`,
+      ),
     ];
   },
 );
@@ -37,12 +40,12 @@ export const agentEvalRun = pgTable(
       .references(() => agentEval.id, { onDelete: "cascade" }),
     id: text("id").primaryKey(),
     output: text("output").notNull(),
-    score: integer("score").notNull(),
+    score: real("score").notNull(),
   },
   (table) => {
     return [
       index("agent_eval_run_evalId_idx").on(table.evalId),
-      check("agent_eval_run_score_valid", sql`${table.score} IN (0, 1)`),
+      check("agent_eval_run_score_valid", sql`${table.score} >= 0 AND ${table.score} <= 1`),
     ];
   },
 );

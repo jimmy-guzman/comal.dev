@@ -55,6 +55,10 @@ interface Props {
 
 const DEFAULT_INITIAL_RUNS: InitialRun[] = [];
 
+const PASS_THRESHOLD = 0.8;
+
+const formatScore = (score: number) => score.toFixed(2);
+
 const EvalRunBadge = ({ result }: { result: EvalRunResult | InitialRun | null }) => {
   if (!result) {
     return (
@@ -66,11 +70,19 @@ const EvalRunBadge = ({ result }: { result: EvalRunResult | InitialRun | null })
 
   const score = "score" in result ? result.score : result.lastRunScore;
 
-  if (score === 1) {
+  if (score === null) {
+    return (
+      <Badge className="text-xs" variant="secondary">
+        no runs
+      </Badge>
+    );
+  }
+
+  if (score >= PASS_THRESHOLD) {
     return (
       <Badge className="gap-1 text-xs" variant="secondary">
         <CheckCircleIcon className="size-3 text-green-600" />
-        pass
+        pass {formatScore(score)}
       </Badge>
     );
   }
@@ -78,7 +90,7 @@ const EvalRunBadge = ({ result }: { result: EvalRunResult | InitialRun | null })
   return (
     <Badge className="gap-1 text-xs" variant="secondary">
       <XCircleIcon className="size-3 text-red-600" />
-      fail
+      fail {formatScore(score)}
     </Badge>
   );
 };

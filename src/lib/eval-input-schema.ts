@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SCORER_OPTIONS = ["contains", "exact"] as const;
+export const SCORER_OPTIONS = ["contains", "exact", "levenshtein"] as const;
 
 export type Scorer = (typeof SCORER_OPTIONS)[number];
 
