@@ -155,7 +155,12 @@ const findStaleCandidates = (mergedBranches: Set<string>): { branch: string; rea
 const getRegisteredWorktreePaths = (): Set<string> => {
   const output = gitOrNull(["worktree", "list", "--porcelain"], { cwd: repoRoot });
 
-  if (!output) return new Set();
+  if (!output) {
+    throw new Error(
+      `Failed to list registered worktrees (git worktree list --porcelain) in ${repoRoot}. ` +
+        "Run the command manually to diagnose the failure.",
+    );
+  }
 
   const paths = new Set<string>();
 
