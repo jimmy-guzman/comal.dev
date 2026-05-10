@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, rmSync } from "node:fs";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 
 const printUsage = () => {
@@ -152,9 +152,41 @@ const findStaleCandidates = (mergedBranches: Set<string>): { branch: string; rea
   return candidates;
 };
 
+const getRegisteredWorktreePaths = (): Set<string> => {
+  const output = gitOrNull(["worktree", "list", "--porcelain"], { cwd: repoRoot });
+
+  if (!output) return new Set();
+
+  const paths = new Set<string>();
+
+  for (const line of output.split("\n")) {
+    if (line.startsWith("worktree ")) {
+      paths.add(line.slice("worktree ".length));
+    }
+  }
+
+  return paths;
+};
+
 const removeWorktrees = (candidates: { branch: string; reason: string }[]) => {
+  const registeredPaths = getRegisteredWorktreePaths();
+
   for (const { branch, reason } of candidates) {
     const worktreePath = resolve(worktreesRoot, branch);
+
+    if (!registeredPaths.has(worktreePath)) {
+      rmSync(worktreePath, { force: true, recursive: true });
+      process.stdout.write(`Removed leftover directory ${branch} (${reason})\n`);
+
+      const deleted = tryGit(["branch", "-d", branch], { cwd: repoRoot });
+
+      if (deleted) {
+        process.stdout.write(`Deleted branch ${branch}\n`);
+      }
+
+      continue;
+    }
+
     const removeArgs = ["worktree", "remove"];
 
     if (force) removeArgs.push("--force");
