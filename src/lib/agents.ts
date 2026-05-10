@@ -1,8 +1,11 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, notInArray } from "drizzle-orm";
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
 
+import type { Scorer } from "@/lib/eval-input-schema";
+
 import { agent, agentSubagent, agentTool } from "@/db/schemas/agent-schema";
+import { agentEval } from "@/db/schemas/eval-schema";
 import { Database, runMutation, runQuery } from "@/db/service";
 import { ForbiddenError, NotFoundError } from "@/lib/errors";
 
@@ -17,9 +20,18 @@ interface AgentSubAgentInput {
   descriptionOverride?: string;
 }
 
+interface AgentEvalInput {
+  expected: string;
+  id?: string;
+  input: string;
+  name: string;
+  scorer: Scorer;
+}
+
 interface AgentInput {
   defaultModelId: string;
   description?: string;
+  evals: AgentEvalInput[];
   name: string;
   subAgents: AgentSubAgentInput[];
   systemPrompt: string;
@@ -66,7 +78,7 @@ export const getAgentForUser = (agentId: string, userId: string) => {
       return yield* Effect.fail(new NotFoundError({ resource: "agent" }));
     }
 
-    const [tools, subAgents] = yield* Effect.all(
+    const [tools, subAgents, evals] = yield* Effect.all(
       [
         runQuery(() => {
           return db
@@ -84,11 +96,23 @@ export const getAgentForUser = (agentId: string, userId: string) => {
             .from(agentSubagent)
             .where(eq(agentSubagent.parentAgentId, agentId));
         }),
+        runQuery(() => {
+          return db
+            .select({
+              expected: agentEval.expected,
+              id: agentEval.id,
+              input: agentEval.input,
+              name: agentEval.name,
+              scorer: agentEval.scorer,
+            })
+            .from(agentEval)
+            .where(eq(agentEval.agentId, agentId));
+        }),
       ],
       { concurrency: "unbounded" },
     );
 
-    return { ...row, subAgents, tools };
+    return { ...row, evals, subAgents, tools };
   });
 };
 
@@ -150,6 +174,21 @@ export const createAgent = (userId: string, input: AgentInput) => {
             }),
           );
         }
+
+        if (input.evals.length > 0) {
+          await tx.insert(agentEval).values(
+            input.evals.map((evalEntry) => {
+              return {
+                agentId: id,
+                expected: evalEntry.expected,
+                id: nanoid(),
+                input: evalEntry.input,
+                name: evalEntry.name,
+                scorer: evalEntry.scorer,
+              };
+            }),
+          );
+        }
       });
     });
 
@@ -195,6 +234,37 @@ export const updateAgent = (agentId: string, input: AgentInput) => {
               };
             }),
           );
+        }
+
+        const keepEvalIds = input.evals
+          .map((e) => e.id)
+          .filter((id): id is string => id !== undefined);
+
+        await (keepEvalIds.length > 0
+          ? tx
+              .delete(agentEval)
+              .where(and(eq(agentEval.agentId, agentId), notInArray(agentEval.id, keepEvalIds)))
+          : tx.delete(agentEval).where(eq(agentEval.agentId, agentId)));
+
+        for (const evalEntry of input.evals) {
+          await (evalEntry.id
+            ? tx
+                .update(agentEval)
+                .set({
+                  expected: evalEntry.expected,
+                  input: evalEntry.input,
+                  name: evalEntry.name,
+                  scorer: evalEntry.scorer,
+                })
+                .where(and(eq(agentEval.id, evalEntry.id), eq(agentEval.agentId, agentId)))
+            : tx.insert(agentEval).values({
+                agentId,
+                expected: evalEntry.expected,
+                id: nanoid(),
+                input: evalEntry.input,
+                name: evalEntry.name,
+                scorer: evalEntry.scorer,
+              }));
         }
       });
     });
