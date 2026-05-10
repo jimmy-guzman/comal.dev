@@ -70,6 +70,7 @@ flowchart TB
 - Approval-gated tools that pause and ask before running
 - Conversation history with per-conversation model switching
 - Sub-agents: let an agent call other agents you own as tools
+- Evals: attach input/expected pairs to an agent, pick a scorer (contains, exact, or Levenshtein), and run them on demand to track how well the agent performs
 - Conversational agent management via Comal, a system agent that can create and configure agents through chat
 
 ## Tools
