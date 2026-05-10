@@ -187,6 +187,8 @@ const removeWorktrees = (candidates: { branch: string; reason: string }[]) => {
 
       if (deleted) {
         process.stdout.write(`Deleted branch ${branch}\n`);
+      } else {
+        process.stderr.write(`Failed to delete branch ${branch} in ${repoRoot}\n`);
       }
 
       continue;
