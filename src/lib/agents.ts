@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import type { Scorer } from "@/lib/eval-input-schema";
 
 import { agent, agentSubagent, agentTool, agentVersion } from "@/db/schemas/agent-schema";
+import { user } from "@/db/schemas/auth-schema";
 import { agentEval } from "@/db/schemas/eval-schema";
 import { Database, runMutation, runQuery } from "@/db/service";
 import { ForbiddenError, NotFoundError } from "@/lib/errors";
@@ -144,7 +145,7 @@ const buildVersionTools = (tools: AgentToolInput[]) => {
 
 const buildVersionSubAgents = (subAgents: AgentSubAgentInput[]) => {
   return subAgents.map(({ alias, childAgentId, descriptionOverride }) => {
-    return { alias, childAgentId, descriptionOverride };
+    return {alias, childAgentId, descriptionOverride: descriptionOverride ?? null};
   });
 };
 
@@ -338,5 +339,57 @@ export const listOwnedAgentIds = (userId: string, agentIds: string[]) => {
         .from(agent)
         .where(and(eq(agent.userId, userId), inArray(agent.id, agentIds)));
     });
+  });
+};
+
+export type AgentVersionRow = Pick<
+  typeof agentVersion.$inferSelect,
+  "createdAt" | "createdBy" | "id" | "modelId" | "subAgents" | "systemPrompt" | "tools"
+> & { creatorName: string };
+
+export const listAgentVersions = (agentId: string, userId: string) => {
+  return Effect.gen(function* () {
+    const db = yield* Database;
+
+    return yield* runQuery(() => {
+      return db
+        .select({
+          createdAt: agentVersion.createdAt,
+          createdBy: agentVersion.createdBy,
+          creatorName: user.name,
+          id: agentVersion.id,
+          modelId: agentVersion.modelId,
+          subAgents: agentVersion.subAgents,
+          systemPrompt: agentVersion.systemPrompt,
+          tools: agentVersion.tools,
+        })
+        .from(agentVersion)
+        .innerJoin(user, eq(user.id, agentVersion.createdBy))
+        .innerJoin(agent, eq(agent.id, agentVersion.agentId))
+        .where(and(eq(agentVersion.agentId, agentId), eq(agent.userId, userId)))
+        .orderBy(desc(agentVersion.createdAt));
+    });
+  });
+};
+
+export const getAgentVersion = (versionId: string, agentId: string) => {
+  return Effect.gen(function* () {
+    const db = yield* Database;
+
+    const rows = yield* runQuery(() => {
+      return db
+        .select()
+        .from(agentVersion)
+        .where(and(eq(agentVersion.id, versionId), eq(agentVersion.agentId, agentId)))
+        .limit(1);
+    });
+
+    const row = rows.at(0);
+
+    if (!row) {
+      return yield* Effect.fail(new NotFoundError({ resource: "agent version" }));
+    }
+
+    return row;
   });
 };

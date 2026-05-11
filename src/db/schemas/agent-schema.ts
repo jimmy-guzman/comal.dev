@@ -90,9 +90,15 @@ export const agentVersion = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     id: text("id").primaryKey(),
     modelId: text("model_id").notNull(),
-    subAgents: jsonb("sub_agents").notNull().default([]),
+    subAgents: jsonb("sub_agents")
+      .$type<Pick<typeof agentSubagent.$inferSelect, "alias" | "childAgentId" | "descriptionOverride">[]>()
+      .notNull()
+      .default([]),
     systemPrompt: text("system_prompt").notNull(),
-    tools: jsonb("tools").notNull().default([]),
+    tools: jsonb("tools")
+      .$type<Pick<typeof agentTool.$inferSelect, "config" | "toolId">[]>()
+      .notNull()
+      .default([]),
   },
   (table) => {
     return [
