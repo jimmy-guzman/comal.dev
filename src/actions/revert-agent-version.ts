@@ -100,7 +100,11 @@ export const revertAgentVersionAction = authClient
         evals: agentRow.evals.map((e) => ({ ...e, scorer: e.scorer as Scorer })),
         name: agentRow.name,
         subAgents: version.subAgents.map((s) => {
-          return {alias: s.alias, childAgentId: s.childAgentId, descriptionOverride: s.descriptionOverride ?? undefined};
+          return {
+            alias: s.alias,
+            childAgentId: s.childAgentId,
+            descriptionOverride: s.descriptionOverride ?? undefined,
+          };
         }),
         systemPrompt: version.systemPrompt,
         tools: version.tools,

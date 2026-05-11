@@ -11,42 +11,13 @@ import type { AgentVersionRow } from "@/lib/agents";
 import { revertAgentVersionAction } from "@/actions/revert-agent-version";
 import { AgentVersionDiffDialog } from "@/components/agent-version-diff-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { formatRelative } from "@/lib/format-relative";
 
 interface Props {
   agentId: string;
   versions: AgentVersionRow[];
 }
-
-const DIVISIONS = [
-  { amount: 60, name: "seconds" },
-  { amount: 60, name: "minutes" },
-  { amount: 24, name: "hours" },
-  { amount: 7, name: "days" },
-  { amount: 4.345_24, name: "weeks" },
-  { amount: 12, name: "months" },
-  { amount: Number.POSITIVE_INFINITY, name: "years" },
-] as const satisfies readonly { amount: number; name: Intl.RelativeTimeFormatUnit }[];
-
-const relativeTimeFormatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-
-const formatRelative = (date: Date) => {
-  let duration = (date.getTime() - Date.now()) / 1000;
-
-  for (const division of DIVISIONS) {
-    if (Math.abs(duration) < division.amount) {
-      return relativeTimeFormatter.format(Math.round(duration), division.name);
-    }
-
-    duration /= division.amount;
-  }
-
-  return relativeTimeFormatter.format(Math.round(duration), "years");
-};
 
 const buildSummary = (version: AgentVersionRow, previous: AgentVersionRow | undefined) => {
   if (!previous) return "initial version";
@@ -159,7 +130,8 @@ export const AgentVersionHistory = ({ agentId, versions }: Props) => {
         <CollapsibleContent>
           <div className="divide-y">
             {versions.map((version, idx) => {
-              return <VersionRowItem
+              return (
+                <VersionRowItem
                   agentId={agentId}
                   key={version.id}
                   onCompare={() => {
@@ -167,7 +139,8 @@ export const AgentVersionHistory = ({ agentId, versions }: Props) => {
                   }}
                   previous={versions[idx + 1]}
                   version={version}
-                />;
+                />
+              );
             })}
           </div>
         </CollapsibleContent>

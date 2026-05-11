@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { formatRelative } from "@/lib/format-relative";
 
 interface Props {
   agentId: string;
@@ -37,32 +38,6 @@ interface Props {
   open: boolean;
   versions: AgentVersionRow[];
 }
-
-const DIVISIONS = [
-  { amount: 60, name: "seconds" },
-  { amount: 60, name: "minutes" },
-  { amount: 24, name: "hours" },
-  { amount: 7, name: "days" },
-  { amount: 4.345_24, name: "weeks" },
-  { amount: 12, name: "months" },
-  { amount: Number.POSITIVE_INFINITY, name: "years" },
-] as const satisfies readonly { amount: number; name: Intl.RelativeTimeFormatUnit }[];
-
-const relativeTimeFormatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-
-const formatRelative = (date: Date) => {
-  let duration = (date.getTime() - Date.now()) / 1000;
-
-  for (const division of DIVISIONS) {
-    if (Math.abs(duration) < division.amount) {
-      return relativeTimeFormatter.format(Math.round(duration), division.name);
-    }
-
-    duration /= division.amount;
-  }
-
-  return relativeTimeFormatter.format(Math.round(duration), "years");
-};
 
 interface VersionPickerProps {
   disabledId: string;
@@ -93,7 +68,8 @@ const VersionPicker = ({ disabledId, label, onChange, value, versions }: Version
               <CommandEmpty>no versions found.</CommandEmpty>
               <CommandGroup>
                 {versions.map((v) => {
-                  return <CommandItem
+                  return (
+                    <CommandItem
                       data-checked={v.id === value}
                       disabled={v.id === disabledId}
                       key={v.id}
@@ -107,7 +83,8 @@ const VersionPicker = ({ disabledId, label, onChange, value, versions }: Version
                         <span>{formatRelative(v.createdAt)}</span>
                         <span className="text-muted-foreground text-xs">{v.creatorName}</span>
                       </div>
-                    </CommandItem>;
+                    </CommandItem>
+                  );
                 })}
               </CommandGroup>
             </CommandList>
@@ -145,43 +122,36 @@ export const AgentVersionDiffDialog = ({
     },
   });
 
-  const modelChanged =
-    Boolean(base) && Boolean(target) && base?.modelId !== target?.modelId;
+  const modelChanged = Boolean(base) && Boolean(target) && base?.modelId !== target?.modelId;
 
   const toolsAdded =
     base && target
       ? target.tools.filter((t) => {
-        return !base.tools.some((bt) => bt.toolId === t.toolId);
-      })
+          return !base.tools.some((bt) => bt.toolId === t.toolId);
+        })
       : [];
 
   const toolsRemoved =
     base && target
       ? base.tools.filter((t) => {
-        return !target.tools.some((tt) => tt.toolId === t.toolId);
-      })
+          return !target.tools.some((tt) => tt.toolId === t.toolId);
+        })
       : [];
 
   const subAgentsAdded =
     base && target
-      ? target.subAgents.filter(
-          (s) => {
-            return !base.subAgents.some((bs) => {
-              return bs.childAgentId === s.childAgentId;
-            });
-          },
-        )
+      ? target.subAgents.filter((s) => {
+          return !base.subAgents.some((bs) => bs.childAgentId === s.childAgentId);
+        })
       : [];
 
   const subAgentsRemoved =
     base && target
-      ? base.subAgents.filter(
-          (s) => {
-            return !target.subAgents.some((ts) => {
-              return ts.childAgentId === s.childAgentId;
-            });
-          },
-        )
+      ? base.subAgents.filter((s) => {
+          return !target.subAgents.some((ts) => {
+            return ts.childAgentId === s.childAgentId;
+          });
+        })
       : [];
 
   const hasMetadataChanges =
@@ -232,37 +202,42 @@ export const AgentVersionDiffDialog = ({
                   {modelChanged ? (
                     <p className="text-xs">
                       <span className="text-muted-foreground">model</span>{" "}
-                      <span className="opacity-60 line-through">{base.modelId}</span>
+                      <span className="line-through opacity-60">{base.modelId}</span>
                       {" → "}
                       <span>{target.modelId}</span>
                     </p>
                   ) : null}
 
                   {toolsAdded.map((t) => {
-                    return <p className="text-xs text-green-600 dark:text-green-400" key={t.toolId}>
+                    return (
+                      <p className="text-success text-xs" key={t.toolId}>
                         + tool {t.toolId}
-                      </p>;
+                      </p>
+                    );
                   })}
 
                   {toolsRemoved.map((t) => {
-                    return <p className="text-destructive text-xs" key={t.toolId}>
+                    return (
+                      <p className="text-destructive text-xs" key={t.toolId}>
                         - tool {t.toolId}
-                      </p>;
+                      </p>
+                    );
                   })}
 
                   {subAgentsAdded.map((s) => {
-                    return <p
-                        className="text-xs text-green-600 dark:text-green-400"
-                        key={s.childAgentId}
-                      >
+                    return (
+                      <p className="text-success text-xs" key={s.childAgentId}>
                         + sub-agent {s.alias}
-                      </p>;
+                      </p>
+                    );
                   })}
 
                   {subAgentsRemoved.map((s) => {
-                    return <p className="text-destructive text-xs" key={s.childAgentId}>
+                    return (
+                      <p className="text-destructive text-xs" key={s.childAgentId}>
                         - sub-agent {s.alias}
-                      </p>;
+                      </p>
+                    );
                   })}
                 </div>
               ) : null}

@@ -91,7 +91,9 @@ export const agentVersion = pgTable(
     id: text("id").primaryKey(),
     modelId: text("model_id").notNull(),
     subAgents: jsonb("sub_agents")
-      .$type<Pick<typeof agentSubagent.$inferSelect, "alias" | "childAgentId" | "descriptionOverride">[]>()
+      .$type<
+        Pick<typeof agentSubagent.$inferSelect, "alias" | "childAgentId" | "descriptionOverride">[]
+      >()
       .notNull()
       .default([]),
     systemPrompt: text("system_prompt").notNull(),

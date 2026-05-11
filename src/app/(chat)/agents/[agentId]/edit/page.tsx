@@ -58,9 +58,7 @@ export default async function EditAgentPage({ params }: Props) {
         }}
         ownedAgents={ownedAgents}
       />
-      {versions.length > 0 && (
-        <AgentVersionHistory agentId={agentId} versions={versions} />
-      )}
+      {versions.length > 0 && <AgentVersionHistory agentId={agentId} versions={versions} />}
     </div>
   );
 }
