@@ -13,7 +13,10 @@ export interface MapStreamPartContext {
   buffer: SegmentBuffer;
   messageId: string;
   modelId: null | string;
+  toolStartTimes: Map<string, Date>;
 }
+
+const TURN_START_KEY = "__turn__";
 
 export const createSegmentBuffer = (): SegmentBuffer => {
   return { reasoning: new Map(), text: new Map() };
@@ -80,10 +83,12 @@ export const mapStreamPartToEvent = (
 
     case "finish": {
       return {
+        endedAt: new Date(),
         eventType: "assistant-turn-finish" satisfies ChatEventType,
         messageId: ctx.messageId,
         payload: { finishReason: part.finishReason, totalUsage: part.totalUsage },
         role: "assistant",
+        startedAt: ctx.toolStartTimes.get(TURN_START_KEY),
       };
     }
 
@@ -137,11 +142,16 @@ export const mapStreamPartToEvent = (
     }
 
     case "start": {
+      const startedAt = new Date();
+
+      ctx.toolStartTimes.set(TURN_START_KEY, startedAt);
+
       return {
         eventType: "assistant-turn-start" satisfies ChatEventType,
         messageId: ctx.messageId,
         payload: { modelId: ctx.modelId },
         role: "assistant",
+        startedAt,
       };
     }
 
@@ -151,6 +161,7 @@ export const mapStreamPartToEvent = (
         messageId: ctx.messageId,
         payload: {},
         role: "assistant",
+        startedAt: new Date(),
       };
     }
 
@@ -199,6 +210,9 @@ export const mapStreamPartToEvent = (
 
     case "tool-call": {
       const dynamic = "dynamic" in part ? Boolean(part.dynamic) : undefined;
+      const startedAt = new Date();
+
+      ctx.toolStartTimes.set(part.toolCallId, startedAt);
 
       return {
         eventType: "tool-input-complete" satisfies ChatEventType,
@@ -210,11 +224,17 @@ export const mapStreamPartToEvent = (
           toolName: part.toolName,
         },
         role: "assistant",
+        startedAt,
       };
     }
 
     case "tool-error": {
+      const startedAt = ctx.toolStartTimes.get(part.toolCallId);
+
+      ctx.toolStartTimes.delete(part.toolCallId);
+
       return {
+        endedAt: new Date(),
         eventType: "tool-output-error" satisfies ChatEventType,
         messageId: ctx.messageId,
         payload: {
@@ -223,6 +243,7 @@ export const mapStreamPartToEvent = (
           toolName: part.toolName,
         },
         role: "assistant",
+        startedAt,
       };
     }
     case "tool-input-delta":
@@ -232,7 +253,12 @@ export const mapStreamPartToEvent = (
     }
 
     case "tool-output-denied": {
+      const startedAt = ctx.toolStartTimes.get(part.toolCallId);
+
+      ctx.toolStartTimes.delete(part.toolCallId);
+
       return {
+        endedAt: new Date(),
         eventType: "tool-output-denied" satisfies ChatEventType,
         messageId: ctx.messageId,
         payload: {
@@ -241,13 +267,18 @@ export const mapStreamPartToEvent = (
           toolName: part.toolName,
         },
         role: "assistant",
+        startedAt,
       };
     }
 
     case "tool-result": {
       const preliminary = part.preliminary === true ? true : undefined;
+      const startedAt = ctx.toolStartTimes.get(part.toolCallId);
+
+      ctx.toolStartTimes.delete(part.toolCallId);
 
       return {
+        endedAt: new Date(),
         eventType: "tool-output-available" satisfies ChatEventType,
         messageId: ctx.messageId,
         payload: {
@@ -257,6 +288,7 @@ export const mapStreamPartToEvent = (
           toolName: part.toolName,
         },
         role: "assistant",
+        startedAt,
       };
     }
 

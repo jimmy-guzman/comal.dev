@@ -38,12 +38,14 @@ export const chatEvent = pgTable(
       .notNull()
       .references(() => conversation.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
     eventType: text("event_type").notNull(),
     messageId: text("message_id"),
     modelId: text("model_id"),
     payload: jsonb("payload").notNull(),
     role: text("role").notNull(),
     sequence: bigserial("sequence", { mode: "number" }).notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
   },
   (table) => {
     return [
