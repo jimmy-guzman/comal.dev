@@ -149,6 +149,12 @@ const buildVersionSubAgents = (subAgents: AgentSubAgentInput[]) => {
   });
 };
 
+const buildVersionEvals = (evals: AgentEvalInput[]) => {
+  return evals.map(({ expected, id, input, name, scorer }) => {
+    return { expected, id: id ?? "", input, name, scorer };
+  });
+};
+
 export const createAgent = (userId: string, input: AgentInput) => {
   return Effect.gen(function* () {
     const db = yield* Database;
@@ -168,6 +174,7 @@ export const createAgent = (userId: string, input: AgentInput) => {
         await tx.insert(agentVersion).values({
           agentId: id,
           createdBy: userId,
+          evals: buildVersionEvals(input.evals),
           id: nanoid(),
           modelId: input.defaultModelId,
           subAgents: buildVersionSubAgents(input.subAgents),
@@ -226,6 +233,7 @@ export const updateAgent = (agentId: string, userId: string, input: AgentInput) 
         await tx.insert(agentVersion).values({
           agentId,
           createdBy: userId,
+          evals: buildVersionEvals(input.evals),
           id: nanoid(),
           modelId: input.defaultModelId,
           subAgents: buildVersionSubAgents(input.subAgents),
@@ -344,7 +352,7 @@ export const listOwnedAgentIds = (userId: string, agentIds: string[]) => {
 
 export type AgentVersionRow = Pick<
   typeof agentVersion.$inferSelect,
-  "createdAt" | "createdBy" | "id" | "modelId" | "subAgents" | "systemPrompt" | "tools"
+  "createdAt" | "createdBy" | "evals" | "id" | "modelId" | "subAgents" | "systemPrompt" | "tools"
 > & { creatorName: string };
 
 export const listAgentVersions = (agentId: string, userId: string) => {
@@ -357,6 +365,7 @@ export const listAgentVersions = (agentId: string, userId: string) => {
           createdAt: agentVersion.createdAt,
           createdBy: agentVersion.createdBy,
           creatorName: user.name,
+          evals: agentVersion.evals,
           id: agentVersion.id,
           modelId: agentVersion.modelId,
           subAgents: agentVersion.subAgents,

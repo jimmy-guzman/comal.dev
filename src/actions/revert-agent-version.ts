@@ -97,7 +97,7 @@ export const revertAgentVersionAction = authClient
       updateAgent(agentId, ctx.auth.user.id, {
         defaultModelId: version.modelId,
         description: agentRow.description ?? undefined,
-        evals: agentRow.evals.map((e) => ({ ...e, scorer: e.scorer as Scorer })),
+        evals: version.evals.map((e) => ({ ...e, scorer: e.scorer as Scorer })),
         name: agentRow.name,
         subAgents: version.subAgents.map((s) => {
           return {

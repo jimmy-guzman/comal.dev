@@ -30,6 +30,12 @@ const buildSummary = (version: AgentVersionRow, previous: AgentVersionRow | unde
     parts.push(`model: ${prev} → ${curr}`);
   }
 
+  const evalDelta = version.evals.length - previous.evals.length;
+
+  if (evalDelta !== 0) {
+    parts.push(`evals: ${evalDelta > 0 ? "+" : ""}${evalDelta}`);
+  }
+
   const toolDelta = version.tools.length - previous.tools.length;
 
   if (toolDelta !== 0) {
@@ -99,6 +105,7 @@ const VersionRowItem = ({
             revert({ agentId, versionId: version.id });
           }}
           size="sm"
+          type="button"
           variant="ghost"
         >
           {isPending ? "reverting..." : "revert"}
@@ -117,6 +124,9 @@ const VersionRowItem = ({
             {version.subAgents.length > 0
               ? ` · sub-agents: ${version.subAgents.map((s) => s.alias).join(", ")}`
               : null}
+            {version.evals.length > 0
+              ? ` · evals: ${version.evals.map((e) => e.name).join(", ")}`
+              : null}
           </p>
         </div>
       ) : null}
@@ -131,9 +141,10 @@ export const AgentVersionHistory = ({ agentId, versions }: Props) => {
   return (
     <Collapsible onOpenChange={setOpen} open={open}>
       <CollapsibleTrigger asChild>
-        <Button className="gap-2 px-0" size="sm" variant="ghost">
+        <Button className="gap-2 px-0" size="sm" type="button" variant="ghost">
           <ChevronDownIcon
-            className={`size-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+            className={`transition-transform ${open ? "rotate-180" : ""}`}
+            data-icon="inline-start"
           />
           <span className="text-xs">
             {versions.length} {versions.length === 1 ? "version" : "versions"}
