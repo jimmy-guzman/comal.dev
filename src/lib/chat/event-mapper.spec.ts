@@ -1,7 +1,7 @@
 import type { TextStreamPart, ToolSet } from "ai";
 
 import { APICallError } from "@ai-sdk/provider";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MapStreamPartContext } from "./event-mapper";
 
@@ -300,34 +300,39 @@ describe("mapStreamPartToEvent", () => {
 });
 
 describe("mapStreamPartToEvent - timing", () => {
+  let baseTime: Date;
+
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
+  beforeEach(() => {
+    baseTime = new Date("2024-01-01T00:00:00.000Z");
+    vi.setSystemTime(baseTime);
+  });
+
   it("should set startedAt on assistant-turn-start and store it in ctx.toolStartTimes under the turn key", () => {
-    const before = new Date();
     const ctx = ctxFor();
 
     const result = map({ type: "start" }, ctx);
 
-    const after = new Date();
-
-    expect(result?.startedAt).toBeInstanceOf(Date);
-    expect(result?.startedAt?.getTime()).toBeGreaterThanOrEqual(before.getTime());
-    expect(result?.startedAt?.getTime()).toBeLessThanOrEqual(after.getTime());
+    expect(result?.startedAt).toEqual(baseTime);
     expect(ctx.toolStartTimes.size).toBe(1);
     expect(result?.endedAt).toBeUndefined();
   });
 
   it("should set startedAt on step-boundary with no endedAt", () => {
-    const before = new Date();
     const result = map({ request: {}, type: "start-step", warnings: [] });
-    const after = new Date();
 
-    expect(result?.startedAt).toBeInstanceOf(Date);
-    expect(result?.startedAt?.getTime()).toBeGreaterThanOrEqual(before.getTime());
-    expect(result?.startedAt?.getTime()).toBeLessThanOrEqual(after.getTime());
+    expect(result?.startedAt).toEqual(baseTime);
     expect(result?.endedAt).toBeUndefined();
   });
 
   it("should set startedAt on tool-input-complete and record it in ctx.toolStartTimes", () => {
-    const before = new Date();
     const ctx = ctxFor();
 
     const result = map(
@@ -335,21 +340,20 @@ describe("mapStreamPartToEvent - timing", () => {
       ctx,
     );
 
-    const after = new Date();
-
-    expect(result?.startedAt).toBeInstanceOf(Date);
-    expect(result?.startedAt?.getTime()).toBeGreaterThanOrEqual(before.getTime());
-    expect(result?.startedAt?.getTime()).toBeLessThanOrEqual(after.getTime());
+    expect(result?.startedAt).toEqual(baseTime);
     expect(ctx.toolStartTimes.get("call-t")).toBe(result?.startedAt);
     expect(result?.endedAt).toBeUndefined();
   });
 
-  it("should carry turn startedAt and set endedAt on assistant-turn-finish, with non-negative duration", () => {
+  it("should carry turn startedAt and set endedAt on assistant-turn-finish", () => {
     const ctx = ctxFor();
 
     const startResult = map({ type: "start" }, ctx);
     const turnStart = startResult?.startedAt;
-    const before = new Date();
+
+    const closeTime = new Date(baseTime.getTime() + 1);
+
+    vi.setSystemTime(closeTime);
 
     const result = map(
       {
@@ -360,13 +364,9 @@ describe("mapStreamPartToEvent - timing", () => {
       ctx,
     );
 
-    const after = new Date();
-
     expect(result?.startedAt).toBe(turnStart);
-    expect(result?.endedAt).toBeInstanceOf(Date);
-    expect(result?.endedAt?.getTime()).toBeGreaterThanOrEqual(before.getTime());
-    expect(result?.endedAt?.getTime()).toBeLessThanOrEqual(after.getTime());
-    expect(result?.endedAt?.getTime()).toBeGreaterThanOrEqual(result?.startedAt?.getTime() ?? 0);
+    expect(result?.startedAt).toEqual(baseTime);
+    expect(result?.endedAt).toEqual(closeTime);
   });
 
   it("should carry tool startedAt and set endedAt on tool-output-available, then remove from map", () => {
@@ -375,20 +375,18 @@ describe("mapStreamPartToEvent - timing", () => {
     map({ dynamic: false, input: {}, toolCallId: "call-u", toolName: "u", type: "tool-call" }, ctx);
 
     const toolStart = ctx.toolStartTimes.get("call-u");
-    const before = new Date();
+    const closeTime = new Date(baseTime.getTime() + 1);
+
+    vi.setSystemTime(closeTime);
 
     const result = map(
       { output: { ok: true }, toolCallId: "call-u", toolName: "u", type: "tool-result" },
       ctx,
     );
 
-    const after = new Date();
-
     expect(result?.startedAt).toBe(toolStart);
-    expect(result?.endedAt).toBeInstanceOf(Date);
-    expect(result?.endedAt?.getTime()).toBeGreaterThanOrEqual(before.getTime());
-    expect(result?.endedAt?.getTime()).toBeLessThanOrEqual(after.getTime());
-    expect(result?.endedAt?.getTime()).toBeGreaterThanOrEqual(result?.startedAt?.getTime() ?? 0);
+    expect(result?.startedAt).toEqual(baseTime);
+    expect(result?.endedAt).toEqual(closeTime);
     expect(ctx.toolStartTimes.has("call-u")).toBe(false);
   });
 
@@ -398,6 +396,9 @@ describe("mapStreamPartToEvent - timing", () => {
     map({ dynamic: false, input: {}, toolCallId: "call-e", toolName: "e", type: "tool-call" }, ctx);
 
     const toolStart = ctx.toolStartTimes.get("call-e");
+    const closeTime = new Date(baseTime.getTime() + 1);
+
+    vi.setSystemTime(closeTime);
 
     const result = map(
       { error: new Error("boom"), toolCallId: "call-e", toolName: "e", type: "tool-error" },
@@ -405,8 +406,8 @@ describe("mapStreamPartToEvent - timing", () => {
     );
 
     expect(result?.startedAt).toBe(toolStart);
-    expect(result?.endedAt).toBeInstanceOf(Date);
-    expect(result?.endedAt?.getTime()).toBeGreaterThanOrEqual(result?.startedAt?.getTime() ?? 0);
+    expect(result?.startedAt).toEqual(baseTime);
+    expect(result?.endedAt).toEqual(closeTime);
     expect(ctx.toolStartTimes.has("call-e")).toBe(false);
   });
 
@@ -416,6 +417,9 @@ describe("mapStreamPartToEvent - timing", () => {
     map({ dynamic: false, input: {}, toolCallId: "call-d", toolName: "d", type: "tool-call" }, ctx);
 
     const toolStart = ctx.toolStartTimes.get("call-d");
+    const closeTime = new Date(baseTime.getTime() + 1);
+
+    vi.setSystemTime(closeTime);
 
     const result = map(
       { reason: "denied", toolCallId: "call-d", toolName: "d", type: "tool-output-denied" },
@@ -423,8 +427,8 @@ describe("mapStreamPartToEvent - timing", () => {
     );
 
     expect(result?.startedAt).toBe(toolStart);
-    expect(result?.endedAt).toBeInstanceOf(Date);
-    expect(result?.endedAt?.getTime()).toBeGreaterThanOrEqual(result?.startedAt?.getTime() ?? 0);
+    expect(result?.startedAt).toEqual(baseTime);
+    expect(result?.endedAt).toEqual(closeTime);
     expect(ctx.toolStartTimes.has("call-d")).toBe(false);
   });
 
@@ -432,7 +436,7 @@ describe("mapStreamPartToEvent - timing", () => {
     const result = map({ finishReason: "stop", totalUsage: {}, type: "finish" }, ctxFor());
 
     expect(result?.startedAt).toBeUndefined();
-    expect(result?.endedAt).toBeInstanceOf(Date);
+    expect(result?.endedAt).toEqual(baseTime);
   });
 
   it("should set startedAt to undefined on close-events when no matching tool-call preceded them", () => {
@@ -444,6 +448,7 @@ describe("mapStreamPartToEvent - timing", () => {
     );
 
     expect(resultResult?.startedAt).toBeUndefined();
+    expect(resultResult?.endedAt).toEqual(baseTime);
 
     const errorResult = map(
       { error: new Error("e"), toolCallId: "orphan2", toolName: "x", type: "tool-error" },
@@ -451,6 +456,7 @@ describe("mapStreamPartToEvent - timing", () => {
     );
 
     expect(errorResult?.startedAt).toBeUndefined();
+    expect(errorResult?.endedAt).toEqual(baseTime);
 
     const deniedResult = map(
       { toolCallId: "orphan3", toolName: "x", type: "tool-output-denied" },
@@ -458,6 +464,7 @@ describe("mapStreamPartToEvent - timing", () => {
     );
 
     expect(deniedResult?.startedAt).toBeUndefined();
+    expect(deniedResult?.endedAt).toEqual(baseTime);
   });
 
   it("should not consume the start time or set endedAt on a preliminary tool-result", () => {
@@ -501,6 +508,9 @@ describe("mapStreamPartToEvent - timing", () => {
     );
 
     const toolStart = ctx.toolStartTimes.get("call-p2");
+    const closeTime = new Date(baseTime.getTime() + 1);
+
+    vi.setSystemTime(closeTime);
 
     const final = map(
       { output: { status: "done" }, toolCallId: "call-p2", toolName: "p", type: "tool-result" },
@@ -508,8 +518,8 @@ describe("mapStreamPartToEvent - timing", () => {
     );
 
     expect(final?.startedAt).toBe(toolStart);
-    expect(final?.endedAt).toBeInstanceOf(Date);
-    expect(final?.endedAt?.getTime()).toBeGreaterThanOrEqual(final?.startedAt?.getTime() ?? 0);
+    expect(final?.startedAt).toEqual(baseTime);
+    expect(final?.endedAt).toEqual(closeTime);
     expect(ctx.toolStartTimes.has("call-p2")).toBe(false);
   });
 });
