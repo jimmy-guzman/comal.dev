@@ -466,7 +466,13 @@ describe("mapStreamPartToEvent - timing", () => {
     map({ dynamic: false, input: {}, toolCallId: "call-p", toolName: "p", type: "tool-call" }, ctx);
 
     const preliminary = map(
-      { output: { status: "running" }, preliminary: true, toolCallId: "call-p", toolName: "p", type: "tool-result" },
+      {
+        output: { status: "running" },
+        preliminary: true,
+        toolCallId: "call-p",
+        toolName: "p",
+        type: "tool-result",
+      },
       ctx,
     );
 
@@ -478,10 +484,19 @@ describe("mapStreamPartToEvent - timing", () => {
   it("should consume the start time and set endedAt on the final tool-result after preliminary ones", () => {
     const ctx = ctxFor();
 
-    map({ dynamic: false, input: {}, toolCallId: "call-p2", toolName: "p", type: "tool-call" }, ctx);
+    map(
+      { dynamic: false, input: {}, toolCallId: "call-p2", toolName: "p", type: "tool-call" },
+      ctx,
+    );
 
     map(
-      { output: { status: "running" }, preliminary: true, toolCallId: "call-p2", toolName: "p", type: "tool-result" },
+      {
+        output: { status: "running" },
+        preliminary: true,
+        toolCallId: "call-p2",
+        toolName: "p",
+        type: "tool-result",
+      },
       ctx,
     );
 
