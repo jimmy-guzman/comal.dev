@@ -132,10 +132,12 @@ export const CHAT_EVENT_ROLES = new Set(["assistant", "system", "user"] as const
 export type ChatEventPayload<T extends ChatEventType> = z.infer<(typeof EVENT_PAYLOAD_SCHEMAS)[T]>;
 
 export interface ChatEventInput<T extends ChatEventType = ChatEventType> {
+  endedAt?: Date;
   eventType: T;
   messageId: null | string;
   payload: ChatEventPayload<T>;
   role: "assistant" | "system" | "user";
+  startedAt?: Date;
 }
 
 export const validateEventPayload = <T extends ChatEventType>(

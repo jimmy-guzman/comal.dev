@@ -38,11 +38,13 @@ export const appendChatEvent = (
     yield* runMutation(() => {
       return db.insert(chatEvent).values({
         conversationId: args.conversationId,
+        endedAt: args.event.endedAt,
         eventType: args.event.eventType,
         messageId: args.event.messageId,
         modelId: args.modelId,
         payload: validatedPayload,
         role: args.event.role,
+        startedAt: args.event.startedAt,
       });
     });
   });
@@ -61,7 +63,12 @@ interface PersistStreamArgs {
 }
 
 const buildContext = (messageId: string, modelId: null | string): MapStreamPartContext => {
-  return { buffer: createSegmentBuffer(), messageId, modelId };
+  return {
+    buffer: createSegmentBuffer(),
+    messageId,
+    modelId,
+    toolStartTimes: new Map(),
+  };
 };
 
 const isPreliminaryToolOutput = (event: ChatEventInput): boolean => {
