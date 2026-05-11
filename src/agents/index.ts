@@ -1,9 +1,9 @@
 import type { Tool, ToolSet } from "ai";
 
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { Effect } from "effect";
 
-import { agent, agentSubagent, agentTool } from "@/db/schemas/agent-schema";
+import { agent, agentSubagent, agentTool, agentVersion } from "@/db/schemas/agent-schema";
 import { Database, runQuery } from "@/db/service";
 import { NotFoundError } from "@/lib/errors";
 import { SUBAGENT_PREFIX } from "@/lib/subagent-prefix";
@@ -139,12 +139,25 @@ export const loadAgent = (agentId: string, userId: string, depth = 0) => {
       return yield* Effect.fail(new NotFoundError({ resource: "agent" }));
     }
 
-    const toolRows = yield* runQuery(() => {
-      return db
-        .select({ config: agentTool.config, toolId: agentTool.toolId })
-        .from(agentTool)
-        .where(eq(agentTool.agentId, agentId));
-    });
+    const [toolRows, versionRows] = yield* Effect.all(
+      [
+        runQuery(() => {
+          return db
+            .select({ config: agentTool.config, toolId: agentTool.toolId })
+            .from(agentTool)
+            .where(eq(agentTool.agentId, agentId));
+        }),
+        runQuery(() => {
+          return db
+            .select({ id: agentVersion.id })
+            .from(agentVersion)
+            .where(eq(agentVersion.agentId, agentId))
+            .orderBy(desc(agentVersion.createdAt))
+            .limit(1);
+        }),
+      ],
+      { concurrency: "unbounded" },
+    );
 
     const toolContext: ToolContext = { userId };
     const toolsRecord = yield* buildToolsRecord(toolRows, depth, toolContext);
@@ -159,6 +172,7 @@ export const loadAgent = (agentId: string, userId: string, depth = 0) => {
       name: row.name,
       systemPrompt: row.systemPrompt,
       tools: { ...toolsRecord, ...subagentTools },
+      versionId: versionRows.at(0)?.id ?? null,
     } satisfies AgentConfig;
   }).pipe(Effect.withLogSpan("loadAgent"), Effect.annotateLogs({ agentId, depth, userId }));
 };

@@ -144,7 +144,7 @@ export const buildAgentsUpdate = (_config: unknown, context: ToolContext) => {
       }
 
       const exit = await appRuntime.runPromiseExit(
-        updateAgent(agentId, {
+        updateAgent(agentId, context.userId, {
           defaultModelId,
           description,
           evals: agentExit.value.evals.map((e) => {

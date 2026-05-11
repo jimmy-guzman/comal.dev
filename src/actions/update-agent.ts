@@ -109,7 +109,7 @@ export const updateAgentAction = authClient
       }
     }
 
-    const exit = await appRuntime.runPromiseExit(updateAgent(agentId, input));
+    const exit = await appRuntime.runPromiseExit(updateAgent(agentId, ctx.auth.user.id, input));
 
     if (Exit.isFailure(exit)) {
       throw new Error("Failed to update agent.");

@@ -24,7 +24,11 @@ import type { DatabaseError, ForbiddenError, NotFoundError, UnauthorizedError } 
 import { loadAgent } from "@/agents";
 import { appRuntime } from "@/db/service";
 import { Auth, AuthLive } from "@/lib/auth-context";
-import { createConversationWithFirstUserMessage, updateConversationTitle } from "@/lib/chat";
+import {
+  createConversationWithFirstUserMessage,
+  setConversationAgentVersion,
+  updateConversationTitle,
+} from "@/lib/chat";
 import { chatErrorCopyFor, classifyChatError } from "@/lib/chat/errors";
 import { appendChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
 import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
@@ -327,6 +331,7 @@ export async function POST(req: Request) {
 
       const created = yield* createConversationWithFirstUserMessage({
         agentId: conversationSource.agentId,
+        agentVersionId: agent.versionId,
         modelId: conversationSource.modelId,
         title: "New conversation",
         userId: user.id,
@@ -337,6 +342,10 @@ export async function POST(req: Request) {
       isNewConversation = true;
     } else {
       conversationId = conversationSource.conversationId;
+
+      if (agent.versionId !== null) {
+        yield* setConversationAgentVersion(conversationId, agent.versionId);
+      }
     }
 
     const persistedUserMessageIds = new Set<string>();

@@ -1,7 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import { check, index, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
 
-import { agent } from "./agent-schema";
+import { agent, agentVersion } from "./agent-schema";
 
 export const agentEval = pgTable(
   "agent_eval",
@@ -34,6 +34,9 @@ export const agentEval = pgTable(
 export const agentEvalRun = pgTable(
   "agent_eval_run",
   {
+    agentVersionId: text("agent_version_id").references(() => agentVersion.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     evalId: text("eval_id")
       .notNull()
@@ -59,6 +62,10 @@ export const agentEvalRelations = relations(agentEval, ({ many, one }) => {
 
 export const agentEvalRunRelations = relations(agentEvalRun, ({ one }) => {
   return {
+    agentVersion: one(agentVersion, {
+      fields: [agentEvalRun.agentVersionId],
+      references: [agentVersion.id],
+    }),
     eval: one(agentEval, { fields: [agentEvalRun.evalId], references: [agentEval.id] }),
   };
 });

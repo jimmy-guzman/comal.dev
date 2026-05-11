@@ -78,12 +78,37 @@ export const agentSubagent = pgTable(
   },
 );
 
+export const agentVersion = pgTable(
+  "agent_version",
+  {
+    agentId: text("agent_id")
+      .notNull()
+      .references(() => agent.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    id: text("id").primaryKey(),
+    modelId: text("model_id").notNull(),
+    subAgents: jsonb("sub_agents").notNull().default([]),
+    systemPrompt: text("system_prompt").notNull(),
+    tools: jsonb("tools").notNull().default([]),
+  },
+  (table) => {
+    return [
+      index("agent_version_agentId_idx").on(table.agentId),
+      index("agent_version_createdAt_idx").on(table.createdAt),
+    ];
+  },
+);
+
 export const agentRelations = relations(agent, ({ many, one }) => {
   return {
     parentLinks: many(agentSubagent, { relationName: "agent_subagent_child" }),
     subAgentLinks: many(agentSubagent, { relationName: "agent_subagent_parent" }),
     tools: many(agentTool),
     user: one(user, { fields: [agent.userId], references: [user.id] }),
+    versions: many(agentVersion),
   };
 });
 
@@ -105,5 +130,12 @@ export const agentSubagentRelations = relations(agentSubagent, ({ one }) => {
       references: [agent.id],
       relationName: "agent_subagent_parent",
     }),
+  };
+});
+
+export const agentVersionRelations = relations(agentVersion, ({ one }) => {
+  return {
+    agent: one(agent, { fields: [agentVersion.agentId], references: [agent.id] }),
+    createdByUser: one(user, { fields: [agentVersion.createdBy], references: [user.id] }),
   };
 });

@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigserial, index, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
-import { agent } from "./agent-schema";
+import { agent, agentVersion } from "./agent-schema";
 import { user } from "./auth-schema";
 
 export const conversation = pgTable(
@@ -10,6 +10,9 @@ export const conversation = pgTable(
     agentId: text("agent_id")
       .notNull()
       .references(() => agent.id, { onDelete: "cascade" }),
+    agentVersionId: text("agent_version_id").references(() => agentVersion.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     id: text("id").primaryKey(),
     modelId: text("model_id").notNull(),
@@ -58,6 +61,10 @@ export const chatEvent = pgTable(
 
 export const conversationRelations = relations(conversation, ({ many, one }) => {
   return {
+    agentVersion: one(agentVersion, {
+      fields: [conversation.agentVersionId],
+      references: [agentVersion.id],
+    }),
     events: many(chatEvent),
     user: one(user, { fields: [conversation.userId], references: [user.id] }),
   };
