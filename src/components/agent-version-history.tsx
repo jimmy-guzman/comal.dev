@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDownIcon, GitCompareIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import type { AgentVersionRow } from "@/lib/agents";
 
 import { revertAgentVersionAction } from "@/actions/revert-agent-version";
-import { AgentVersionDiffDialog } from "@/components/agent-version-diff-dialog";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatRelative } from "@/lib/format-relative";
@@ -48,12 +47,19 @@ const buildSummary = (version: AgentVersionRow, previous: AgentVersionRow | unde
 
 interface VersionRowItemProps {
   agentId: string;
-  onCompare: () => void;
+  isExpanded: boolean;
+  onToggle: () => void;
   previous: AgentVersionRow | undefined;
   version: AgentVersionRow;
 }
 
-const VersionRowItem = ({ agentId, onCompare, previous, version }: VersionRowItemProps) => {
+const VersionRowItem = ({
+  agentId,
+  isExpanded,
+  onToggle,
+  previous,
+  version,
+}: VersionRowItemProps) => {
   const router = useRouter();
 
   const { execute: revert, isPending } = useAction(revertAgentVersionAction, {
@@ -69,25 +75,24 @@ const VersionRowItem = ({ agentId, onCompare, previous, version }: VersionRowIte
   const summary = buildSummary(version, previous);
 
   return (
-    <div className="flex items-start justify-between gap-4 py-2">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium">{formatRelative(version.createdAt)}</span>
-          <span className="text-muted-foreground text-xs">{version.creatorName}</span>
-        </div>
-        <span className="text-muted-foreground text-xs">{summary}</span>
-      </div>
-      <div className="flex shrink-0 gap-1.5">
-        <Button
-          aria-label="compare this version"
-          data-icon
-          onClick={onCompare}
-          size="sm"
-          variant="ghost"
+    <div className="py-2">
+      <div className="flex items-start justify-between gap-4">
+        <button
+          className="flex min-w-0 flex-1 items-start gap-1.5 text-left"
+          onClick={onToggle}
+          type="button"
         >
-          <GitCompareIcon />
-          compare
-        </Button>
+          <ChevronRightIcon
+            className={`text-muted-foreground mt-0.5 size-3 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+          />
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium">{formatRelative(version.createdAt)}</span>
+              <span className="text-muted-foreground text-xs">{version.creatorName}</span>
+            </div>
+            <span className="text-muted-foreground text-xs">{summary}</span>
+          </div>
+        </button>
         <Button
           disabled={isPending}
           onClick={() => {
@@ -99,69 +104,60 @@ const VersionRowItem = ({ agentId, onCompare, previous, version }: VersionRowIte
           {isPending ? "reverting..." : "revert"}
         </Button>
       </div>
+      {isExpanded ? (
+        <div className="mt-2 ml-4 flex flex-col gap-2">
+          <pre className="bg-muted overflow-x-auto rounded p-3 text-xs whitespace-pre-wrap">
+            {version.systemPrompt}
+          </pre>
+          <p className="text-muted-foreground text-xs">
+            model: {version.modelId}
+            {version.tools.length > 0
+              ? ` · tools: ${version.tools.map((t) => t.toolId).join(", ")}`
+              : null}
+            {version.subAgents.length > 0
+              ? ` · sub-agents: ${version.subAgents.map((s) => s.alias).join(", ")}`
+              : null}
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 };
 
 export const AgentVersionHistory = ({ agentId, versions }: Props) => {
   const [open, setOpen] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogBaseId, setDialogBaseId] = useState("");
-  const [dialogTargetId, setDialogTargetId] = useState("");
-
-  const openDiff = (targetIdx: number) => {
-    const target = versions.at(targetIdx);
-    const base = versions.at(targetIdx + 1) ?? versions.at(targetIdx);
-
-    if (!target || !base) return;
-
-    setDialogTargetId(target.id);
-    setDialogBaseId(base.id);
-    setDialogOpen(true);
-  };
+  const [expandedId, setExpandedId] = useState<null | string>(null);
 
   return (
-    <>
-      <Collapsible onOpenChange={setOpen} open={open}>
-        <CollapsibleTrigger asChild>
-          <Button className="gap-2 px-0" size="sm" variant="ghost">
-            <ChevronDownIcon
-              className={`size-3.5 transition-transform ${open ? "rotate-180" : ""}`}
-            />
-            <span className="text-xs">
-              {versions.length} {versions.length === 1 ? "version" : "versions"}
-            </span>
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <div className="divide-y">
-            {versions.map((version, idx) => {
-              return (
-                <VersionRowItem
-                  agentId={agentId}
-                  key={version.id}
-                  onCompare={() => {
-                    openDiff(idx);
-                  }}
-                  previous={versions[idx + 1]}
-                  version={version}
-                />
-              );
-            })}
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-
-      {dialogBaseId && dialogTargetId ? (
-        <AgentVersionDiffDialog
-          agentId={agentId}
-          defaultBaseId={dialogBaseId}
-          defaultTargetId={dialogTargetId}
-          onOpenChange={setDialogOpen}
-          open={dialogOpen}
-          versions={versions}
-        />
-      ) : null}
-    </>
+    <Collapsible onOpenChange={setOpen} open={open}>
+      <CollapsibleTrigger asChild>
+        <Button className="gap-2 px-0" size="sm" variant="ghost">
+          <ChevronDownIcon
+            className={`size-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+          />
+          <span className="text-xs">
+            {versions.length} {versions.length === 1 ? "version" : "versions"}
+          </span>
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="divide-y">
+          {versions.map((version, idx) => {
+            return (
+              <VersionRowItem
+                agentId={agentId}
+                isExpanded={expandedId === version.id}
+                key={version.id}
+                onToggle={() => {
+                  setExpandedId(expandedId === version.id ? null : version.id);
+                }}
+                previous={versions[idx + 1]}
+                version={version}
+              />
+            );
+          })}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
