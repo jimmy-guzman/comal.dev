@@ -145,7 +145,7 @@ const buildVersionTools = (tools: AgentToolInput[]) => {
 
 const buildVersionSubAgents = (subAgents: AgentSubAgentInput[]) => {
   return subAgents.map(({ alias, childAgentId, descriptionOverride }) => {
-    return {alias, childAgentId, descriptionOverride: descriptionOverride ?? null};
+    return { alias, childAgentId, descriptionOverride: descriptionOverride ?? null };
   });
 };
 
