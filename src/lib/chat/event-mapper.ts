@@ -273,12 +273,15 @@ export const mapStreamPartToEvent = (
 
     case "tool-result": {
       const preliminary = part.preliminary === true ? true : undefined;
+      const isFinal = preliminary !== true;
       const startedAt = ctx.toolStartTimes.get(part.toolCallId);
 
-      ctx.toolStartTimes.delete(part.toolCallId);
+      if (isFinal) {
+        ctx.toolStartTimes.delete(part.toolCallId);
+      }
 
       return {
-        endedAt: new Date(),
+        endedAt: isFinal ? new Date() : undefined,
         eventType: "tool-output-available" satisfies ChatEventType,
         messageId: ctx.messageId,
         payload: {
@@ -288,7 +291,7 @@ export const mapStreamPartToEvent = (
           toolName: part.toolName,
         },
         role: "assistant",
-        startedAt,
+        startedAt: isFinal ? startedAt : undefined,
       };
     }
 

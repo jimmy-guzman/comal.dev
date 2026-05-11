@@ -459,4 +459,42 @@ describe("mapStreamPartToEvent - timing", () => {
 
     expect(deniedResult?.startedAt).toBeUndefined();
   });
+
+  it("should not consume the start time or set endedAt on a preliminary tool-result", () => {
+    const ctx = ctxFor();
+
+    map({ dynamic: false, input: {}, toolCallId: "call-p", toolName: "p", type: "tool-call" }, ctx);
+
+    const preliminary = map(
+      { output: { status: "running" }, preliminary: true, toolCallId: "call-p", toolName: "p", type: "tool-result" },
+      ctx,
+    );
+
+    expect(preliminary?.startedAt).toBeUndefined();
+    expect(preliminary?.endedAt).toBeUndefined();
+    expect(ctx.toolStartTimes.has("call-p")).toBe(true);
+  });
+
+  it("should consume the start time and set endedAt on the final tool-result after preliminary ones", () => {
+    const ctx = ctxFor();
+
+    map({ dynamic: false, input: {}, toolCallId: "call-p2", toolName: "p", type: "tool-call" }, ctx);
+
+    map(
+      { output: { status: "running" }, preliminary: true, toolCallId: "call-p2", toolName: "p", type: "tool-result" },
+      ctx,
+    );
+
+    const toolStart = ctx.toolStartTimes.get("call-p2");
+
+    const final = map(
+      { output: { status: "done" }, toolCallId: "call-p2", toolName: "p", type: "tool-result" },
+      ctx,
+    );
+
+    expect(final?.startedAt).toBe(toolStart);
+    expect(final?.endedAt).toBeInstanceOf(Date);
+    expect(final?.endedAt?.getTime()).toBeGreaterThanOrEqual(final?.startedAt?.getTime() ?? 0);
+    expect(ctx.toolStartTimes.has("call-p2")).toBe(false);
+  });
 });
