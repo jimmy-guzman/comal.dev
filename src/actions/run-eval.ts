@@ -39,7 +39,7 @@ export const runEvalAction = authClient
       const output = result.text;
       const score = scoreEval(evalRow.scorer as Scorer, output, evalRow.expected);
 
-      yield* createEvalRun(parsedInput.evalId, score, output);
+      yield* createEvalRun(parsedInput.evalId, score, output, agentConfig.versionId);
 
       return { output, score };
     });

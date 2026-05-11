@@ -84,12 +84,14 @@ export const listConversationsForAgent = (
  */
 export const createConversationWithFirstUserMessage = ({
   agentId,
+  agentVersionId,
   modelId,
   title,
   userId,
   userMessage,
 }: {
   agentId: string;
+  agentVersionId?: null | string;
   modelId: string;
   title: string;
   userId: string;
@@ -112,7 +114,9 @@ export const createConversationWithFirstUserMessage = ({
 
     yield* runMutation(() => {
       return db.transaction(async (tx) => {
-        await tx.insert(conversation).values({ agentId, id, modelId, title, userId });
+        await tx
+          .insert(conversation)
+          .values({ agentId, agentVersionId: agentVersionId ?? null, id, modelId, title, userId });
         await tx.insert(chatEvent).values({
           conversationId: id,
           eventType: "user-message",
@@ -125,6 +129,22 @@ export const createConversationWithFirstUserMessage = ({
     });
 
     return { id };
+  });
+};
+
+export const setConversationAgentVersion = (
+  conversationId: string,
+  agentVersionId: null | string,
+): Effect.Effect<void, DatabaseError, Database> => {
+  return Effect.gen(function* () {
+    const db = yield* Database;
+
+    yield* runMutation(() => {
+      return db
+        .update(conversation)
+        .set({ agentVersionId })
+        .where(eq(conversation.id, conversationId));
+    });
   });
 };
 

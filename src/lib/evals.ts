@@ -70,12 +70,18 @@ export const listEvalRunsForAgent = (agentId: string) => {
   });
 };
 
-export const createEvalRun = (evalId: string, score: number, output: string) => {
+export const createEvalRun = (
+  evalId: string,
+  score: number,
+  output: string,
+  agentVersionId?: null | string,
+) => {
   return Effect.gen(function* () {
     const db = yield* Database;
 
     yield* runMutation(() => {
       return db.insert(agentEvalRun).values({
+        agentVersionId: agentVersionId ?? null,
         evalId,
         id: nanoid(),
         output,

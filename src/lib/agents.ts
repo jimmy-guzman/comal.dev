@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 
 import type { Scorer } from "@/lib/eval-input-schema";
 
-import { agent, agentSubagent, agentTool } from "@/db/schemas/agent-schema";
+import { agent, agentSubagent, agentTool, agentVersion } from "@/db/schemas/agent-schema";
 import { agentEval } from "@/db/schemas/eval-schema";
 import { Database, runMutation, runQuery } from "@/db/service";
 import { ForbiddenError, NotFoundError } from "@/lib/errors";
@@ -138,6 +138,16 @@ export const assertAgentOwnership = (agentId: string, userId: string) => {
   });
 };
 
+const buildVersionTools = (tools: AgentToolInput[]) => {
+  return tools.map(({ config, toolId }) => ({ config, toolId }));
+};
+
+const buildVersionSubAgents = (subAgents: AgentSubAgentInput[]) => {
+  return subAgents.map(({ alias, childAgentId, descriptionOverride }) => {
+    return { alias, childAgentId, descriptionOverride };
+  });
+};
+
 export const createAgent = (userId: string, input: AgentInput) => {
   return Effect.gen(function* () {
     const db = yield* Database;
@@ -152,6 +162,16 @@ export const createAgent = (userId: string, input: AgentInput) => {
           name: input.name,
           systemPrompt: input.systemPrompt,
           userId,
+        });
+
+        await tx.insert(agentVersion).values({
+          agentId: id,
+          createdBy: userId,
+          id: nanoid(),
+          modelId: input.defaultModelId,
+          subAgents: buildVersionSubAgents(input.subAgents),
+          systemPrompt: input.systemPrompt,
+          tools: buildVersionTools(input.tools),
         });
 
         if (input.tools.length > 0) {
@@ -196,12 +216,22 @@ export const createAgent = (userId: string, input: AgentInput) => {
   });
 };
 
-export const updateAgent = (agentId: string, input: AgentInput) => {
+export const updateAgent = (agentId: string, userId: string, input: AgentInput) => {
   return Effect.gen(function* () {
     const db = yield* Database;
 
-    yield* runQuery(() => {
+    yield* runMutation(() => {
       return db.transaction(async (tx) => {
+        await tx.insert(agentVersion).values({
+          agentId,
+          createdBy: userId,
+          id: nanoid(),
+          modelId: input.defaultModelId,
+          subAgents: buildVersionSubAgents(input.subAgents),
+          systemPrompt: input.systemPrompt,
+          tools: buildVersionTools(input.tools),
+        });
+
         await tx
           .update(agent)
           .set({

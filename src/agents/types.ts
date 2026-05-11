@@ -8,4 +8,5 @@ export interface AgentConfig {
   name: string;
   systemPrompt: string;
   tools: ToolSet;
+  versionId: null | string;
 }
