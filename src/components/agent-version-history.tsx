@@ -78,8 +78,14 @@ const VersionRowItem = ({ agentId, onCompare, previous, version }: VersionRowIte
         <span className="text-muted-foreground text-xs">{summary}</span>
       </div>
       <div className="flex shrink-0 gap-1.5">
-        <Button aria-label="compare this version" onClick={onCompare} size="sm" variant="ghost">
-          <GitCompareIcon className="size-3.5" />
+        <Button
+          aria-label="compare this version"
+          data-icon
+          onClick={onCompare}
+          size="sm"
+          variant="ghost"
+        >
+          <GitCompareIcon />
           compare
         </Button>
         <Button

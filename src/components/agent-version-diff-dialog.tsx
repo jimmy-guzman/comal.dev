@@ -58,7 +58,7 @@ const VersionPicker = ({ disabledId, label, onChange, value, versions }: Version
         <PopoverTrigger asChild>
           <Button className="h-7 gap-1.5 text-xs" size="sm" variant="outline">
             <span>{selected ? formatRelative(selected.createdAt) : "select version"}</span>
-            <ChevronDownIcon className="size-3 opacity-60" />
+            <ChevronDownIcon className="opacity-60" data-icon />
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-64 p-0">
@@ -107,6 +107,16 @@ export const AgentVersionDiffDialog = ({
   const router = useRouter();
   const [baseId, setBaseId] = useState(defaultBaseId);
   const [targetId, setTargetId] = useState(defaultTargetId);
+  const [prevOpen, setPrevOpen] = useState(open);
+
+  if (prevOpen !== open) {
+    setPrevOpen(open);
+
+    if (open) {
+      setBaseId(defaultBaseId);
+      setTargetId(defaultTargetId);
+    }
+  }
 
   const base = versions.find((v) => v.id === baseId);
   const target = versions.find((v) => v.id === targetId);
