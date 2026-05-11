@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, notInArray } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, inArray, notInArray } from "drizzle-orm";
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
 
@@ -151,7 +151,7 @@ const buildVersionSubAgents = (subAgents: AgentSubAgentInput[]) => {
 
 const buildVersionEvals = (evals: AgentEvalInput[]) => {
   return evals.map(({ expected, id, input, name, scorer }) => {
-    return { expected, id: id ?? "", input, name, scorer };
+    return { expected, ...(id === undefined ? {} : { id }), input, name, scorer };
   });
 };
 
@@ -381,15 +381,22 @@ export const listAgentVersions = (agentId: string, userId: string) => {
   });
 };
 
-export const getAgentVersion = (versionId: string, agentId: string) => {
+export const getAgentVersion = (versionId: string, agentId: string, ownerId: string) => {
   return Effect.gen(function* () {
     const db = yield* Database;
 
     const rows = yield* runQuery(() => {
       return db
-        .select()
+        .select(getTableColumns(agentVersion))
         .from(agentVersion)
-        .where(and(eq(agentVersion.id, versionId), eq(agentVersion.agentId, agentId)))
+        .innerJoin(agent, eq(agent.id, agentVersion.agentId))
+        .where(
+          and(
+            eq(agentVersion.id, versionId),
+            eq(agentVersion.agentId, agentId),
+            eq(agent.userId, ownerId),
+          ),
+        )
         .limit(1);
     });
 

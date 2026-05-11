@@ -48,7 +48,10 @@ export const revertAgentVersionAction = authClient
     }
 
     const [version, agentRow] = await appRuntime.runPromise(
-      Effect.all([getAgentVersion(versionId, agentId), getAgentForUser(agentId, ctx.auth.user.id)]),
+      Effect.all([
+        getAgentVersion(versionId, agentId, ctx.auth.user.id),
+        getAgentForUser(agentId, ctx.auth.user.id),
+      ]),
     );
 
     if (agentRow.isSystem) {
