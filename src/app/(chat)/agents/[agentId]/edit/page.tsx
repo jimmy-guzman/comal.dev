@@ -5,8 +5,9 @@ import { notFound, redirect } from "next/navigation";
 import type { Scorer } from "@/lib/eval-input-schema";
 
 import { AgentForm } from "@/components/agent-form";
+import { AgentVersionHistory } from "@/components/agent-version-history";
 import { appRuntime } from "@/db/service";
-import { getAgentForUser, listAgentsForUser } from "@/lib/agents";
+import { getAgentForUser, listAgentsForUser, listAgentVersions } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 import { listEvalRunsForAgent } from "@/lib/evals";
 
@@ -21,12 +22,13 @@ export default async function EditAgentPage({ params }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const [agent, ownedAgents] = await appRuntime.runPromise(
+  const [agent, ownedAgents, versions] = await appRuntime.runPromise(
     Effect.all([
       getAgentForUser(agentId, session.user.id).pipe(
         Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
       ),
       listAgentsForUser(session.user.id),
+      listAgentVersions(agentId, session.user.id),
     ]),
   );
 
@@ -56,6 +58,7 @@ export default async function EditAgentPage({ params }: Props) {
         }}
         ownedAgents={ownedAgents}
       />
+      {versions.length > 0 && <AgentVersionHistory agentId={agentId} versions={versions} />}
     </div>
   );
 }
