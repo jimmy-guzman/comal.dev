@@ -19,6 +19,7 @@ import { z } from "zod";
 
 import type { Database } from "@/db/service";
 import type { ChatEventRow } from "@/lib/chat/projector";
+import type { ChatStreamContext } from "@/lib/chat/stream-context";
 import type { DatabaseError, ForbiddenError, NotFoundError, UnauthorizedError } from "@/lib/errors";
 
 import { loadAgent } from "@/agents";
@@ -428,7 +429,13 @@ export async function POST(req: Request) {
     const lastMessage = validation.data.at(-1);
     const assistantMessageId = lastMessage?.role === "assistant" ? lastMessage.id : nanoid();
 
+    const streamContext = {
+      conversationId,
+      modelId: convModelId,
+    } satisfies ChatStreamContext;
+
     const result = streamText({
+      experimental_context: streamContext,
       messages: modelMessages,
       model: openrouter(convModelId),
       onError: ({ error }) => {

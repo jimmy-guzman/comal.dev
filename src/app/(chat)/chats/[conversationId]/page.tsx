@@ -7,7 +7,7 @@ import { ChatView } from "@/components/chat-view";
 import { appRuntime } from "@/db/service";
 import { getAgentForUser, listAgentsForUser } from "@/lib/agents";
 import { auth } from "@/lib/auth";
-import { projectMessages } from "@/lib/chat/projector";
+import { projectMessages, projectSubagentTraces } from "@/lib/chat/projector";
 import { getConversationWithEvents } from "@/lib/chat/store";
 
 async function fetchAgents(userId: string) {
@@ -58,7 +58,9 @@ export default async function ChatPage({ params }: Props) {
 
   const resolvedAgent = agent ?? agents[0];
 
-  const initialMessages = projectMessages(conv.events);
+  const topLevelEvents = conv.events.filter((e) => e.parentToolCallId === null);
+  const initialMessages = projectMessages(topLevelEvents);
+  const subagentTraces = projectSubagentTraces(conv.events);
 
   return (
     <ChatView
@@ -68,6 +70,7 @@ export default async function ChatPage({ params }: Props) {
       conversationId={conversationId}
       initialMessages={initialMessages}
       modelId={conv.modelId}
+      subagentTraces={subagentTraces}
       suggestions={[]}
     />
   );

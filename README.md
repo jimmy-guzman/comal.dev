@@ -69,8 +69,10 @@ flowchart TB
 - Streaming chat with markdown, code, math, mermaid
 - Approval-gated tools that pause and ask before running
 - Conversation history with per-conversation model switching
-- Sub-agents: let an agent call other agents you own as tools
+- Sub-agents: let an agent call other agents you own as tools, with full inner traces persisted and viewable on reload
+- Version history: every config change snapshots the agent, with a diff viewer and revert to any point
 - Evals: attach input/expected pairs to an agent, pick a scorer (contains, exact, or Levenshtein), and run them on demand to track how well the agent performs
+- Conversations list at `/chats` with per-agent filtering
 - Conversational agent management via Comal, a system agent that can create and configure agents through chat
 
 ## Tools

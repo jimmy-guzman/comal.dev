@@ -7,6 +7,7 @@ import { chatErrorCopyFor } from "./errors";
 export interface ChatEventRow {
   eventType: ChatEventType;
   messageId: null | string;
+  parentToolCallId: null | string;
   payload: unknown;
   role: "assistant" | "system" | "user";
   sequence: number;
@@ -267,6 +268,8 @@ const finalizeMessages = (messages: UIMessage[]): UIMessage[] => {
     .filter((message) => message.parts.length > 0 || message.role === "user");
 };
 
+export type SubagentTraces = Record<string, UIMessage[]>;
+
 export const projectMessages = (events: ChatEventRow[]): UIMessage[] => {
   const messages: UIMessage[] = [];
   const assistantBuilders = new Map<string, AssistantBuilder>();
@@ -458,4 +461,28 @@ export const projectMessages = (events: ChatEventRow[]): UIMessage[] => {
   }
 
   return finalizeMessages(messages);
+};
+
+export const projectSubagentTraces = (events: ChatEventRow[]): SubagentTraces => {
+  const grouped = new Map<string, ChatEventRow[]>();
+
+  for (const row of events) {
+    if (row.parentToolCallId === null) continue;
+
+    const group = grouped.get(row.parentToolCallId);
+
+    if (group) {
+      group.push(row);
+    } else {
+      grouped.set(row.parentToolCallId, [row]);
+    }
+  }
+
+  const traces: SubagentTraces = {};
+
+  for (const [toolCallId, group] of grouped) {
+    traces[toolCallId] = projectMessages(group);
+  }
+
+  return traces;
 };

@@ -4,7 +4,10 @@ import { readUIMessageStream, stepCountIs, tool, ToolLoopAgent } from "ai";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 
+import type { ChatStreamContext } from "@/lib/chat/stream-context";
+
 import { appRuntime } from "@/db/service";
+import { persistChatStream } from "@/lib/chat/persist-stream";
 import { openrouter } from "@/lib/openrouter";
 
 import { loadAgent } from "./index";
@@ -75,8 +78,9 @@ export const buildSubagentTool = ({
       childName,
       override: link.descriptionOverride,
     }),
-    async *execute({ prompt }, { abortSignal }) {
+    async *execute({ prompt }, { abortSignal, experimental_context, toolCallId }) {
       const runId = nanoid();
+      const streamCtx = experimental_context as ChatStreamContext | undefined;
 
       const child = await appRuntime.runPromise(loadAgent(link.childAgentId, ownerId, 1));
 
@@ -92,6 +96,22 @@ export const buildSubagentTool = ({
         prompt,
       });
 
+      const childMessageId = nanoid();
+
+      const persistPromise = streamCtx
+        ? persistChatStream({
+            conversationId: streamCtx.conversationId,
+            fullStream: result.fullStream,
+            messageId: childMessageId,
+            modelId: child.defaultModelId,
+            onEventError: (error) => {
+              // eslint-disable-next-line no-console -- fire-and-forget logging from non-Effect context
+              console.error("subagent persistChatStream event error", error);
+            },
+            parentToolCallId: toolCallId,
+          })
+        : null;
+
       const messageMap = new Map<string, UIMessage>();
 
       for await (const message of readUIMessageStream({
@@ -105,6 +125,8 @@ export const buildSubagentTool = ({
           status: "running" as const,
         };
       }
+
+      await persistPromise;
 
       const lastMessages = [...messageMap.values()];
 

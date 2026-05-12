@@ -6,6 +6,8 @@ import { getToolName } from "ai";
 import { BotIcon } from "lucide-react";
 import { z } from "zod";
 
+import type { SubagentTraces } from "@/lib/chat/projector";
+
 import {
   Confirmation,
   ConfirmationAccepted,
@@ -31,6 +33,7 @@ import { cn } from "@/lib/utils";
 interface ToolPartProps {
   addToolApprovalResponse: (response: { approved: boolean; id: string }) => void;
   part: DynamicToolUIPart | ToolUIPart;
+  subagentTraces?: SubagentTraces;
 }
 
 const messagePartSchema = z.union([
@@ -82,8 +85,14 @@ const SubagentMessages = ({ messages }: { messages: z.infer<typeof messageSchema
   );
 };
 
-const SubagentOutput = ({ output }: { output: z.infer<typeof subagentOutputSchema> }) => {
-  const messages = output.messages ?? [];
+interface SubagentOutputProps {
+  output: z.infer<typeof subagentOutputSchema>;
+  persistedMessages?: z.infer<typeof messageSchema>[];
+}
+
+const SubagentOutput = ({ output, persistedMessages }: SubagentOutputProps) => {
+  const liveMessages = output.messages ?? [];
+  const messages = liveMessages.length > 0 ? liveMessages : (persistedMessages ?? []);
   const isRunning = output.status === "running";
 
   return (
@@ -97,10 +106,10 @@ const SubagentOutput = ({ output }: { output: z.infer<typeof subagentOutputSchem
         <span className="font-medium">{isRunning ? "running..." : "view transcript"}</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-2">
-        {output.status === "done" && output.text?.trim() ? (
-          <MessageResponse className="text-xs">{output.text}</MessageResponse>
-        ) : messages.length > 0 ? (
+        {messages.length > 0 ? (
           <SubagentMessages messages={messages} />
+        ) : output.status === "done" && output.text?.trim() ? (
+          <MessageResponse className="text-xs">{output.text}</MessageResponse>
         ) : (
           <p className="text-muted-foreground text-xs">no messages yet.</p>
         )}
@@ -109,7 +118,7 @@ const SubagentOutput = ({ output }: { output: z.infer<typeof subagentOutputSchem
   );
 };
 
-export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
+export const ToolPart = ({ addToolApprovalResponse, part, subagentTraces }: ToolPartProps) => {
   const approvalId = part.approval?.id ?? "";
   const rawName = getToolName(part);
   const isSubagent = rawName.startsWith(SUBAGENT_PREFIX);
@@ -119,6 +128,13 @@ export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
     typeof part.output === "object" && part.output !== null && isSubagentOutput(part.output)
       ? part.output
       : null;
+
+  const persistedTrace = isSubagent ? subagentTraces?.[part.toolCallId] : undefined;
+  const persistedMessages = persistedTrace?.flatMap((msg) => {
+    const parsed = messageSchema.safeParse(msg);
+
+    return parsed.success ? [parsed.data] : [];
+  });
 
   const output =
     typeof part.output === "string" ? (
@@ -182,7 +198,7 @@ export const ToolPart = ({ addToolApprovalResponse, part }: ToolPartProps) => {
         <ToolContent>
           <ToolInput input={part.input} />
           {subagentResult ? (
-            <SubagentOutput output={subagentResult} />
+            <SubagentOutput output={subagentResult} persistedMessages={persistedMessages} />
           ) : (
             <ToolOutput errorText={part.errorText} output={output} />
           )}

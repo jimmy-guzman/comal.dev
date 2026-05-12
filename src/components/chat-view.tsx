@@ -9,6 +9,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 
 import type { ModelId } from "@/config/models";
 import type { ChatErrorInfo, ChatErrorKind } from "@/lib/chat/errors";
+import type { SubagentTraces } from "@/lib/chat/projector";
 
 import { updateConversationAgentAction } from "@/actions/update-conversation-agent";
 import { updateConversationModelAction } from "@/actions/update-conversation-model";
@@ -119,6 +120,7 @@ interface Props {
   conversationId: null | string;
   initialMessages: UIMessage[];
   modelId: string;
+  subagentTraces?: SubagentTraces;
   suggestions: string[];
 }
 
@@ -129,6 +131,7 @@ export const ChatView = ({
   conversationId: initialConversationId,
   initialMessages,
   modelId: initialModelId,
+  subagentTraces,
   suggestions,
 }: Props) => {
   const [conversationId, setConversationId] = useState<null | string>(initialConversationId);
@@ -346,6 +349,7 @@ export const ChatView = ({
                       isStreaming={isStreaming}
                       message={message}
                       onRetry={handleRetry}
+                      subagentTraces={subagentTraces}
                     />
                   </MessageContent>
                 </Message>

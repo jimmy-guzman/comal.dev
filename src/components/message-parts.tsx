@@ -5,6 +5,7 @@ import type { UIMessage } from "ai";
 import { isToolUIPart } from "ai";
 
 import type { ErrorPartData } from "@/components/error-part";
+import type { SubagentTraces } from "@/lib/chat/projector";
 
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import { ErrorPart } from "@/components/error-part";
@@ -18,6 +19,7 @@ interface MessagePartsProps {
   isStreaming: boolean;
   message: UIMessage;
   onRetry?: () => void;
+  subagentTraces?: SubagentTraces;
 }
 
 const isErrorDataPart = (
@@ -34,6 +36,7 @@ export const MessageParts = ({
   isStreaming,
   message,
   onRetry,
+  subagentTraces,
 }: MessagePartsProps) => {
   const reasoningParts = message.parts.filter((part) => {
     return part.type === "reasoning";
@@ -64,6 +67,7 @@ export const MessageParts = ({
               addToolApprovalResponse={addToolApprovalResponse}
               key={part.toolCallId}
               part={part}
+              subagentTraces={subagentTraces}
             />
           );
         }
