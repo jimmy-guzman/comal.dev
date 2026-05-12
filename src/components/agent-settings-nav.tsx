@@ -31,7 +31,7 @@ const BOTTOM_ITEMS = [
 ] satisfies { label: string; segment: string }[];
 
 const navHref = (agentId: string, segment: null | string): Route => {
-  return (segment === null ? `/agents/${agentId}` : `/agents/${agentId}/${segment}`) as Route;
+  return segment === null ? `/agents/${agentId}` : `/agents/${agentId}/${segment}`;
 };
 
 interface NavItemProps {

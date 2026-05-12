@@ -36,7 +36,7 @@ const BOTTOM_ITEMS = [
 const ALL_ITEMS = [...NAV_ITEMS, ...CONFIG_ITEMS, ...BOTTOM_ITEMS];
 
 const navHref = (agentId: string, segment: null | string): Route => {
-  return (segment === null ? `/agents/${agentId}` : `/agents/${agentId}/${segment}`) as Route;
+  return segment === null ? `/agents/${agentId}` : `/agents/${agentId}/${segment}`;
 };
 
 export const AgentSettingsMobileNav = ({ agentId }: Props) => {
