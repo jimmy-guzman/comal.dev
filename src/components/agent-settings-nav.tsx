@@ -40,7 +40,10 @@ const NavItem = ({ active, agentId, label, segment }: NavItemProps) => {
       size="sm"
       variant={active ? "secondary" : "ghost"}
     >
-      <Link href={segment === null ? `/agents/${agentId}` : `/agents/${agentId}/${segment}`}>
+      <Link
+        aria-current={active ? "page" : undefined}
+        href={segment === null ? `/agents/${agentId}` : `/agents/${agentId}/${segment}`}
+      >
         {label}
       </Link>
     </Button>
@@ -51,7 +54,7 @@ export const AgentSettingsNav = ({ agentId }: Props) => {
   const currentSegment = useSelectedLayoutSegment();
 
   return (
-    <nav className="flex w-48 shrink-0 flex-col gap-1 pt-1">
+    <nav aria-label="agent settings" className="flex w-48 shrink-0 flex-col gap-1 pt-1">
       {NAV_ITEMS.map(({ label, segment }) => {
         return (
           <NavItem
