@@ -4,6 +4,7 @@ import type { FileUIPart, UIMessage } from "ai";
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
+import { TrashIcon } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { ModelId } from "@/config/models";
@@ -136,6 +137,7 @@ export const ChatView = ({
   const [currentAgentName, setCurrentAgentName] = useState(agentName);
   const { prependConversation, updateConversationTitle } = useConversations();
   const userInteractedRef = useRef(false);
+  const latestAgentSelectRef = useRef(agentId);
   const hiddenRef = useRef(false);
 
   /**
@@ -149,6 +151,7 @@ export const ChatView = ({
   const conversationIdRef = useRef(conversationId);
   const modelIdRef = useRef(modelId);
   const agentIdRef = useRef(currentAgentId);
+  const agentNameRef = useRef(currentAgentName);
 
   useEffect(() => {
     conversationIdRef.current = conversationId;
@@ -161,6 +164,10 @@ export const ChatView = ({
   useEffect(() => {
     agentIdRef.current = currentAgentId;
   }, [currentAgentId]);
+
+  useEffect(() => {
+    agentNameRef.current = currentAgentName;
+  }, [currentAgentName]);
 
   const sendAutomaticallyWhen = useCallback((options: { messages: UIMessage[] }) => {
     if (!userInteractedRef.current) {
@@ -213,7 +220,7 @@ export const ChatView = ({
         setConversationId(newId);
         prependConversation({
           agentId: agentIdRef.current,
-          agentName: currentAgentName,
+          agentName: agentNameRef.current,
           id: newId,
           title: "new conversation",
         });
@@ -221,11 +228,7 @@ export const ChatView = ({
         // would navigate to the sibling [conversationId] route, remounting
         // <ChatView> and aborting the in-flight stream. router.refresh() has
         // the same effect since the new URL maps to a different page component.
-        globalThis.history.replaceState(
-          null,
-          "",
-          `/agents/${agentIdRef.current}/conversations/${newId}`,
-        );
+        globalThis.history.replaceState(null, "", `/chats/${newId}`);
 
         return;
       }
@@ -284,30 +287,36 @@ export const ChatView = ({
     void sendMessage({ text: suggestion });
   };
 
+  const handleAgentSelect = useCallback(
+    (newAgentId: string) => {
+      const selected = agents.find((a) => a.id === newAgentId);
+
+      if (selected === undefined) return;
+
+      const prevAgentId = currentAgentId;
+      const prevAgentName = currentAgentName;
+
+      latestAgentSelectRef.current = newAgentId;
+      setCurrentAgentId(newAgentId);
+      setCurrentAgentName(selected.name);
+
+      if (conversationId !== null) {
+        void updateConversationAgentAction({ agentId: newAgentId, conversationId }).catch(() => {
+          if (latestAgentSelectRef.current !== newAgentId) return;
+
+          setCurrentAgentId(prevAgentId);
+          setCurrentAgentName(prevAgentName);
+        });
+      }
+    },
+    [agents, currentAgentId, currentAgentName, conversationId],
+  );
+
   const handleModelSelect = (newModelId: ModelId) => {
     setModelId(newModelId);
 
     if (conversationId !== null) {
       void updateConversationModelAction({ conversationId, modelId: newModelId });
-    }
-  };
-
-  const handleAgentSelect = (newAgentId: string) => {
-    const selected = agents.find((a) => a.id === newAgentId);
-
-    if (selected === undefined) return;
-
-    const prevAgentId = currentAgentId;
-    const prevAgentName = currentAgentName;
-
-    setCurrentAgentId(newAgentId);
-    setCurrentAgentName(selected.name);
-
-    if (conversationId !== null) {
-      void updateConversationAgentAction({ agentId: newAgentId, conversationId }).catch(() => {
-        setCurrentAgentId(prevAgentId);
-        setCurrentAgentName(prevAgentName);
-      });
     }
   };
 
@@ -318,27 +327,6 @@ export const ChatView = ({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-between border-b px-4 py-2">
-        <ChatAgentPicker agents={agents} onValueChange={handleAgentSelect} value={currentAgentId} />
-        {conversationId === null ? (
-          <div className="h-8" />
-        ) : (
-          <DeleteConversationButton
-            agentId={currentAgentId}
-            conversationId={conversationId}
-            redirectAfter
-            trigger={
-              <Button
-                className="text-muted-foreground hover:text-destructive"
-                size="icon-sm"
-                variant="ghost"
-              >
-                <span className="sr-only">delete conversation</span>
-              </Button>
-            }
-          />
-        )}
-      </div>
       <Conversation className="flex-1">
         <ConversationContent>
           {messages.length === 0 ? (
@@ -392,9 +380,32 @@ export const ChatView = ({
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>
+              <ChatAgentPicker
+                agents={agents}
+                onValueChange={handleAgentSelect}
+                value={currentAgentId}
+              />
               <ChatModelPicker onValueChange={handleModelSelect} value={modelId} />
             </PromptInputTools>
-            <PromptInputSubmit onStop={stop} status={status} />
+            <div className="flex items-center gap-1">
+              {conversationId === null ? null : (
+                <DeleteConversationButton
+                  conversationId={conversationId}
+                  redirectAfter
+                  trigger={
+                    <Button
+                      className="text-muted-foreground hover:text-destructive"
+                      size="icon-sm"
+                      variant="ghost"
+                    >
+                      <TrashIcon className="size-4" />
+                      <span className="sr-only">delete conversation</span>
+                    </Button>
+                  }
+                />
+              )}
+              <PromptInputSubmit onStop={stop} status={status} />
+            </div>
           </PromptInputFooter>
         </PromptInput>
       </div>

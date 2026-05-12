@@ -37,7 +37,6 @@ interface Props {
 }
 
 interface ConversationItemProps {
-  agentId: string;
   agentName: string;
   conversationId: string;
   isActive: boolean;
@@ -45,14 +44,13 @@ interface ConversationItemProps {
 }
 
 const ConversationItem = ({
-  agentId,
   agentName,
   conversationId,
   isActive,
   title,
 }: ConversationItemProps) => {
   const [deleteOpen, setDeleteOpen] = React.useState(false);
-  const href = `/agents/${agentId}/conversations/${conversationId}` as const;
+  const href = `/chats/${conversationId}` as const;
 
   useLayoutEffect(() => {
     return () => {
@@ -90,7 +88,6 @@ const ConversationItem = ({
         </DropdownMenuContent>
       </DropdownMenu>
       <DeleteConversationButton
-        agentId={agentId}
         conversationId={conversationId}
         onOpenChange={setDeleteOpen}
         open={deleteOpen}
@@ -103,7 +100,7 @@ const ConversationItem = ({
 export const AppSidebar = ({ agents, isSignedIn }: Props) => {
   const { conversations } = useConversations();
   const pathname = usePathname();
-  const activeMatch = /^\/agents\/[^/]+\/conversations\/([^/]+)/.exec(pathname);
+  const activeMatch = /^\/chats\/([^/]+)/.exec(pathname);
   const activeConversationId = activeMatch?.[1] ?? null;
 
   const mostRecentAgentId = agents.at(0)?.id ?? null;
@@ -130,6 +127,11 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
 
         <SidebarGroup>
           <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === "/chats"}>
+                <Link href="/chats">chats</Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
@@ -158,7 +160,6 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
               conversations.map((c) => {
                 return (
                   <ConversationItem
-                    agentId={c.agentId}
                     agentName={c.agentName}
                     conversationId={c.id}
                     isActive={c.id === activeConversationId}

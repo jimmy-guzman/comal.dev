@@ -8,7 +8,7 @@ interface Props {
 
 export const NewChatButton = ({ agentId }: Props) => {
   const href =
-    agentId === null ? ("/agents/new" as const) : (`/agents/${agentId}/conversations/new` as const);
+    agentId === null ? ("/agents/new" as const) : (`/chats/new?agent=${agentId}` as const);
 
   return (
     <SidebarMenuButton asChild>

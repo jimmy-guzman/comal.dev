@@ -26,5 +26,5 @@ export async function provisionSystemAgentAction() {
 
   updateTag(`agents:${session.user.id}`);
 
-  redirect(`/agents/${agentId}/conversations/new`);
+  redirect(`/chats/new?agent=${agentId}`);
 }

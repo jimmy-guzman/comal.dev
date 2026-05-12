@@ -27,10 +27,6 @@ vi.mock("@/components/chat-model-picker", () => ({
   ChatModelPicker: () => null,
 }));
 
-vi.mock("@/components/chat-agent-picker", () => ({
-  ChatAgentPicker: () => null,
-}));
-
 vi.mock("@/components/message-parts", () => {
   return {
     MessageParts: ({ message }: { message: { id: string; role: string } }) => {
