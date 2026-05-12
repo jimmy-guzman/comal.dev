@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircleIcon, LoaderIcon, PlayIcon, XCircleIcon } from "lucide-react";
+import { CheckCircleIcon, ChevronDownIcon, LoaderIcon, PlayIcon, XCircleIcon } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -110,6 +110,7 @@ const EvalRow = ({
   onRemove: () => void;
 }) => {
   const [runResult, setRunResult] = useState<EvalRunResult | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const { execute, isPending } = useAction(runEvalAction, {
     onError: ({ error }) => {
@@ -117,6 +118,7 @@ const EvalRow = ({
     },
     onSuccess: ({ data }) => {
       setRunResult(data);
+      setIsExpanded(true);
     },
   });
 
@@ -130,6 +132,21 @@ const EvalRow = ({
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">{entry.name || "untitled eval"}</span>
           <EvalRunBadge result={result} />
+          {output && isExpanded ? (
+            <Button
+              onClick={() => {
+                setIsExpanded((v) => !v);
+              }}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <ChevronDownIcon
+                className="size-3 transition-transform duration-200 data-[open=true]:rotate-180"
+                data-open={String(isExpanded)}
+              />
+            </Button>
+          ) : null}
         </div>
         <div className="flex items-center gap-1">
           {canRun && entry.id ? (
