@@ -10,7 +10,16 @@ import { auth } from "@/lib/auth";
 import { projectMessages } from "@/lib/chat/projector";
 import { getConversationWithEvents } from "@/lib/chat/store";
 
-async function fetchAgentDetail(agentId: string, userId: string) {
+async function fetchAgents(userId: string) {
+  "use cache";
+
+  cacheTag(`agents:${userId}`);
+  cacheLife("minutes");
+
+  return appRuntime.runPromise(listAgentsForUser(userId));
+}
+
+async function fetchAgent(agentId: string, userId: string) {
   "use cache";
 
   cacheTag(`agent:${agentId}`);
@@ -24,37 +33,38 @@ async function fetchAgentDetail(agentId: string, userId: string) {
 }
 
 interface Props {
-  params: Promise<{ agentId: string; conversationId: string }>;
+  params: Promise<{ conversationId: string }>;
 }
 
-export default async function ConversationPage({ params }: Props) {
-  const { agentId, conversationId } = await params;
+export default async function ChatPage({ params }: Props) {
+  const { conversationId } = await params;
 
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session?.user) notFound();
 
-  const [agent, conv, allAgents] = await Promise.all([
-    fetchAgentDetail(agentId, session.user.id),
-    appRuntime.runPromise(
-      getConversationWithEvents(session.user.id, conversationId).pipe(
-        Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
-      ),
+  const conv = await appRuntime.runPromise(
+    getConversationWithEvents(session.user.id, conversationId).pipe(
+      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
     ),
-    appRuntime.runPromise(listAgentsForUser(session.user.id)),
-  ]);
-
-  if (!agent) notFound();
+  );
 
   if (!conv) notFound();
+
+  const [agents, agent] = await Promise.all([
+    fetchAgents(session.user.id),
+    fetchAgent(conv.agentId, session.user.id),
+  ]);
+
+  const resolvedAgent = agent ?? agents[0];
 
   const initialMessages = projectMessages(conv.events);
 
   return (
     <ChatView
-      agentId={agentId}
-      agentName={agent.name}
-      agents={allAgents.map((a) => ({ id: a.id, name: a.name }))}
+      agentId={resolvedAgent.id}
+      agentName={resolvedAgent.name}
+      agents={agents.map((a) => ({ id: a.id, name: a.name }))}
       conversationId={conversationId}
       initialMessages={initialMessages}
       modelId={conv.modelId}

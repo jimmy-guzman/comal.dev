@@ -18,7 +18,6 @@ import {
 import { Button } from "@/components/ui/button";
 
 interface Props {
-  agentId: string;
   conversationId: string;
   onOpenChange?: (open: boolean) => void;
   open?: boolean;
@@ -27,7 +26,6 @@ interface Props {
 }
 
 export const DeleteConversationButton = ({
-  agentId,
   conversationId,
   onOpenChange,
   open: controlledOpen,
@@ -53,7 +51,7 @@ export const DeleteConversationButton = ({
       setOpen(false);
 
       if (redirectAfter) {
-        router.push(`/agents/${agentId}`);
+        router.push("/chats");
       }
     },
   });

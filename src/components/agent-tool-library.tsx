@@ -127,7 +127,7 @@ export const AgentToolLibrary = ({ onChange, value }: Props) => {
 
       <Command className="bg-background border">
         <CommandInput placeholder="search tools..." />
-        <CommandList className="max-h-[420px]">
+        <CommandList>
           <CommandEmpty>no tools match.</CommandEmpty>
           {grouped.map(({ group, items }) => {
             return (

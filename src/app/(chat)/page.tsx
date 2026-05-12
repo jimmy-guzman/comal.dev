@@ -46,7 +46,7 @@ export default async function HomePage() {
         </form>
       ) : (
         <Button asChild size="lg">
-          <Link href={`/agents/${mostRecent.id}/conversations/new`}>new chat</Link>
+          <Link href={`/chats/new?agent=${mostRecent.id}`}>new chat</Link>
         </Button>
       )}
     </div>

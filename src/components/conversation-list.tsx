@@ -50,19 +50,19 @@ const formatRelative = (date: Date) => {
 };
 
 interface Conversation {
+  agentName?: string;
   createdAt: Date;
   id: string;
   title: null | string;
 }
 
 interface ConversationListItemProps {
-  agentId: string;
   conversation: Conversation;
 }
 
-const ConversationListItem = ({ agentId, conversation }: ConversationListItemProps) => {
+const ConversationListItem = ({ conversation }: ConversationListItemProps) => {
   const [deleteOpen, setDeleteOpen] = React.useState(false);
-  const href = `/agents/${agentId}/conversations/${conversation.id}` as const;
+  const href = `/chats/${conversation.id}` as const;
 
   useLayoutEffect(() => {
     return () => {
@@ -78,7 +78,10 @@ const ConversationListItem = ({ agentId, conversation }: ConversationListItemPro
           href={href}
         >
           <ItemTitle>{conversation.title ?? "untitled"}</ItemTitle>
-          <ItemDescription>last message {formatRelative(conversation.createdAt)}</ItemDescription>
+          <ItemDescription>
+            {conversation.agentName === undefined ? null : `${conversation.agentName} · `}
+            {formatRelative(conversation.createdAt)}
+          </ItemDescription>
         </Link>
       </ItemContent>
       <ItemActions className="relative">
@@ -101,7 +104,6 @@ const ConversationListItem = ({ agentId, conversation }: ConversationListItemPro
           </DropdownMenuContent>
         </DropdownMenu>
         <DeleteConversationButton
-          agentId={agentId}
           conversationId={conversation.id}
           onOpenChange={setDeleteOpen}
           open={deleteOpen}
@@ -112,18 +114,17 @@ const ConversationListItem = ({ agentId, conversation }: ConversationListItemPro
 };
 
 interface Props {
-  agentId: string;
   conversations: Conversation[];
 }
 
-export const ConversationList = ({ agentId, conversations }: Props) => {
+export const ConversationList = ({ conversations }: Props) => {
   return (
     <ItemGroup>
       {conversations.map((c, i) => {
         return (
           <React.Fragment key={c.id}>
             {i > 0 ? <ItemSeparator /> : null}
-            <ConversationListItem agentId={agentId} conversation={c} />
+            <ConversationListItem conversation={c} />
           </React.Fragment>
         );
       })}
