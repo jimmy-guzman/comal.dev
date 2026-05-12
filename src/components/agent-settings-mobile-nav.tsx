@@ -1,7 +1,5 @@
 "use client";
 
-import type { Route } from "next";
-
 import { ChevronDownIcon } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegment } from "next/navigation";
@@ -15,10 +13,7 @@ interface Props {
   agentId: string;
 }
 
-const NAV_ITEMS = [{ label: "overview", segment: null }] satisfies {
-  label: string;
-  segment: null | string;
-}[];
+const NAV_ITEMS = [{ label: "overview", segment: null }] as const;
 
 const CONFIG_ITEMS = [
   { label: "basics", segment: "basics" },
@@ -26,18 +21,14 @@ const CONFIG_ITEMS = [
   { label: "tools", segment: "tools" },
   { label: "sub-agents", segment: "sub-agents" },
   { label: "evals", segment: "evals" },
-] satisfies { label: string; segment: string }[];
+] as const;
 
 const BOTTOM_ITEMS = [
   { label: "versions", segment: "versions" },
   { label: "danger zone", segment: "danger" },
-] satisfies { label: string; segment: string }[];
+] as const;
 
 const ALL_ITEMS = [...NAV_ITEMS, ...CONFIG_ITEMS, ...BOTTOM_ITEMS];
-
-const navHref = (agentId: string, segment: null | string): Route => {
-  return segment === null ? `/agents/${agentId}` : `/agents/${agentId}/${segment}`;
-};
 
 export const AgentSettingsMobileNav = ({ agentId }: Props) => {
   const segment = useSelectedLayoutSegment();
@@ -68,7 +59,7 @@ export const AgentSettingsMobileNav = ({ agentId }: Props) => {
                 size="sm"
                 variant={segment === s ? "secondary" : "ghost"}
               >
-                <Link href={navHref(agentId, s)}>{label}</Link>
+                <Link href={`/agents/${agentId}`}>{label}</Link>
               </Button>
             );
           })}
@@ -87,7 +78,7 @@ export const AgentSettingsMobileNav = ({ agentId }: Props) => {
                 size="sm"
                 variant={segment === s ? "secondary" : "ghost"}
               >
-                <Link href={navHref(agentId, s)}>{label}</Link>
+                <Link href={`/agents/${agentId}/${s}`}>{label}</Link>
               </Button>
             );
           })}
@@ -106,7 +97,7 @@ export const AgentSettingsMobileNav = ({ agentId }: Props) => {
                 size="sm"
                 variant={segment === s ? "secondary" : "ghost"}
               >
-                <Link href={navHref(agentId, s)}>{label}</Link>
+                <Link href={`/agents/${agentId}/${s}`}>{label}</Link>
               </Button>
             );
           })}

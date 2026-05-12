@@ -1,7 +1,5 @@
 "use client";
 
-import type { Route } from "next";
-
 import Link from "next/link";
 import { useSelectedLayoutSegment } from "next/navigation";
 
@@ -12,10 +10,7 @@ interface Props {
   agentId: string;
 }
 
-const NAV_ITEMS = [{ label: "overview", segment: null }] satisfies {
-  label: string;
-  segment: null | string;
-}[];
+const NAV_ITEMS = [{ label: "overview", segment: null }] as const;
 
 const CONFIG_ITEMS = [
   { label: "basics", segment: "basics" },
@@ -23,24 +18,21 @@ const CONFIG_ITEMS = [
   { label: "tools", segment: "tools" },
   { label: "sub-agents", segment: "sub-agents" },
   { label: "evals", segment: "evals" },
-] satisfies { label: string; segment: string }[];
+] as const;
 
 const BOTTOM_ITEMS = [
   { label: "versions", segment: "versions" },
   { label: "danger zone", segment: "danger" },
-] satisfies { label: string; segment: string }[];
-
-const navHref = (agentId: string, segment: null | string): Route => {
-  return segment === null ? `/agents/${agentId}` : `/agents/${agentId}/${segment}`;
-};
+] as const;
 
 interface NavItemProps {
   active: boolean;
-  href: Route;
+  agentId: string;
   label: string;
+  segment: null | string;
 }
 
-const NavItem = ({ active, href, label }: NavItemProps) => {
+const NavItem = ({ active, agentId, label, segment }: NavItemProps) => {
   return (
     <Button
       asChild
@@ -48,35 +40,55 @@ const NavItem = ({ active, href, label }: NavItemProps) => {
       size="sm"
       variant={active ? "secondary" : "ghost"}
     >
-      <Link href={href}>{label}</Link>
+      <Link href={segment === null ? `/agents/${agentId}` : `/agents/${agentId}/${segment}`}>
+        {label}
+      </Link>
     </Button>
   );
 };
 
 export const AgentSettingsNav = ({ agentId }: Props) => {
-  const segment = useSelectedLayoutSegment();
+  const currentSegment = useSelectedLayoutSegment();
 
   return (
     <nav className="flex w-48 shrink-0 flex-col gap-1 pt-1">
-      {NAV_ITEMS.map(({ label, segment: s }) => {
+      {NAV_ITEMS.map(({ label, segment }) => {
         return (
-          <NavItem active={segment === s} href={navHref(agentId, s)} key={label} label={label} />
+          <NavItem
+            active={currentSegment === segment}
+            agentId={agentId}
+            key={label}
+            label={label}
+            segment={segment}
+          />
         );
       })}
 
       <Separator className="my-2" />
 
-      {CONFIG_ITEMS.map(({ label, segment: s }) => {
+      {CONFIG_ITEMS.map(({ label, segment }) => {
         return (
-          <NavItem active={segment === s} href={navHref(agentId, s)} key={label} label={label} />
+          <NavItem
+            active={currentSegment === segment}
+            agentId={agentId}
+            key={label}
+            label={label}
+            segment={segment}
+          />
         );
       })}
 
       <Separator className="my-2" />
 
-      {BOTTOM_ITEMS.map(({ label, segment: s }) => {
+      {BOTTOM_ITEMS.map(({ label, segment }) => {
         return (
-          <NavItem active={segment === s} href={navHref(agentId, s)} key={label} label={label} />
+          <NavItem
+            active={currentSegment === segment}
+            agentId={agentId}
+            key={label}
+            label={label}
+            segment={segment}
+          />
         );
       })}
     </nav>
