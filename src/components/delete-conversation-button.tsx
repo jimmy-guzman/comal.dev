@@ -51,7 +51,7 @@ export const DeleteConversationButton = ({
       setOpen(false);
 
       if (redirectAfter) {
-        router.push("/");
+        router.push("/chats");
       }
     },
   });

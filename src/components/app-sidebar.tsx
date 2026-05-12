@@ -100,7 +100,7 @@ const ConversationItem = ({
 export const AppSidebar = ({ agents, isSignedIn }: Props) => {
   const { conversations } = useConversations();
   const pathname = usePathname();
-  const activeMatch = /^\/chats\/([^/]+)/.exec(pathname);
+  const activeMatch = /^\/chats\/(?!new$)([^/]+)/.exec(pathname);
   const activeConversationId = activeMatch?.[1] ?? null;
 
   const mostRecentAgentId = agents.at(0)?.id ?? null;
@@ -128,7 +128,7 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/chats"}>
+              <SidebarMenuButton asChild isActive={pathname.startsWith("/chats")}>
                 <Link href="/chats">chats</Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
