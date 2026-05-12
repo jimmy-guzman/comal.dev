@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircleIcon, LoaderIcon, PlayIcon, XCircleIcon } from "lucide-react";
+import { CheckCircleIcon, ChevronDownIcon, LoaderIcon, PlayIcon, XCircleIcon } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { SCORER_OPTIONS } from "@/lib/eval-input-schema";
 
@@ -59,16 +60,16 @@ const PASS_THRESHOLD = 0.8;
 
 const formatScore = (score: number) => score.toFixed(2);
 
-const EvalRunBadge = ({ result }: { result: EvalRunResult | InitialRun | null }) => {
-  if (!result) {
-    return (
-      <Badge className="text-xs" variant="secondary">
-        no runs
-      </Badge>
-    );
-  }
+const getScore = (result: EvalRunResult | InitialRun) => {
+  return "score" in result ? result.score : result.lastRunScore;
+};
 
-  const score = "score" in result ? result.score : result.lastRunScore;
+const getOutput = (result: EvalRunResult | InitialRun) => {
+  return "output" in result ? result.output : result.lastRunOutput;
+};
+
+const EvalRunBadge = ({ result }: { result: EvalRunResult | InitialRun | null }) => {
+  const score = result ? getScore(result) : null;
 
   if (score === null) {
     return (
@@ -81,7 +82,7 @@ const EvalRunBadge = ({ result }: { result: EvalRunResult | InitialRun | null })
   if (score >= PASS_THRESHOLD) {
     return (
       <Badge className="gap-1 text-xs" variant="secondary">
-        <CheckCircleIcon className="size-3 text-green-600" />
+        <CheckCircleIcon className="text-success size-3" />
         pass {formatScore(score)}
       </Badge>
     );
@@ -89,7 +90,7 @@ const EvalRunBadge = ({ result }: { result: EvalRunResult | InitialRun | null })
 
   return (
     <Badge className="gap-1 text-xs" variant="secondary">
-      <XCircleIcon className="size-3 text-red-600" />
+      <XCircleIcon className="text-destructive size-3" />
       fail {formatScore(score)}
     </Badge>
   );
@@ -109,6 +110,7 @@ const EvalRow = ({
   onRemove: () => void;
 }) => {
   const [runResult, setRunResult] = useState<EvalRunResult | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const { execute, isPending } = useAction(runEvalAction, {
     onError: ({ error }) => {
@@ -116,17 +118,35 @@ const EvalRow = ({
     },
     onSuccess: ({ data }) => {
       setRunResult(data);
+      setIsExpanded(true);
     },
   });
 
   const canRun = isEdit && Boolean(entry.id);
+  const result = runResult ?? initialRun;
+  const output = result ? getOutput(result) : null;
 
   return (
     <div className="rounded-md border p-3">
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">{entry.name || "untitled eval"}</span>
-          <EvalRunBadge result={runResult ?? initialRun} />
+          <EvalRunBadge result={result} />
+          {output ? (
+            <Button
+              onClick={() => {
+                setIsExpanded((v) => !v);
+              }}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <ChevronDownIcon
+                className="size-3 transition-transform duration-200 data-[open=true]:rotate-180"
+                data-open={String(isExpanded)}
+              />
+            </Button>
+          ) : null}
         </div>
         <div className="flex items-center gap-1">
           {canRun && entry.id ? (
@@ -211,6 +231,25 @@ const EvalRow = ({
           </Select>
         </Field>
       </div>
+      {output && isExpanded ? (
+        <>
+          <Separator className="my-3" />
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
+              <span className="text-muted-foreground text-xs">output</span>
+              <pre className="max-h-32 overflow-y-auto font-mono text-xs break-words whitespace-pre-wrap">
+                {output}
+              </pre>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-muted-foreground text-xs">expected</span>
+              <pre className="max-h-32 overflow-y-auto font-mono text-xs break-words whitespace-pre-wrap">
+                {entry.expected}
+              </pre>
+            </div>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 };
