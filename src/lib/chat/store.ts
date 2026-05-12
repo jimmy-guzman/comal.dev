@@ -88,6 +88,77 @@ export const getConversationWithEvents = (
   });
 };
 
+export interface TraceEventRow {
+  createdAt: Date;
+  endedAt: Date | null;
+  eventType: string;
+  messageId: null | string;
+  modelId: null | string;
+  parentToolCallId: null | string;
+  payload: unknown;
+  role: string;
+  sequence: number;
+  startedAt: Date | null;
+}
+
+interface ConversationTrace {
+  conversationCreatedAt: Date;
+  events: TraceEventRow[];
+  id: string;
+  modelId: string;
+  title: string;
+}
+
+export const getConversationTrace = (
+  userId: string,
+  conversationId: string,
+): Effect.Effect<ConversationTrace, DatabaseError | ForbiddenError | NotFoundError, Database> => {
+  return Effect.gen(function* () {
+    const db = yield* Database;
+
+    const convRows = yield* runQuery(() => {
+      return db.select().from(conversation).where(eq(conversation.id, conversationId)).limit(1);
+    });
+
+    const conv = convRows.at(0);
+
+    if (conv === undefined) {
+      return yield* Effect.fail(new NotFoundError({ resource: "conversation" }));
+    }
+
+    if (conv.userId !== userId) {
+      return yield* Effect.fail(new ForbiddenError());
+    }
+
+    const eventRows = yield* runQuery(() => {
+      return db
+        .select({
+          createdAt: chatEvent.createdAt,
+          endedAt: chatEvent.endedAt,
+          eventType: chatEvent.eventType,
+          messageId: chatEvent.messageId,
+          modelId: chatEvent.modelId,
+          parentToolCallId: chatEvent.parentToolCallId,
+          payload: chatEvent.payload,
+          role: chatEvent.role,
+          sequence: chatEvent.sequence,
+          startedAt: chatEvent.startedAt,
+        })
+        .from(chatEvent)
+        .where(eq(chatEvent.conversationId, conversationId))
+        .orderBy(chatEvent.sequence);
+    });
+
+    return {
+      conversationCreatedAt: conv.createdAt,
+      events: eventRows,
+      id: conv.id,
+      modelId: conv.modelId,
+      title: conv.title,
+    };
+  });
+};
+
 export const countAssistantTurns = (
   conversationId: string,
 ): Effect.Effect<number, DatabaseError, Database> => {
