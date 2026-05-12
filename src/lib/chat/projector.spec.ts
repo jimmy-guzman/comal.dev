@@ -7,6 +7,7 @@ import { projectMessages } from "./projector";
 const event = (overrides: Partial<ChatEventRow> & Pick<ChatEventRow, "eventType" | "payload">) => {
   return {
     messageId: "msg-1",
+    parentToolCallId: null,
     role: "assistant",
     sequence: 1,
     ...overrides,

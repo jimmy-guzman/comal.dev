@@ -18,6 +18,7 @@ interface AppendChatEventArgs {
   conversationId: string;
   event: ChatEventInput;
   modelId: null | string;
+  parentToolCallId?: null | string;
 }
 
 export const appendChatEvent = (
@@ -42,6 +43,7 @@ export const appendChatEvent = (
         eventType: args.event.eventType,
         messageId: args.event.messageId,
         modelId: args.modelId,
+        parentToolCallId: args.parentToolCallId ?? null,
         payload: validatedPayload,
         role: args.event.role,
         startedAt: args.event.startedAt,
@@ -60,6 +62,7 @@ interface PersistStreamArgs {
   messageId: string;
   modelId: null | string;
   onEventError?: (error: unknown, event: ChatEventInput) => void;
+  parentToolCallId?: null | string;
 }
 
 const buildContext = (messageId: string, modelId: null | string): MapStreamPartContext => {
@@ -94,6 +97,7 @@ export const persistChatStream = async (args: PersistStreamArgs): Promise<void> 
         conversationId: args.conversationId,
         event,
         modelId: args.modelId,
+        parentToolCallId: args.parentToolCallId,
       });
     } catch (error) {
       args.onEventError?.(error, event);

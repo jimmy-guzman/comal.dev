@@ -50,6 +50,7 @@ export const getConversationWithEvents = (
         .select({
           eventType: chatEvent.eventType,
           messageId: chatEvent.messageId,
+          parentToolCallId: chatEvent.parentToolCallId,
           payload: chatEvent.payload,
           role: chatEvent.role,
           sequence: chatEvent.sequence,
@@ -68,6 +69,7 @@ export const getConversationWithEvents = (
         {
           eventType: row.eventType as ChatEventRow["eventType"],
           messageId: row.messageId,
+          parentToolCallId: row.parentToolCallId,
           payload: row.payload,
           role: row.role as ChatEventRow["role"],
           sequence: row.sequence,

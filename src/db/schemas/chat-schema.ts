@@ -45,6 +45,7 @@ export const chatEvent = pgTable(
     eventType: text("event_type").notNull(),
     messageId: text("message_id"),
     modelId: text("model_id"),
+    parentToolCallId: text("parent_tool_call_id"),
     payload: jsonb("payload").notNull(),
     role: text("role").notNull(),
     sequence: bigserial("sequence", { mode: "number" }).notNull(),
@@ -55,6 +56,7 @@ export const chatEvent = pgTable(
       primaryKey({ columns: [table.conversationId, table.sequence] }),
       index("chat_event_messageId_idx").on(table.messageId),
       index("chat_event_createdAt_idx").on(table.createdAt),
+      index("chat_event_parentToolCallId_idx").on(table.parentToolCallId),
     ];
   },
 );
