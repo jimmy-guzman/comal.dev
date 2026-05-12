@@ -285,8 +285,7 @@ export const projectMessages = (events: ChatEventRow[]): UIMessage[] => {
 
     return owner;
   };
-  const topLevelEvents = events.filter((row) => row.parentToolCallId === null);
-  const sorted = topLevelEvents.toSorted((a, b) => a.sequence - b.sequence);
+  const sorted = events.toSorted((a, b) => a.sequence - b.sequence);
 
   for (const row of sorted) {
     const payload = row.payload as ChatEventPayload<typeof row.eventType>;

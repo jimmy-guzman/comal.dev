@@ -58,7 +58,8 @@ export default async function ChatPage({ params }: Props) {
 
   const resolvedAgent = agent ?? agents[0];
 
-  const initialMessages = projectMessages(conv.events);
+  const topLevelEvents = conv.events.filter((e) => e.parentToolCallId === null);
+  const initialMessages = projectMessages(topLevelEvents);
   const subagentTraces = projectSubagentTraces(conv.events);
 
   return (

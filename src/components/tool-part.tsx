@@ -106,10 +106,10 @@ const SubagentOutput = ({ output, persistedMessages }: SubagentOutputProps) => {
         <span className="font-medium">{isRunning ? "running..." : "view transcript"}</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-2">
-        {output.status === "done" && output.text?.trim() ? (
-          <MessageResponse className="text-xs">{output.text}</MessageResponse>
-        ) : messages.length > 0 ? (
+        {messages.length > 0 ? (
           <SubagentMessages messages={messages} />
+        ) : output.status === "done" && output.text?.trim() ? (
+          <MessageResponse className="text-xs">{output.text}</MessageResponse>
         ) : (
           <p className="text-muted-foreground text-xs">no messages yet.</p>
         )}
