@@ -19,7 +19,6 @@ import {
   ItemContent,
   ItemDescription,
   ItemGroup,
-  ItemSeparator,
   ItemTitle,
 } from "@/components/ui/item";
 
@@ -71,44 +70,49 @@ const ConversationListItem = ({ conversation }: ConversationListItemProps) => {
   }, []);
 
   return (
-    <Item className="hover:bg-muted relative rounded-md" size="sm">
-      <ItemContent className="min-w-0">
-        <Link
-          className="flex flex-col gap-1 outline-none after:absolute after:inset-0 after:content-['']"
-          href={href}
-        >
-          <ItemTitle>{conversation.title ?? "untitled"}</ItemTitle>
-          <ItemDescription>
-            {conversation.agentName === undefined ? null : `${conversation.agentName} · `}
-            {formatRelative(conversation.createdAt)}
-          </ItemDescription>
-        </Link>
-      </ItemContent>
-      <ItemActions className="relative">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button aria-label="more options" size="icon-sm" variant="ghost">
-              <MoreHorizontalIcon />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                setDeleteOpen(true);
-              }}
-              variant="destructive"
-            >
-              delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DeleteConversationButton
-          conversationId={conversation.id}
-          onOpenChange={setDeleteOpen}
-          open={deleteOpen}
-        />
-      </ItemActions>
+    <Item
+      className="flex h-full min-h-0 flex-col flex-nowrap items-stretch rounded-lg"
+      variant="outline"
+    >
+      <div className="flex min-h-0 flex-1 gap-2">
+        <ItemContent className="relative min-h-0 min-w-0 flex-1">
+          <Link
+            className="relative flex min-h-0 flex-col gap-1 outline-none after:absolute after:inset-0 after:z-0 after:content-['']"
+            href={href}
+          >
+            <ItemTitle>{conversation.title ?? "untitled"}</ItemTitle>
+            <ItemDescription>
+              {conversation.agentName === undefined ? null : `${conversation.agentName} · `}
+              {formatRelative(conversation.createdAt)}
+            </ItemDescription>
+          </Link>
+        </ItemContent>
+        <ItemActions className="relative z-10 shrink-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button aria-label="more options" size="icon-sm" variant="ghost">
+                <MoreHorizontalIcon />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setDeleteOpen(true);
+                }}
+                variant="destructive"
+              >
+                delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DeleteConversationButton
+            conversationId={conversation.id}
+            onOpenChange={setDeleteOpen}
+            open={deleteOpen}
+          />
+        </ItemActions>
+      </div>
     </Item>
   );
 };
@@ -119,14 +123,9 @@ interface Props {
 
 export const ConversationList = ({ conversations }: Props) => {
   return (
-    <ItemGroup>
-      {conversations.map((c, i) => {
-        return (
-          <React.Fragment key={c.id}>
-            {i > 0 ? <ItemSeparator /> : null}
-            <ConversationListItem conversation={c} />
-          </React.Fragment>
-        );
+    <ItemGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {conversations.map((c) => {
+        return <ConversationListItem conversation={c} key={c.id} />;
       })}
     </ItemGroup>
   );

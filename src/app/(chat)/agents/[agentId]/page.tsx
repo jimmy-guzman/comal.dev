@@ -64,7 +64,7 @@ export default async function AgentOverviewPage({ params }: Props) {
   if (!agent) notFound();
 
   return (
-    <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-8 p-4 sm:p-8">
+    <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-1">
         <h2 className="flex items-center gap-2 text-xl font-semibold">
           {agent.name}
@@ -103,9 +103,9 @@ export default async function AgentOverviewPage({ params }: Props) {
       </div>
 
       {recentChats.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">recent chats</h3>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg font-medium">recent chats</h2>
             <Link
               className="text-muted-foreground hover:text-foreground text-xs transition-colors"
               href={`/chats?agent=${agentId}`}
