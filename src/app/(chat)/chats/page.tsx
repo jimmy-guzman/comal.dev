@@ -38,6 +38,7 @@ interface Props {
 
 export default async function ChatsPage({ searchParams }: Props) {
   const { agent: agentFilter } = await chatSearchParamsCache.parse(searchParams);
+  const newChatHref = agentFilter === null ? "/chats/new" : `/chats/new?agent=${agentFilter}`;
 
   const session = await auth.api.getSession({ headers: await headers() });
 
@@ -57,7 +58,7 @@ export default async function ChatsPage({ searchParams }: Props) {
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">chats</h1>
         <Button asChild size="sm">
-          <Link href="/chats/new">new chat</Link>
+          <Link href={newChatHref}>new chat</Link>
         </Button>
       </div>
 

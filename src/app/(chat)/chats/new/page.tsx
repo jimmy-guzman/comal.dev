@@ -52,6 +52,7 @@ export default async function NewChatPage({ searchParams }: Props) {
   const agent = await fetchAgent(selectedAgentId, session.user.id);
 
   const resolvedAgent = agent ?? agents[0];
+  const chatKey = `new:${resolvedAgent.id}:${resolvedAgent.defaultModelId}`;
 
   return (
     <ChatView
@@ -60,6 +61,7 @@ export default async function NewChatPage({ searchParams }: Props) {
       agents={agents.map((a) => ({ id: a.id, name: a.name }))}
       conversationId={null}
       initialMessages={[]}
+      key={chatKey}
       modelId={resolvedAgent.defaultModelId}
       suggestions={[]}
     />

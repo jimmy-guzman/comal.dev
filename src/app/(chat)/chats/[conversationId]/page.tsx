@@ -69,6 +69,7 @@ export default async function ChatPage({ params }: Props) {
       agents={agents.map((a) => ({ id: a.id, name: a.name }))}
       conversationId={conversationId}
       initialMessages={initialMessages}
+      key={conversationId}
       modelId={conv.modelId}
       subagentTraces={subagentTraces}
       suggestions={[]}
