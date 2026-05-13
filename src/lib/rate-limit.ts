@@ -3,14 +3,19 @@ import { Redis } from "@upstash/redis";
 
 import { env } from "@/env";
 
-const CHAT_AUTHED_LIMIT = 50;
+const CHAT_AUTHED_LIMIT = 200;
 const CHAT_AUTHED_WINDOW = "1 h";
-const CHAT_ANON_LIMIT = 10;
+const CHAT_ANON_LIMIT = 40;
 const CHAT_ANON_WINDOW = "1 h";
-const MUTATION_AUTHED_LIMIT = 30;
+const MUTATION_AUTHED_LIMIT = 60;
 const MUTATION_AUTHED_WINDOW = "1 m";
-const MUTATION_ANON_LIMIT = 5;
+const MUTATION_ANON_LIMIT = 15;
 const MUTATION_ANON_WINDOW = "1 m";
+
+const BUDGET_AUTHED_MICRODOLLARS = 5_000_000;
+const BUDGET_ANON_MICRODOLLARS = 1_000_000;
+const BUDGET_WINDOW_SECONDS = 3600;
+const BUDGET_TTL_SECONDS = BUDGET_WINDOW_SECONDS * 2;
 
 const REDIS_TIMEOUT_MS = 1000;
 
@@ -84,6 +89,63 @@ export const checkLimit = async (
     console.warn("[rate-limit] Upstash error, failing open", error);
 
     return { limit: 0, remaining: 0, reset: 0, success: true };
+  }
+};
+
+const budgetKey = (userId: string): string => {
+  const windowId = Math.floor(Date.now() / 1000 / BUDGET_WINDOW_SECONDS);
+
+  return `spend:${userId}:${windowId}`;
+};
+
+export const recordSpend = async (userId: string, costMicrodollars: number): Promise<void> => {
+  if (costMicrodollars <= 0) return;
+
+  try {
+    const key = budgetKey(userId);
+    const pipeline = redis.pipeline();
+
+    pipeline.incrby(key, costMicrodollars);
+    pipeline.expire(key, BUDGET_TTL_SECONDS);
+    await pipeline.exec();
+  } catch (error) {
+    // eslint-disable-next-line no-console -- fail-open warning when Upstash is unreachable
+    console.warn("[rate-limit] Failed to record spend, failing open", error);
+  }
+};
+
+interface BudgetCheckResult {
+  budgetMicrodollars: number;
+  remainingMicrodollars: number;
+  spentMicrodollars: number;
+  success: boolean;
+}
+
+export const checkBudget = async (
+  userId: string,
+  isAnonymous: boolean,
+): Promise<BudgetCheckResult> => {
+  const budget = isAnonymous ? BUDGET_ANON_MICRODOLLARS : BUDGET_AUTHED_MICRODOLLARS;
+
+  try {
+    const spent = (await redis.get<number>(budgetKey(userId))) ?? 0;
+
+    return {
+      budgetMicrodollars: budget,
+      remainingMicrodollars: Math.max(0, budget - spent),
+      spentMicrodollars: spent,
+      success: spent < budget,
+    };
+  } catch (error) {
+    // eslint-disable-next-line no-console -- fail-open warning when Upstash is unreachable
+    console.warn("[rate-limit] Budget check failed, failing open", error);
+
+    return {
+      budgetMicrodollars: budget,
+      remainingMicrodollars: budget,
+      spentMicrodollars: 0,
+      success: true,
+    };
   }
 };
 

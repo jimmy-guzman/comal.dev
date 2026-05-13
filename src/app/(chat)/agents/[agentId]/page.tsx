@@ -7,6 +7,7 @@ import { notFound, redirect } from "next/navigation";
 import { ConversationList } from "@/components/conversation-list";
 import { Badge } from "@/components/ui/badge";
 import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
+import { getModelCostLabel } from "@/config/models";
 import { appRuntime } from "@/db/service";
 import { getAgentForUser, listAgentVersions } from "@/lib/agents";
 import { auth } from "@/lib/auth";
@@ -78,8 +79,13 @@ export default async function AgentOverviewPage({ params }: Props) {
         <Item className="h-full px-4 py-4" variant="outline">
           <ItemContent>
             <p className="text-muted-foreground text-xs">model</p>
-            <p className="truncate text-sm font-medium">
-              {agent.defaultModelId.split("/").at(-1) ?? agent.defaultModelId}
+            <p className="flex items-center gap-2 truncate text-sm font-medium">
+              <span className="truncate">
+                {agent.defaultModelId.split("/").at(-1) ?? agent.defaultModelId}
+              </span>
+              <span className="text-muted-foreground shrink-0 text-xs tracking-tight">
+                {getModelCostLabel(agent.defaultModelId)}
+              </span>
             </p>
           </ItemContent>
         </Item>

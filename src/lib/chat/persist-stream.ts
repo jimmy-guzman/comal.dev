@@ -1,11 +1,13 @@
 import type { TextStreamPart, ToolSet } from "ai";
 
+import { eq } from "drizzle-orm";
 import { Effect } from "effect";
 
 import type { DatabaseError } from "@/lib/errors";
 
 import { chatEvent } from "@/db/schemas/chat-schema";
-import { appRuntime, Database, runMutation } from "@/db/service";
+import { modelPricing } from "@/db/schemas/model-pricing-schema";
+import { appRuntime, Database, runMutation, runQuery } from "@/db/service";
 import { ValidationError } from "@/lib/errors";
 
 import type { MapStreamPartContext } from "./event-mapper";
@@ -16,6 +18,7 @@ import { validateEventPayload } from "./events";
 
 interface AppendChatEventArgs {
   conversationId: string;
+  costMicrodollars?: null | number;
   event: ChatEventInput;
   modelId: null | string;
   parentToolCallId?: null | string;
@@ -39,6 +42,7 @@ export const appendChatEvent = (
     yield* runMutation(() => {
       return db.insert(chatEvent).values({
         conversationId: args.conversationId,
+        costMicrodollars: args.costMicrodollars ?? null,
         endedAt: args.event.endedAt,
         eventType: args.event.eventType,
         messageId: args.event.messageId,
@@ -50,6 +54,94 @@ export const appendChatEvent = (
       });
     });
   });
+};
+
+interface PricingEntry {
+  inputCost: number;
+  outputCost: number;
+}
+
+interface CachedPricing {
+  fetchedAt: number;
+  value: PricingEntry;
+}
+
+const PRICING_CACHE_TTL_MS = 10 * 60 * 1000;
+
+const pricingCache = new Map<string, CachedPricing>();
+
+const lookupPricing = async (modelId: string): Promise<null | PricingEntry> => {
+  const cached = pricingCache.get(modelId);
+
+  if (cached && Date.now() - cached.fetchedAt < PRICING_CACHE_TTL_MS) return cached.value;
+
+  try {
+    const rows = await appRuntime.runPromise(
+      Effect.gen(function* () {
+        const db = yield* Database;
+
+        return yield* runQuery(() => {
+          return db
+            .select({ inputCost: modelPricing.inputCost, outputCost: modelPricing.outputCost })
+            .from(modelPricing)
+            .where(eq(modelPricing.modelId, modelId))
+            .limit(1);
+        });
+      }),
+    );
+
+    const row = rows.at(0);
+
+    if (!row) return null;
+
+    const inputCost = Number.parseFloat(row.inputCost);
+    const outputCost = Number.parseFloat(row.outputCost);
+
+    if (
+      !Number.isFinite(inputCost) ||
+      inputCost < 0 ||
+      !Number.isFinite(outputCost) ||
+      outputCost < 0
+    )
+      return null;
+
+    const entry: PricingEntry = { inputCost, outputCost };
+
+    pricingCache.set(modelId, { fetchedAt: Date.now(), value: entry });
+
+    return entry;
+  } catch {
+    return cached?.value ?? null;
+  }
+};
+
+interface TotalUsage {
+  completionTokens?: number;
+  promptTokens?: number;
+}
+
+const computeCostMicrodollars = async (
+  modelId: null | string,
+  totalUsage: TotalUsage,
+): Promise<null | number> => {
+  if (!modelId) return null;
+
+  const promptTokens = Math.max(
+    0,
+    Number.isFinite(totalUsage.promptTokens) ? (totalUsage.promptTokens ?? 0) : 0,
+  );
+  const completionTokens = Math.max(
+    0,
+    Number.isFinite(totalUsage.completionTokens) ? (totalUsage.completionTokens ?? 0) : 0,
+  );
+
+  if (promptTokens === 0 && completionTokens === 0) return null;
+
+  const pricing = await lookupPricing(modelId);
+
+  if (!pricing) return null;
+
+  return Math.round(promptTokens * pricing.inputCost + completionTokens * pricing.outputCost);
 };
 
 const persistChatEvent = (args: AppendChatEventArgs) => {
@@ -82,8 +174,14 @@ const isPreliminaryToolOutput = (event: ChatEventInput): boolean => {
   return payload.preliminary === true;
 };
 
-export const persistChatStream = async (args: PersistStreamArgs): Promise<void> => {
+interface PersistStreamResult {
+  costMicrodollars: null | number;
+}
+
+export const persistChatStream = async (args: PersistStreamArgs): Promise<PersistStreamResult> => {
   const ctx = buildContext(args.messageId, args.modelId);
+
+  let totalCostMicrodollars: null | number = null;
 
   for await (const part of args.fullStream) {
     const event = mapStreamPartToEvent(part, ctx);
@@ -92,15 +190,32 @@ export const persistChatStream = async (args: PersistStreamArgs): Promise<void> 
 
     if (isPreliminaryToolOutput(event)) continue;
 
+    let costMicrodollars: null | number = null;
+
+    if (event.eventType === "assistant-turn-finish") {
+      const payload = event.payload as { totalUsage?: TotalUsage };
+
+      if (payload.totalUsage) {
+        costMicrodollars = await computeCostMicrodollars(args.modelId, payload.totalUsage);
+      }
+    }
+
     try {
       await persistChatEvent({
         conversationId: args.conversationId,
+        costMicrodollars,
         event,
         modelId: args.modelId,
         parentToolCallId: args.parentToolCallId,
       });
+
+      if (event.eventType === "assistant-turn-finish" && costMicrodollars !== null) {
+        totalCostMicrodollars = costMicrodollars;
+      }
     } catch (error) {
       args.onEventError?.(error, event);
     }
   }
+
+  return { costMicrodollars: totalCostMicrodollars };
 };

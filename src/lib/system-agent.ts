@@ -8,7 +8,7 @@ import { Database, runQuery } from "@/db/service";
 import { tools as toolRegistry } from "../agents/tools/registry";
 
 const SYSTEM_AGENT_NAME = "Comal";
-const SYSTEM_AGENT_MODEL = "anthropic/claude-sonnet-4.5";
+const SYSTEM_AGENT_MODEL = "google/gemini-2.5-flash";
 
 const SYSTEM_AGENT_TOOLS = [
   "agents-list",

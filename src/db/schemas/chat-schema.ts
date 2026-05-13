@@ -1,5 +1,14 @@
 import { relations } from "drizzle-orm";
-import { bigserial, index, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  bigserial,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
 import { agent, agentVersion } from "./agent-schema";
 import { user } from "./auth-schema";
@@ -40,6 +49,7 @@ export const chatEvent = pgTable(
     conversationId: text("conversation_id")
       .notNull()
       .references(() => conversation.id, { onDelete: "cascade" }),
+    costMicrodollars: integer("cost_microdollars"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     endedAt: timestamp("ended_at", { withTimezone: true }),
     eventType: text("event_type").notNull(),

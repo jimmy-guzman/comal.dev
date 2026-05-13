@@ -12,7 +12,7 @@ import type { ToolContext } from "../types";
 
 import { tools as toolRegistry } from "../registry";
 
-const DEFAULT_MODEL = "anthropic/claude-sonnet-4.5";
+const DEFAULT_MODEL = "google/gemini-2.5-flash";
 const PROPOSED_PARENT_ID = "__proposed__";
 
 const normalizeToolId = (input: string) => {
@@ -44,7 +44,7 @@ const subAgentSchema = z.object({
 export const buildAgentsCreate = (_config: unknown, context: ToolContext) => {
   return tool({
     description:
-      "Creates a new agent. Resolves tool names to IDs (e.g. 'web search' -> 'web-search'). Defaults to Claude Sonnet 4.5 if no model is specified. Supports sub-agent wiring with cycle detection.",
+      "Creates a new agent. Resolves tool names to IDs (e.g. 'web search' -> 'web-search'). Defaults to Gemini 2.5 Flash if no model is specified. Supports sub-agent wiring with cycle detection.",
     execute: async ({ defaultModelId, description, name, subAgents, systemPrompt, tools }) => {
       const modelId = defaultModelId ?? DEFAULT_MODEL;
 
@@ -131,7 +131,7 @@ export const buildAgentsCreate = (_config: unknown, context: ToolContext) => {
         .string()
         .optional()
         .describe(
-          "The model ID to use (e.g. 'anthropic/claude-sonnet-4.5'). Defaults to Claude Sonnet 4.5 if not specified.",
+          "The model ID to use (e.g. 'google/gemini-2.5-flash'). Defaults to Gemini 2.5 Flash if not specified.",
         ),
       description: z
         .string()

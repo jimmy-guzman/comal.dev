@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { MODEL_GROUPS, MODEL_IDS } from "@/config/models";
+import { getModelCostLabel, MODEL_GROUPS, MODEL_IDS } from "@/config/models";
 import { initialToolSelections } from "@/lib/agent-tool-selection";
 import { SCORER_OPTIONS } from "@/lib/eval-input-schema";
 
@@ -127,7 +127,7 @@ interface Props {
   ownedAgents?: OwnedAgent[];
 }
 
-const DEFAULT_MODEL_ID: ModelId = "anthropic/claude-haiku-4.5";
+const DEFAULT_MODEL_ID: ModelId = "google/gemini-2.5-flash";
 
 const isModelId = (value: string): value is ModelId => {
   return (MODEL_IDS as readonly string[]).includes(value);
@@ -438,7 +438,12 @@ export const AgentForm = ({
                               {group.models.map((model) => {
                                 return (
                                   <SelectItem key={model.id} value={model.id}>
-                                    {model.name}
+                                    <span className="flex w-full items-center justify-between gap-2">
+                                      <span>{model.name}</span>
+                                      <span className="text-muted-foreground text-xs tracking-tight">
+                                        {getModelCostLabel(model.id)}
+                                      </span>
+                                    </span>
                                   </SelectItem>
                                 );
                               })}

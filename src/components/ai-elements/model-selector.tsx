@@ -174,3 +174,12 @@ export type ModelSelectorNameProps = ComponentProps<"span">;
 export const ModelSelectorName = ({ className, ...props }: ModelSelectorNameProps) => (
   <span className={cn("flex-1 truncate text-left", className)} {...props} />
 );
+
+export type ModelSelectorCostProps = ComponentProps<"span">;
+
+export const ModelSelectorCost = ({ className, ...props }: ModelSelectorCostProps) => (
+  <span
+    className={cn("text-muted-foreground shrink-0 text-xs font-medium tracking-tight", className)}
+    {...props}
+  />
+);
