@@ -19,7 +19,7 @@ import { CodeBlock } from "./code-block";
 export type AgentProps = ComponentProps<"div">;
 
 export const Agent = memo(({ className, ...props }: AgentProps) => (
-  <div className={cn("not-prose w-full rounded-md border", className)} {...props} />
+  <div className={cn("not-prose w-full rounded-none border", className)} {...props} />
 ));
 
 export type AgentHeaderProps = ComponentProps<"div"> & {
@@ -55,7 +55,7 @@ export const AgentInstructions = memo(
   ({ className, children, ...props }: AgentInstructionsProps) => (
     <div className={cn("space-y-2", className)} {...props}>
       <span className="text-muted-foreground text-sm font-medium">INSTRUCTIONS</span>
-      <div className="bg-muted/50 text-muted-foreground rounded-md p-3 text-sm">
+      <div className="bg-muted/50 text-muted-foreground rounded-none p-3 text-sm">
         <p>{children}</p>
       </div>
     </div>
@@ -67,7 +67,7 @@ export type AgentToolsProps = ComponentProps<typeof Accordion>;
 export const AgentTools = memo(({ className, ...props }: AgentToolsProps) => (
   <div className={cn("space-y-2", className)}>
     <span className="text-muted-foreground text-sm font-medium">TOOLS</span>
-    <Accordion className="rounded-md border" {...props} />
+    <Accordion className="rounded-none border" {...props} />
   </div>
 ));
 
@@ -84,7 +84,7 @@ export const AgentTool = memo(({ className, tool, value, ...props }: AgentToolPr
         {tool.description ?? "no description"}
       </AccordionTrigger>
       <AccordionContent className="px-3 pb-3">
-        <div className="bg-muted/50 rounded-md">
+        <div className="bg-muted/50 rounded-none">
           <CodeBlock code={JSON.stringify(schema, null, 2)} language="json" />
         </div>
       </AccordionContent>
@@ -99,7 +99,7 @@ export type AgentOutputProps = ComponentProps<"div"> & {
 export const AgentOutput = memo(({ className, schema, ...props }: AgentOutputProps) => (
   <div className={cn("space-y-2", className)} {...props}>
     <span className="text-muted-foreground text-sm font-medium">OUTPUT SCHEMA</span>
-    <div className="bg-muted/50 rounded-md">
+    <div className="bg-muted/50 rounded-none">
       <CodeBlock code={schema} language="typescript" />
     </div>
   </div>

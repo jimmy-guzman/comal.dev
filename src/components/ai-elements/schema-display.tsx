@@ -367,7 +367,10 @@ export const SchemaDisplay = ({
 
   return (
     <SchemaDisplayContext.Provider value={contextValue}>
-      <div className={cn("overflow-hidden rounded-lg border bg-background", className)} {...props}>
+      <div
+        className={cn("overflow-hidden rounded-none border bg-background", className)}
+        {...props}
+      >
         {children ?? (
           <>
             <SchemaDisplayHeader>
@@ -405,7 +408,7 @@ export const SchemaDisplayExample = ({
   ...props
 }: SchemaDisplayExampleProps) => (
   <pre
-    className={cn("mx-4 mb-4 overflow-auto rounded-md bg-muted p-4 font-mono text-sm", className)}
+    className={cn("mx-4 mb-4 overflow-auto rounded-none bg-muted p-4 font-mono text-sm", className)}
     {...props}
   >
     {children}

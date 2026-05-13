@@ -19,7 +19,7 @@ export default function ToolsPage() {
             <ItemGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((tool) => {
                 return (
-                  <Item className="h-full rounded-lg" key={tool.id} variant="outline">
+                  <Item className="h-full" key={tool.id} variant="outline">
                     <ItemContent>
                       <div className="flex items-start justify-between gap-2">
                         <ItemTitle>{tool.name}</ItemTitle>

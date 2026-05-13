@@ -70,10 +70,7 @@ const ConversationListItem = ({ conversation }: ConversationListItemProps) => {
   }, []);
 
   return (
-    <Item
-      className="flex h-full min-h-0 flex-col flex-nowrap items-stretch rounded-lg"
-      variant="outline"
-    >
+    <Item className="flex h-full min-h-0 flex-col flex-nowrap items-stretch" variant="outline">
       <div className="flex min-h-0 flex-1 gap-2">
         <ItemContent className="relative min-h-0 min-w-0 flex-1">
           <Link
