@@ -68,7 +68,7 @@ const main = async () => {
   for (const modelId of modelIdSet) {
     const model = data.find((m) => m.id === modelId);
 
-    if (!model?.pricing?.prompt || !model.pricing.completion) {
+    if (model?.pricing?.prompt === undefined || model.pricing.completion === undefined) {
       missing.push(modelId);
       continue;
     }
@@ -76,7 +76,7 @@ const main = async () => {
     const inputCost = toPerMillion(model.pricing.prompt);
     const outputCost = toPerMillion(model.pricing.completion);
 
-    if (!inputCost || !outputCost) {
+    if (inputCost === null || outputCost === null) {
       missing.push(modelId);
       continue;
     }

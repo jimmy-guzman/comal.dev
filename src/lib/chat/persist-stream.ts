@@ -103,7 +103,7 @@ const lookupPricing = async (modelId: string): Promise<null | PricingEntry> => {
 
     return entry;
   } catch {
-    return null;
+    return cached?.value ?? null;
   }
 };
 
