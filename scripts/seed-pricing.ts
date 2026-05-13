@@ -37,6 +37,8 @@ const toPerMillion = (perToken: string): null | string => {
 
   if (!Number.isFinite(parsed)) return null;
 
+  if (parsed < 0) return null;
+
   return (parsed * 1_000_000).toFixed(6);
 };
 
@@ -60,7 +62,20 @@ const main = async () => {
     process.exit(1);
   }
 
-  const { data } = (await response.json()) as OpenRouterResponse;
+  const raw: unknown = await response.json();
+
+  if (
+    typeof raw !== "object" ||
+    raw === null ||
+    !("data" in raw) ||
+    !Array.isArray((raw).data)
+  ) {
+    // eslint-disable-next-line no-console -- CLI script
+    console.error("Unexpected response shape from OpenRouter");
+    process.exit(1);
+  }
+
+  const { data } = raw as OpenRouterResponse;
   const modelIdSet = new Set<string>(MODEL_IDS);
   const matched: { inputCost: string; modelId: string; outputCost: string }[] = [];
   const missing: string[] = [];

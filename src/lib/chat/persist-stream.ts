@@ -94,10 +94,14 @@ const lookupPricing = async (modelId: string): Promise<null | PricingEntry> => {
 
     if (!row) return null;
 
-    const entry: PricingEntry = {
-      inputCost: Number.parseFloat(row.inputCost),
-      outputCost: Number.parseFloat(row.outputCost),
-    };
+    const inputCost = Number.parseFloat(row.inputCost);
+    const outputCost = Number.parseFloat(row.outputCost);
+
+    if (!Number.isFinite(inputCost) || inputCost < 0) return null;
+
+    if (!Number.isFinite(outputCost) || outputCost < 0) return null;
+
+    const entry: PricingEntry = { inputCost, outputCost };
 
     pricingCache.set(modelId, { fetchedAt: Date.now(), value: entry });
 
@@ -118,12 +122,14 @@ const computeCostMicrodollars = async (
 ): Promise<null | number> => {
   if (!modelId) return null;
 
+  const promptTokens = totalUsage.promptTokens ?? 0;
+  const completionTokens = totalUsage.completionTokens ?? 0;
+
+  if (promptTokens === 0 && completionTokens === 0) return null;
+
   const pricing = await lookupPricing(modelId);
 
   if (!pricing) return null;
-
-  const promptTokens = totalUsage.promptTokens ?? 0;
-  const completionTokens = totalUsage.completionTokens ?? 0;
 
   return Math.round(promptTokens * pricing.inputCost + completionTokens * pricing.outputCost);
 };
