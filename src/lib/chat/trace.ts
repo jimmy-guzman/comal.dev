@@ -105,7 +105,10 @@ const projectStepsFromEvents = (events: TraceEventRow[], conversationStart: Date
   const toolStepIndex = new Map<string, number>();
 
   for (const event of events) {
-    const payload = event.payload as Record<string, unknown>;
+    const payload =
+      typeof event.payload === "object" && event.payload !== null
+        ? (event.payload as Record<string, unknown>)
+        : {};
     const toolCallId = typeof payload.toolCallId === "string" ? payload.toolCallId : null;
 
     switch (event.eventType) {
