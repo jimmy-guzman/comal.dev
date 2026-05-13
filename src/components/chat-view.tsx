@@ -4,7 +4,7 @@ import type { FileUIPart, UIMessage } from "ai";
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
-import { ListTreeIcon, TrashIcon } from "lucide-react";
+import { BrainIcon, ListTreeIcon, TrashIcon } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -30,6 +30,7 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { ChatAgentPicker } from "@/components/chat-agent-picker";
 import { ChatModelPicker } from "@/components/chat-model-picker";
@@ -325,6 +326,8 @@ export const ChatView = ({
   };
 
   const isStreaming = status === "streaming";
+  const shouldShowTrailingThinkingCue =
+    (status === "submitted" || isStreaming) && messages.at(-1)?.role !== "assistant";
   const canRetry = status === "ready" || status === "error";
   const liveErrorInfo =
     error !== undefined && !lastMessageHasErrorPart(messages) ? errorToInfo(error) : null;
@@ -360,6 +363,16 @@ export const ChatView = ({
           {liveErrorInfo === null ? null : (
             <ErrorPart canRetry={canRetry} data={liveErrorInfo} onRetry={handleRetry} />
           )}
+          {shouldShowTrailingThinkingCue ? (
+            <Message from="assistant">
+              <MessageContent>
+                <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                  <BrainIcon className="size-4" />
+                  <Shimmer duration={1}>Thinking...</Shimmer>
+                </div>
+              </MessageContent>
+            </Message>
+          ) : null}
         </ConversationContent>
         {conversationId === null ? null : (
           <ConversationDownload

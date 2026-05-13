@@ -3,11 +3,13 @@
 import type { UIMessage } from "ai";
 
 import { isToolUIPart } from "ai";
+import { BrainIcon } from "lucide-react";
 
 import type { ErrorPartData } from "@/components/error-part";
 import type { SubagentTraces } from "@/lib/chat/projector";
 
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 import { ErrorPart } from "@/components/error-part";
 import { TextPart } from "@/components/text-part";
 import { ToolPart } from "@/components/tool-part";
@@ -29,6 +31,26 @@ const isErrorDataPart = (
   type: "data-error";
 } => part.type === "data-error";
 
+const hasRunningStatus = (value: unknown): value is { status: "running" } => {
+  return (
+    typeof value === "object" && value !== null && "status" in value && value.status === "running"
+  );
+};
+
+const hasVisibleActiveTool = (part: UIMessage["parts"][number]) => {
+  if (!isToolUIPart(part)) return false;
+
+  if (
+    part.state === "approval-requested" ||
+    part.state === "input-available" ||
+    part.state === "input-streaming"
+  ) {
+    return true;
+  }
+
+  return hasRunningStatus(part.output);
+};
+
 export const MessageParts = ({
   addToolApprovalResponse,
   canRetry,
@@ -46,6 +68,17 @@ export const MessageParts = ({
 
   const lastPart = message.parts.at(-1);
   const isReasoningStreaming = isLastMessage && isStreaming && lastPart?.type === "reasoning";
+  const hasStreamingText = message.parts.some((part) => {
+    return part.type === "text" && part.state === "streaming";
+  });
+  const hasVisibleThinkingSignal = message.parts.some(hasVisibleActiveTool);
+  const shouldShowThinkingCue =
+    message.role === "assistant" &&
+    isLastMessage &&
+    isStreaming &&
+    !hasStreamingText &&
+    !isReasoningStreaming &&
+    !hasVisibleThinkingSignal;
 
   return (
     <>
@@ -85,6 +118,12 @@ export const MessageParts = ({
 
         return null;
       })}
+      {shouldShowThinkingCue ? (
+        <div className="text-muted-foreground flex items-center gap-2 text-sm">
+          <BrainIcon className="size-4" />
+          <Shimmer duration={1}>Thinking...</Shimmer>
+        </div>
+      ) : null}
     </>
   );
 };
