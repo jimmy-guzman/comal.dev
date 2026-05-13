@@ -27,7 +27,6 @@ export const auth = betterAuth({
     schema,
   }),
   plugins: [
-    nextCookies(),
     organization({
       allowUserToCreateOrganization: false,
       creatorRole: "owner",
@@ -40,6 +39,7 @@ export const auth = betterAuth({
         });
       },
     }),
+    nextCookies(),
   ],
   session: {
     cookieCache: {
