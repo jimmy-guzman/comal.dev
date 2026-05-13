@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { ArrowLeftIcon } from "lucide-react";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -32,19 +33,20 @@ export default async function TracePage({ params }: Props) {
   const steps = projectTrace(trace.events, trace.conversationCreatedAt);
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b px-4">
-        <Link
-          className="text-muted-foreground hover:text-foreground text-xs"
-          href={`/chats/${conversationId}`}
-        >
-          back to chat
-        </Link>
-        <span className="text-muted-foreground text-xs">/</span>
-        <h1 className="truncate text-sm font-medium">{trace.title}</h1>
-        <span className="text-muted-foreground ml-auto text-xs">{trace.events.length} events</span>
-      </header>
+    <div className="flex min-h-0 flex-1 flex-col">
       <main className="px-safe-or-4 min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+        <div className="bg-background sticky top-0 z-10 flex items-center gap-3 py-3">
+          <Link
+            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs"
+            href={`/chats/${conversationId}`}
+          >
+            <ArrowLeftIcon className="size-3" />
+            {trace.title}
+          </Link>
+          <span className="text-muted-foreground ml-auto text-xs">
+            {trace.events.length} events
+          </span>
+        </div>
         <TraceTimeline steps={steps} />
       </main>
     </div>
