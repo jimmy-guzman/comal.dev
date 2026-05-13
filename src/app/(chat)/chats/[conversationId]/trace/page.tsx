@@ -23,6 +23,7 @@ export default async function TracePage({ params }: Props) {
   const trace = await appRuntime.runPromise(
     getConversationTrace(session.user.id, conversationId).pipe(
       Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+      Effect.catchTag("ForbiddenError", () => Effect.succeed(null)),
     ),
   );
 
