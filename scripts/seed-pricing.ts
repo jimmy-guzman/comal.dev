@@ -58,7 +58,22 @@ const main = async () => {
   // eslint-disable-next-line no-console -- CLI script
   console.log("Fetching models from OpenRouter...");
 
-  const response = await fetch(OPENROUTER_MODELS_URL);
+  const controller = new AbortController();
+  const timer = setTimeout(() => { controller.abort(); }, 10_000);
+
+  let response: Response;
+
+  try {
+    response = await fetch(OPENROUTER_MODELS_URL, { signal: controller.signal });
+  } catch (error) {
+    // eslint-disable-next-line no-console -- CLI script
+    console.error(
+      `Failed to fetch from OpenRouter: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exit(1);
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     // eslint-disable-next-line no-console -- CLI script

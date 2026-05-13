@@ -191,7 +191,6 @@ export const persistChatStream = async (args: PersistStreamArgs): Promise<Persis
 
       if (payload.totalUsage) {
         costMicrodollars = await computeCostMicrodollars(args.modelId, payload.totalUsage);
-        totalCostMicrodollars = costMicrodollars;
       }
     }
 
@@ -203,6 +202,10 @@ export const persistChatStream = async (args: PersistStreamArgs): Promise<Persis
         modelId: args.modelId,
         parentToolCallId: args.parentToolCallId,
       });
+
+      if (event.eventType === "assistant-turn-finish" && costMicrodollars !== null) {
+        totalCostMicrodollars = costMicrodollars;
+      }
     } catch (error) {
       args.onEventError?.(error, event);
     }
