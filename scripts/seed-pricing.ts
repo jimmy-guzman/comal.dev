@@ -14,23 +14,27 @@ import "dotenv/config";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import ws from "ws";
+import { z } from "zod";
 
 import { MODEL_IDS } from "../src/config/models";
 import { modelPricing } from "../src/db/schemas/model-pricing-schema";
 
 const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
 
-interface OpenRouterModel {
-  id: string;
-  pricing?: {
-    completion?: string;
-    prompt?: string;
-  };
-}
-
-interface OpenRouterResponse {
-  data: OpenRouterModel[];
-}
+const openRouterResponseSchema = z.object({
+  data: z.array(
+    z.object({
+      id: z.string(),
+      pricing: z
+        .object({
+          completion: z.string(),
+          prompt: z.string(),
+        })
+        .partial()
+        .optional(),
+    }),
+  ),
+});
 
 const toPerMillion = (perToken: string): null | string => {
   const parsed = Number.parseFloat(perToken);
@@ -62,20 +66,15 @@ const main = async () => {
     process.exit(1);
   }
 
-  const raw: unknown = await response.json();
+  const parsed = openRouterResponseSchema.safeParse(await response.json());
 
-  if (
-    typeof raw !== "object" ||
-    raw === null ||
-    !("data" in raw) ||
-    !Array.isArray((raw).data)
-  ) {
+  if (!parsed.success) {
     // eslint-disable-next-line no-console -- CLI script
     console.error("Unexpected response shape from OpenRouter");
     process.exit(1);
   }
 
-  const { data } = raw as OpenRouterResponse;
+  const { data } = parsed.data;
   const modelIdSet = new Set<string>(MODEL_IDS);
   const matched: { inputCost: string; modelId: string; outputCost: string }[] = [];
   const missing: string[] = [];

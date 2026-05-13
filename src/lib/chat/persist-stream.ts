@@ -97,9 +97,13 @@ const lookupPricing = async (modelId: string): Promise<null | PricingEntry> => {
     const inputCost = Number.parseFloat(row.inputCost);
     const outputCost = Number.parseFloat(row.outputCost);
 
-    if (!Number.isFinite(inputCost) || inputCost < 0) return null;
-
-    if (!Number.isFinite(outputCost) || outputCost < 0) return null;
+    if (
+      !Number.isFinite(inputCost) ||
+      inputCost < 0 ||
+      !Number.isFinite(outputCost) ||
+      outputCost < 0
+    )
+      return null;
 
     const entry: PricingEntry = { inputCost, outputCost };
 
