@@ -6,5 +6,6 @@
     "src/components/ai-elements/**",
     "src/db/schemas/**",
     "src/clients/**/*.ts"
-  ]
+  ],
+  "ignore": [".agents/**", ".claude/**"]
 }
