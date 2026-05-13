@@ -126,8 +126,14 @@ const computeCostMicrodollars = async (
 ): Promise<null | number> => {
   if (!modelId) return null;
 
-  const promptTokens = totalUsage.promptTokens ?? 0;
-  const completionTokens = totalUsage.completionTokens ?? 0;
+  const promptTokens = Math.max(
+    0,
+    Number.isFinite(totalUsage.promptTokens) ? (totalUsage.promptTokens ?? 0) : 0,
+  );
+  const completionTokens = Math.max(
+    0,
+    Number.isFinite(totalUsage.completionTokens) ? (totalUsage.completionTokens ?? 0) : 0,
+  );
 
   if (promptTokens === 0 && completionTokens === 0) return null;
 
