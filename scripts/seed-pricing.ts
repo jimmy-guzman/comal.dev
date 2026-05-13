@@ -59,7 +59,9 @@ const main = async () => {
   console.log("Fetching models from OpenRouter...");
 
   const controller = new AbortController();
-  const timer = setTimeout(() => { controller.abort(); }, 10_000);
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, 10_000);
 
   let response: Response;
 
