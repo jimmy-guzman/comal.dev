@@ -4,7 +4,8 @@ import type { FileUIPart, UIMessage } from "ai";
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
-import { TrashIcon } from "lucide-react";
+import { ListTreeIcon, TrashIcon } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { ModelId } from "@/config/models";
@@ -393,20 +394,28 @@ export const ChatView = ({
             </PromptInputTools>
             <div className="flex items-center gap-1">
               {conversationId === null ? null : (
-                <DeleteConversationButton
-                  conversationId={conversationId}
-                  redirectAfter
-                  trigger={
-                    <Button
-                      className="text-muted-foreground hover:text-destructive"
-                      size="icon-sm"
-                      variant="ghost"
-                    >
-                      <TrashIcon className="size-4" />
-                      <span className="sr-only">delete conversation</span>
-                    </Button>
-                  }
-                />
+                <>
+                  <Button asChild className="text-muted-foreground" size="icon-sm" variant="ghost">
+                    <Link href={`/chats/${conversationId}/trace`}>
+                      <ListTreeIcon className="size-4" />
+                      <span className="sr-only">view trace</span>
+                    </Link>
+                  </Button>
+                  <DeleteConversationButton
+                    conversationId={conversationId}
+                    redirectAfter
+                    trigger={
+                      <Button
+                        className="text-muted-foreground hover:text-destructive"
+                        size="icon-sm"
+                        variant="ghost"
+                      >
+                        <TrashIcon className="size-4" />
+                        <span className="sr-only">delete conversation</span>
+                      </Button>
+                    }
+                  />
+                </>
               )}
               <PromptInputSubmit onStop={stop} status={status} />
             </div>
