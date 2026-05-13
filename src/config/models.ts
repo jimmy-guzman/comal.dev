@@ -106,11 +106,11 @@ export const getModelCostLabel = (id: string): ModelCostLabel => {
 
   if (cost === undefined) return "$$";
 
-  if (cost < 1) return "$";
+  if (cost <= 1) return "$";
 
-  if (cost < 5) return "$$";
+  if (cost <= 5) return "$$";
 
-  if (cost < 15) return "$$$";
+  if (cost <= 15) return "$$$";
 
   return "$$$$";
 };

@@ -61,12 +61,19 @@ interface PricingEntry {
   outputCost: number;
 }
 
-const pricingCache = new Map<string, PricingEntry>();
+interface CachedPricing {
+  fetchedAt: number;
+  value: PricingEntry;
+}
+
+const PRICING_CACHE_TTL_MS = 10 * 60 * 1000;
+
+const pricingCache = new Map<string, CachedPricing>();
 
 const lookupPricing = async (modelId: string): Promise<null | PricingEntry> => {
   const cached = pricingCache.get(modelId);
 
-  if (cached) return cached;
+  if (cached && Date.now() - cached.fetchedAt < PRICING_CACHE_TTL_MS) return cached.value;
 
   try {
     const rows = await appRuntime.runPromise(
@@ -92,7 +99,7 @@ const lookupPricing = async (modelId: string): Promise<null | PricingEntry> => {
       outputCost: Number.parseFloat(row.outputCost),
     };
 
-    pricingCache.set(modelId, entry);
+    pricingCache.set(modelId, { fetchedAt: Date.now(), value: entry });
 
     return entry;
   } catch {

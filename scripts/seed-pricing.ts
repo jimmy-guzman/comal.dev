@@ -32,8 +32,12 @@ interface OpenRouterResponse {
   data: OpenRouterModel[];
 }
 
-const toPerMillion = (perToken: string): string => {
-  return (Number.parseFloat(perToken) * 1_000_000).toFixed(6);
+const toPerMillion = (perToken: string): null | string => {
+  const parsed = Number.parseFloat(perToken);
+
+  if (!Number.isFinite(parsed)) return null;
+
+  return (parsed * 1_000_000).toFixed(6);
 };
 
 const main = async () => {
@@ -69,11 +73,15 @@ const main = async () => {
       continue;
     }
 
-    matched.push({
-      inputCost: toPerMillion(model.pricing.prompt),
-      modelId,
-      outputCost: toPerMillion(model.pricing.completion),
-    });
+    const inputCost = toPerMillion(model.pricing.prompt);
+    const outputCost = toPerMillion(model.pricing.completion);
+
+    if (!inputCost || !outputCost) {
+      missing.push(modelId);
+      continue;
+    }
+
+    matched.push({ inputCost, modelId, outputCost });
   }
 
   if (missing.length > 0) {
