@@ -35,11 +35,23 @@ import { appendChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
 import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
 import { LLMError, MessageConversionError, ValidationError } from "@/lib/errors";
 import { openrouter } from "@/lib/openrouter";
-import { chatLimiter, chatLimiterAnon, checkLimit, pickLimiter } from "@/lib/rate-limit";
+import {
+  chatLimiter,
+  chatLimiterAnon,
+  checkBudget,
+  checkLimit,
+  pickLimiter,
+  recordSpend,
+} from "@/lib/rate-limit";
 
 class RateLimitError extends Data.TaggedError("RateLimitError")<{
   limit: number;
   reset: number;
+}> {}
+
+class BudgetExceededError extends Data.TaggedError("BudgetExceededError")<{
+  budgetMicrodollars: number;
+  spentMicrodollars: number;
 }> {}
 
 const postBodySchema = z.object({
@@ -74,6 +86,7 @@ const logError = (message: string, error: unknown): void => {
 
 const errorToResponse = (
   error:
+    | BudgetExceededError
     | DatabaseError
     | ForbiddenError
     | MessageConversionError
@@ -115,6 +128,21 @@ const errorToResponse = (
         suggestModelSwitch: copy.suggestModelSwitch,
       },
       { headers: { "Retry-After": String(retryAfterSeconds) }, status: 429 },
+    );
+  }
+
+  if (error._tag === "BudgetExceededError") {
+    const copy = chatErrorCopyFor("rate-limit");
+
+    return Response.json(
+      {
+        kind: copy.kind,
+        message: "Hourly usage budget exceeded. Try a cheaper model or wait for the next hour.",
+        retryable: copy.retryable,
+        statusCode: 429,
+        suggestModelSwitch: true,
+      },
+      { headers: { "Retry-After": "3600" }, status: 429 },
     );
   }
 
@@ -229,6 +257,7 @@ export async function POST(req: Request) {
   const requestHeaders = await headers();
 
   type ChatError =
+    | BudgetExceededError
     | DatabaseError
     | ForbiddenError
     | MessageConversionError
@@ -248,6 +277,19 @@ export async function POST(req: Request) {
 
     if (!success) {
       return yield* Effect.fail(new RateLimitError({ limit, reset }));
+    }
+
+    const budget = yield* Effect.promise(() => {
+      return checkBudget(user.id, user.isAnonymous === true);
+    });
+
+    if (!budget.success) {
+      return yield* Effect.fail(
+        new BudgetExceededError({
+          budgetMicrodollars: budget.budgetMicrodollars,
+          spentMicrodollars: budget.spentMicrodollars,
+        }),
+      );
     }
 
     const incomingMessages = parsed.data.messages.filter((msg) => {
@@ -448,7 +490,7 @@ export async function POST(req: Request) {
 
     after(async () => {
       try {
-        await persistChatStream({
+        const { costMicrodollars } = await persistChatStream({
           conversationId,
           fullStream: result.fullStream,
           messageId: assistantMessageId,
@@ -457,6 +499,10 @@ export async function POST(req: Request) {
             logError(`persistChatStream event error (${event.eventType})`, error);
           },
         });
+
+        if (costMicrodollars !== null && costMicrodollars > 0) {
+          await recordSpend(user.id, costMicrodollars);
+        }
       } catch (error) {
         logError("after() persistence failed", error);
       }

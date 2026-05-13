@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { MODEL_GROUPS, MODEL_IDS } from "@/config/models";
+import { getModelCostLabel, MODEL_GROUPS, MODEL_IDS } from "@/config/models";
 
 const formSchema = z.object({
   defaultModelId: z.enum(MODEL_IDS),
@@ -153,7 +153,12 @@ export const AgentBasicsForm = ({
                         {group.models.map((model) => {
                           return (
                             <SelectItem key={model.id} value={model.id}>
-                              {model.name}
+                              <span className="flex w-full items-center justify-between gap-2">
+                                <span>{model.name}</span>
+                                <span className="text-muted-foreground text-xs tracking-tight">
+                                  {getModelCostLabel(model.id)}
+                                </span>
+                              </span>
                             </SelectItem>
                           );
                         })}

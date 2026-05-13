@@ -8,6 +8,7 @@ import type { ModelId } from "@/config/models";
 import {
   ModelSelector,
   ModelSelectorContent,
+  ModelSelectorCost,
   ModelSelectorEmpty,
   ModelSelectorGroup,
   ModelSelectorInput,
@@ -18,7 +19,7 @@ import {
   ModelSelectorTrigger,
 } from "@/components/ai-elements/model-selector";
 import { Button } from "@/components/ui/button";
-import { getModelById, MODEL_GROUPS } from "@/config/models";
+import { getModelById, getModelCostLabel, MODEL_GROUPS } from "@/config/models";
 
 interface Props {
   onValueChange: (id: ModelId) => void;
@@ -74,6 +75,7 @@ export const ChatModelPicker = ({ onValueChange, value }: Props) => {
                     >
                       <ModelSelectorLogo provider={group.provider} />
                       <ModelSelectorName>{model.name}</ModelSelectorName>
+                      <ModelSelectorCost>{getModelCostLabel(model.id)}</ModelSelectorCost>
                     </ModelSelectorItem>
                   );
                 })}
