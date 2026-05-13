@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ConversationList } from "@/components/conversation-list";
 import { Badge } from "@/components/ui/badge";
+import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
 import { appRuntime } from "@/db/service";
 import { getAgentForUser, listAgentVersions } from "@/lib/agents";
 import { auth } from "@/lib/auth";
@@ -73,34 +74,46 @@ export default async function AgentOverviewPage({ params }: Props) {
         <p className="text-muted-foreground text-sm">{agent.description ?? "no description"}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="rounded-md border p-4">
-          <p className="text-muted-foreground text-xs">model</p>
-          <p className="mt-1 truncate text-sm font-medium">
-            {agent.defaultModelId.split("/").at(-1) ?? agent.defaultModelId}
-          </p>
-        </div>
-        <div className="rounded-md border p-4">
-          <p className="text-muted-foreground text-xs">tools</p>
-          <p className="mt-1 text-sm font-medium">{agent.tools.length}</p>
-        </div>
-        <div className="rounded-md border p-4">
-          <p className="text-muted-foreground text-xs">sub-agents</p>
-          <p className="mt-1 text-sm font-medium">{agent.subAgents.length}</p>
-        </div>
-        <div className="rounded-md border p-4">
-          <p className="text-muted-foreground text-xs">evals</p>
-          <p className="mt-1 text-sm font-medium">{agent.evals.length}</p>
-        </div>
-        <div className="rounded-md border p-4">
-          <p className="text-muted-foreground text-xs">versions</p>
-          <p className="mt-1 text-sm font-medium">{versionCount}</p>
-        </div>
-        <div className="rounded-md border p-4">
-          <p className="text-muted-foreground text-xs">chats</p>
-          <p className="mt-1 text-sm font-medium">{recentChats.length}</p>
-        </div>
-      </div>
+      <ItemGroup className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <Item className="h-full px-4 py-4" variant="outline">
+          <ItemContent>
+            <p className="text-muted-foreground text-xs">model</p>
+            <p className="truncate text-sm font-medium">
+              {agent.defaultModelId.split("/").at(-1) ?? agent.defaultModelId}
+            </p>
+          </ItemContent>
+        </Item>
+        <Item className="h-full px-4 py-4" variant="outline">
+          <ItemContent>
+            <p className="text-muted-foreground text-xs">tools</p>
+            <p className="text-sm font-medium">{agent.tools.length}</p>
+          </ItemContent>
+        </Item>
+        <Item className="h-full px-4 py-4" variant="outline">
+          <ItemContent>
+            <p className="text-muted-foreground text-xs">sub-agents</p>
+            <p className="text-sm font-medium">{agent.subAgents.length}</p>
+          </ItemContent>
+        </Item>
+        <Item className="h-full px-4 py-4" variant="outline">
+          <ItemContent>
+            <p className="text-muted-foreground text-xs">evals</p>
+            <p className="text-sm font-medium">{agent.evals.length}</p>
+          </ItemContent>
+        </Item>
+        <Item className="h-full px-4 py-4" variant="outline">
+          <ItemContent>
+            <p className="text-muted-foreground text-xs">versions</p>
+            <p className="text-sm font-medium">{versionCount}</p>
+          </ItemContent>
+        </Item>
+        <Item className="h-full px-4 py-4" variant="outline">
+          <ItemContent>
+            <p className="text-muted-foreground text-xs">chats</p>
+            <p className="text-sm font-medium">{recentChats.length}</p>
+          </ItemContent>
+        </Item>
+      </ItemGroup>
 
       {recentChats.length > 0 ? (
         <div className="flex flex-col gap-4">

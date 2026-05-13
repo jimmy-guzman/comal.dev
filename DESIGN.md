@@ -19,3 +19,11 @@ Default to text. Use an icon only when the symbol is universally understood with
 Do not pair an icon with a label that says the same thing. Do not use icons for decoration. Both patterns add visual noise without adding information.
 
 Any icon without a visible label needs an accessible name via `aria-label` or `title`.
+
+## Surfaces
+
+Prefer flat, outlined surfaces over soft or decorative ones.
+
+Default to boxed tiles and panels with restrained corner radius. Reach for borders and spacing before fill, shadow, or extra chrome.
+
+Use stronger rounding only when the shape has a clear job, such as avatars or other intentionally circular affordances.

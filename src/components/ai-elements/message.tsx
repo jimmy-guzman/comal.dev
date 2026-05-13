@@ -55,7 +55,7 @@ export const MessageContent = ({ children, className, ...props }: MessageContent
   <div
     className={cn(
       "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm",
-      "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
+      "group-[.is-user]:ml-auto group-[.is-user]:rounded-sm group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
       "group-[.is-assistant]:text-foreground",
       className,
     )}
@@ -221,16 +221,7 @@ export const MessageBranchSelector = ({ className, ...props }: MessageBranchSele
     return null;
   }
 
-  return (
-    <ButtonGroup
-      className={cn(
-        "[&>*:not(:first-child)]:rounded-l-md [&>*:not(:last-child)]:rounded-r-md",
-        className,
-      )}
-      orientation="horizontal"
-      {...props}
-    />
-  );
+  return <ButtonGroup className={className} orientation="horizontal" {...props} />;
 };
 
 export type MessageBranchPreviousProps = ComponentProps<typeof Button>;
@@ -326,7 +317,7 @@ type MarkdownCodeProps = ComponentProps<"code"> & { node?: unknown };
 
 const InlineCode = ({ children, className, node: _node, ...props }: MarkdownCodeProps) => (
   <code
-    className={cn("rounded bg-muted px-1.5 py-0.5 font-mono text-sm", className)}
+    className={cn("rounded-sm bg-muted px-1.5 py-0.5 font-mono text-sm", className)}
     data-streamdown="inline-code"
     {...props}
   >

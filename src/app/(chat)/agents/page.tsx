@@ -31,7 +31,7 @@ export default async function AgentsPage() {
         <ItemGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {agents.map((a) => {
             return (
-              <Item asChild className="h-full rounded-lg" key={a.id} variant="outline">
+              <Item asChild className="h-full" key={a.id} variant="outline">
                 <Link href={`/agents/${a.id}`}>
                   <ItemContent>
                     <ItemTitle className="flex flex-wrap items-center gap-2">

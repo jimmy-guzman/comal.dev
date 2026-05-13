@@ -46,7 +46,7 @@ export default async function AgentDangerPage({ params }: Props) {
         <p className="text-muted-foreground text-sm">irreversible actions for this agent.</p>
       </div>
 
-      <div className="border-destructive/30 rounded-md border p-4">
+      <div className="border-destructive/30 rounded-none border p-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium">delete agent</p>

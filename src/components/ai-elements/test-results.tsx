@@ -118,7 +118,7 @@ export const TestResults = ({ summary, className, children, ...props }: TestResu
 
   return (
     <TestResultsContext.Provider value={contextValue}>
-      <div className={cn("rounded-lg border bg-background", className)} {...props}>
+      <div className={cn("rounded-none border bg-background", className)} {...props}>
         {children ??
           (summary && (
             <TestResultsHeader>
@@ -151,7 +151,7 @@ export const TestResultsProgress = ({
     <div className={cn("space-y-2", className)} {...props}>
       {children ?? (
         <>
-          <div className="bg-muted flex h-2 overflow-hidden rounded-full">
+          <div className="bg-muted flex h-2 overflow-hidden rounded-none">
             <div className="bg-green-500 transition-all" style={{ width: `${passedPercent}%` }} />
             <div className="bg-red-500 transition-all" style={{ width: `${failedPercent}%` }} />
           </div>
@@ -213,7 +213,7 @@ export const TestSuite = ({ name, status, className, children, ...props }: TestS
 
   return (
     <TestSuiteContext.Provider value={contextValue}>
-      <Collapsible className={cn("rounded-lg border", className)} {...props}>
+      <Collapsible className={cn("rounded-none border", className)} {...props}>
         {children}
       </Collapsible>
     </TestSuiteContext.Provider>
@@ -353,7 +353,7 @@ export const Test = ({ name, status, duration, className, children, ...props }: 
 export type TestErrorProps = HTMLAttributes<HTMLDivElement>;
 
 export const TestError = ({ className, children, ...props }: TestErrorProps) => (
-  <div className={cn("mt-2 rounded-md bg-red-50 p-3 dark:bg-red-900/20", className)} {...props}>
+  <div className={cn("mt-2 rounded-none bg-red-50 p-3 dark:bg-red-900/20", className)} {...props}>
     {children}
   </div>
 );
