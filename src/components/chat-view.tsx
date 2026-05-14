@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { ModelId } from "@/config/models";
+import type { AppUIMessage } from "@/lib/app-ui-message";
 import type { ChatErrorInfo, ChatErrorKind } from "@/lib/chat/errors";
 import type { SubagentTraces } from "@/lib/chat/projector";
 
@@ -210,41 +211,31 @@ export const ChatView = ({
     setMessages,
     status,
     stop,
-  } = useChat({
-    messages: initialMessages,
+  } = useChat<AppUIMessage>({
+    messages: initialMessages as AppUIMessage[],
     onData: (dataPart) => {
       if (hiddenRef.current) return;
 
       if (dataPart.type === "data-conversation-created") {
-        const data = dataPart.data as { id?: unknown };
+        const { id } = dataPart.data;
 
-        if (typeof data.id !== "string") return;
-
-        const newId = data.id;
-
-        setConversationId(newId);
+        setConversationId(id);
         prependConversation({
           agentId: agentIdRef.current,
           agentName: agentNameRef.current,
-          id: newId,
+          id,
           title: "new conversation",
         });
         // Update the URL without unmounting the current route. router.replace
         // would navigate to the sibling [conversationId] route, remounting
         // <ChatView> and aborting the in-flight stream. router.refresh() has
         // the same effect since the new URL maps to a different page component.
-        globalThis.history.replaceState(null, "", `/chats/${newId}`);
+        globalThis.history.replaceState(null, "", `/chats/${id}`);
 
         return;
       }
 
-      if (dataPart.type === "data-conversation-title") {
-        const data = dataPart.data as { id?: unknown; title?: unknown };
-
-        if (typeof data.id !== "string" || typeof data.title !== "string") return;
-
-        updateConversationTitle(data.id, data.title);
-      }
+      updateConversationTitle(dataPart.data.id, dataPart.data.title);
     },
     sendAutomaticallyWhen,
     transport,

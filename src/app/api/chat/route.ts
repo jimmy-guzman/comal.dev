@@ -1,5 +1,3 @@
-import type { UIMessage } from "ai";
-
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -18,6 +16,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import type { Database } from "@/db/service";
+import type { AppUIMessage } from "@/lib/app-ui-message";
 import type { ChatEventRow } from "@/lib/chat/projector";
 import type { ChatStreamContext } from "@/lib/chat/stream-context";
 import type { DatabaseError, ForbiddenError, NotFoundError, UnauthorizedError } from "@/lib/errors";
@@ -156,7 +155,7 @@ interface ApprovalResponseEvent {
   toolName: string;
 }
 
-const extractApprovalResponses = (messages: UIMessage[]): ApprovalResponseEvent[] => {
+const extractApprovalResponses = (messages: AppUIMessage[]): ApprovalResponseEvent[] => {
   return messages.flatMap((msg) => {
     if (msg.role !== "assistant") return [];
 
@@ -183,7 +182,7 @@ const extractApprovalResponses = (messages: UIMessage[]): ApprovalResponseEvent[
   });
 };
 
-const stringifyText = (parts: UIMessage["parts"]): string => {
+const stringifyText = (parts: AppUIMessage["parts"]): string => {
   return parts.flatMap((part) => (part.type === "text" ? [part.text] : [])).join(" ");
 };
 
@@ -327,19 +326,19 @@ export async function POST(req: Request) {
     // loadAgent enforces ownership (filters by userId) and resolves the
     // tool implementations from the registry. Loading it before validation
     // keeps the agent-ownership gate ahead of any conversation row insert
-    // for the create flow. Note: we don't pass agent.tools to
-    // safeValidateUIMessages because the SDK's tools option requires a
-    // compile-time-known UIMessage tools generic; our agents are dynamic
-    // so we get message-shape validation here, not tool-input validation.
-    // Tool inputs are still validated downstream by streamText. See
-    // follow-up issue for a typed UIMessage system.
+    // for the create flow.
     const agent = yield* loadAgent(resolvedAgentId, user.id);
 
     const validation = yield* Effect.tryPromise({
       catch: (cause) => {
         return new ValidationError({ cause, message: "Failed to validate messages." });
       },
-      try: () => safeValidateUIMessages({ messages: incomingMessages }),
+      try: () => {
+        return safeValidateUIMessages<AppUIMessage>({
+          messages: incomingMessages,
+          tools: agent.tools,
+        });
+      },
     });
 
     if (!validation.success) {
@@ -508,7 +507,7 @@ export async function POST(req: Request) {
       }
     });
 
-    const uiStream = createUIMessageStream({
+    const uiStream = createUIMessageStream<AppUIMessage>({
       execute: async ({ writer }) => {
         if (isNewConversation) {
           writer.write({

@@ -66,3 +66,25 @@ const builders = new Map<string, (config: unknown, context: ToolContext) => Tool
 export const buildTool = (id: string, config: unknown, context: ToolContext) => {
   return builders.get(id)?.(config, context);
 };
+
+export interface BuiltinToolSet {
+  "agents-create": Tool;
+  "agents-delete": Tool;
+  "agents-get": Tool;
+  "agents-list": Tool;
+  "agents-list-models": Tool;
+  "agents-list-tools": Tool;
+  "agents-update": Tool;
+  "core-now": Tool;
+  "github-read": Tool;
+  "tmdb-discover-movie": Tool;
+  "tmdb-discover-tv": Tool;
+  "tmdb-movie-details": Tool;
+  "tmdb-search": Tool;
+  "tmdb-trending": Tool;
+  "tmdb-trending-movies": Tool;
+  "tmdb-trending-tv": Tool;
+  "tmdb-tv-details": Tool;
+  "web-fetch": Tool;
+  "web-search": Tool;
+}
