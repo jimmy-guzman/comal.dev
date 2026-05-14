@@ -121,7 +121,7 @@ interface Props {
   agentName: string;
   agents: { id: string; name: string }[];
   conversationId: null | string;
-  initialMessages: UIMessage[];
+  initialMessages: AppUIMessage[];
   modelId: string;
   subagentTraces?: SubagentTraces;
   suggestions: string[];
@@ -212,7 +212,7 @@ export const ChatView = ({
     status,
     stop,
   } = useChat<AppUIMessage>({
-    messages: initialMessages as AppUIMessage[],
+    messages: initialMessages,
     onData: (dataPart) => {
       if (hiddenRef.current) return;
 
