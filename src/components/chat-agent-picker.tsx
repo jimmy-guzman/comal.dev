@@ -38,11 +38,11 @@ export const ChatAgentPicker = ({ agents, onValueChange, value }: Props) => {
       <DropdownMenuTrigger asChild>
         <Button
           aria-label="select agent"
-          className="text-muted-foreground hover:text-foreground h-8 max-w-36 gap-2 px-2 font-medium"
+          className="text-muted-foreground hover:text-foreground h-8 max-w-36 min-w-0 gap-1.5 px-2 font-medium sm:max-w-none"
           size="sm"
           variant="ghost"
         >
-          <BotIcon className="size-4 shrink-0" />
+          <BotIcon className="hidden size-4 shrink-0 sm:block" />
           <span className="truncate">{triggerLabel}</span>
           <ChevronDownIcon className="size-3.5 shrink-0 opacity-60" />
         </Button>
