@@ -42,7 +42,7 @@ export const ChatAgentPicker = ({ agents, onValueChange, value }: Props) => {
           size="sm"
           variant="ghost"
         >
-          <BotIcon className="size-4 shrink-0" />
+          <BotIcon className="hidden size-4 shrink-0 sm:block" />
           <span className="truncate">{triggerLabel}</span>
           <ChevronDownIcon className="size-3.5 shrink-0 opacity-60" />
         </Button>

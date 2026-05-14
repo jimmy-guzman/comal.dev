@@ -42,12 +42,15 @@ export const ChatModelPicker = ({ onValueChange, value }: Props) => {
       <ModelSelectorTrigger asChild>
         <Button
           aria-label="select model"
-          className="text-muted-foreground hover:text-foreground h-8 max-w-36 gap-2 px-2 font-medium"
+          className="text-muted-foreground hover:text-foreground h-8 max-w-36 min-w-0 gap-2 px-2 font-medium"
           size="sm"
           variant="ghost"
         >
           {triggerProvider ? (
-            <ModelSelectorLogo className="size-4 shrink-0" provider={triggerProvider} />
+            <ModelSelectorLogo
+              className="hidden size-4 shrink-0 sm:block"
+              provider={triggerProvider}
+            />
           ) : null}
           <span className="truncate">{triggerLabel}</span>
           <ChevronDownIcon className="size-3.5 shrink-0 opacity-60" />
