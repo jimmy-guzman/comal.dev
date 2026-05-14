@@ -12,7 +12,7 @@ import {
 } from "ai";
 import { Data, Effect, Logger } from "effect";
 import { nanoid } from "nanoid";
-import { updateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { headers } from "next/headers";
 import { after } from "next/server";
 import { z } from "zod";
@@ -208,7 +208,7 @@ const generateTitleEffect = (
 
     yield* updateConversationTitle(conversationId, trimmed);
 
-    updateTag(`conversations:${userId}`);
+    revalidateTag(`conversations:${userId}`, "max");
 
     return trimmed;
   });
@@ -383,6 +383,8 @@ export async function POST(req: Request) {
 
       conversationId = created.id;
       isNewConversation = true;
+
+      revalidateTag(`conversations:${user.id}`, "max");
     } else {
       conversationId = conversationSource.conversationId;
 
