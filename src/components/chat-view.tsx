@@ -405,7 +405,7 @@ export const ChatView = ({
               />
               <ChatModelPicker onValueChange={handleModelSelect} value={modelId} />
             </PromptInputTools>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               {conversationId === null ? null : (
                 <>
                   <Button asChild className="text-muted-foreground" size="icon-sm" variant="ghost">
