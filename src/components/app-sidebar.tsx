@@ -3,7 +3,7 @@
 import { MoreHorizontalIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { useLayoutEffect } from "react";
 
@@ -42,6 +42,19 @@ interface ConversationItemProps {
   isActive: boolean;
   title: string;
 }
+
+const AGENT_PATH_PATTERN = /^\/agents\/(?!new(?:\/|$))([^/]+)/;
+const CONVERSATION_PATH_PATTERN = /^\/chats\/(?!new(?:\/|$))([^/]+)/;
+
+const resolveAgentId = (agents: Props["agents"], candidates: (null | string)[]) => {
+  for (const candidate of candidates) {
+    if (candidate !== null && agents.some((agent) => agent.id === candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+};
 
 const ConversationItem = ({
   agentName,
@@ -100,10 +113,20 @@ const ConversationItem = ({
 export const AppSidebar = ({ agents, isSignedIn }: Props) => {
   const { conversations } = useConversations();
   const pathname = usePathname();
-  const activeMatch = /^\/chats\/(?!new$)([^/]+)/.exec(pathname);
-  const activeConversationId = activeMatch?.[1] ?? null;
-
-  const mostRecentAgentId = agents.at(0)?.id ?? null;
+  const searchParams = useSearchParams();
+  const activeConversationId = CONVERSATION_PATH_PATTERN.exec(pathname)?.[1] ?? null;
+  const activeConversation = conversations.find((conversation) => {
+    return conversation.id === activeConversationId;
+  });
+  const pathnameAgentId = AGENT_PATH_PATTERN.exec(pathname)?.[1] ?? null;
+  const searchAgentId =
+    pathname === "/chats" || pathname.startsWith("/chats/") ? searchParams.get("agent") : null;
+  const newChatAgentId = resolveAgentId(agents, [
+    pathnameAgentId,
+    searchAgentId,
+    activeConversation?.agentId ?? null,
+    agents.at(0)?.id ?? null,
+  ]);
 
   return (
     <Sidebar>
@@ -120,7 +143,7 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <NewChatButton agentId={mostRecentAgentId} />
+              <NewChatButton agentId={newChatAgentId} />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
@@ -135,7 +158,7 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={pathname.startsWith("/agents") && activeMatch === null}
+                isActive={pathname.startsWith("/agents") && activeConversationId === null}
               >
                 <Link href="/agents">agents</Link>
               </SidebarMenuButton>
