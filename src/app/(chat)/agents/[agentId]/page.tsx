@@ -79,7 +79,7 @@ export default async function AgentOverviewPage({ params }: Props) {
         <Item className="h-full px-4 py-4" variant="outline">
           <ItemContent>
             <p className="text-muted-foreground text-xs">model</p>
-            <p className="flex items-center gap-2 truncate text-sm font-medium">
+            <p className="flex min-w-0 items-center gap-2 text-sm font-medium">
               <span className="truncate">
                 {agent.defaultModelId.split("/").at(-1) ?? agent.defaultModelId}
               </span>
