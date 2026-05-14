@@ -120,7 +120,7 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
   });
   const pathnameAgentId = AGENT_PATH_PATTERN.exec(pathname)?.[1] ?? null;
   const searchAgentId =
-    pathname === "/chats" || pathname === "/chats/new" ? searchParams.get("agent") : null;
+    pathname === "/chats" || pathname.startsWith("/chats/") ? searchParams.get("agent") : null;
   const newChatAgentId = resolveAgentId(agents, [
     pathnameAgentId,
     searchAgentId,
