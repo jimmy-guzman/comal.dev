@@ -3,66 +3,51 @@ import type { Tool } from "ai";
 import type { ToolContext } from "./types";
 
 import { buildAgentsCreate } from "./agents/create";
-import { agentsCreateMeta } from "./agents/create.meta";
 import { buildAgentsDelete } from "./agents/delete";
-import { agentsDeleteMeta } from "./agents/delete.meta";
 import { buildAgentsGet } from "./agents/get";
-import { agentsGetMeta } from "./agents/get.meta";
 import { buildAgentsList } from "./agents/list";
 import { buildAgentsListModels } from "./agents/list-models";
-import { agentsListModelsMeta } from "./agents/list-models.meta";
 import { buildAgentsListTools } from "./agents/list-tools";
-import { agentsListToolsMeta } from "./agents/list-tools.meta";
-import { agentsListMeta } from "./agents/list.meta";
 import { buildAgentsUpdate } from "./agents/update";
-import { agentsUpdateMeta } from "./agents/update.meta";
 import { buildCoreNow } from "./core/now";
-import { coreNowMeta } from "./core/now.meta";
 import { buildGithubRead } from "./github/read";
-import { githubReadMeta } from "./github/read.meta";
 import { buildTmdbDiscoverMovie } from "./tmdb/discover-movie";
-import { tmdbDiscoverMovieMeta } from "./tmdb/discover-movie.meta";
 import { buildTmdbDiscoverTv } from "./tmdb/discover-tv";
-import { tmdbDiscoverTvMeta } from "./tmdb/discover-tv.meta";
 import { buildTmdbMovieDetails } from "./tmdb/movie-details";
-import { tmdbMovieDetailsMeta } from "./tmdb/movie-details.meta";
 import { buildTmdbSearch } from "./tmdb/search";
-import { tmdbSearchMeta } from "./tmdb/search.meta";
 import { buildTmdbTrending } from "./tmdb/trending";
 import { buildTmdbTrendingMovies } from "./tmdb/trending-movies";
-import { tmdbTrendingMoviesMeta } from "./tmdb/trending-movies.meta";
 import { buildTmdbTrendingTv } from "./tmdb/trending-tv";
-import { tmdbTrendingTvMeta } from "./tmdb/trending-tv.meta";
-import { tmdbTrendingMeta } from "./tmdb/trending.meta";
 import { buildTmdbTvDetails } from "./tmdb/tv-details";
-import { tmdbTvDetailsMeta } from "./tmdb/tv-details.meta";
 import { buildWebFetch } from "./web/fetch";
-import { webFetchMeta } from "./web/fetch.meta";
 import { buildWebSearch } from "./web/search";
-import { webSearchMeta } from "./web/search.meta";
 
-const builders = new Map<string, (config: unknown, context: ToolContext) => Tool>([
-  [agentsCreateMeta.id, buildAgentsCreate],
-  [agentsDeleteMeta.id, buildAgentsDelete],
-  [agentsGetMeta.id, buildAgentsGet],
-  [agentsListMeta.id, buildAgentsList],
-  [agentsListModelsMeta.id, buildAgentsListModels],
-  [agentsListToolsMeta.id, buildAgentsListTools],
-  [agentsUpdateMeta.id, buildAgentsUpdate],
-  [coreNowMeta.id, buildCoreNow],
-  [githubReadMeta.id, buildGithubRead],
-  [tmdbDiscoverMovieMeta.id, buildTmdbDiscoverMovie],
-  [tmdbDiscoverTvMeta.id, buildTmdbDiscoverTv],
-  [tmdbMovieDetailsMeta.id, buildTmdbMovieDetails],
-  [tmdbSearchMeta.id, buildTmdbSearch],
-  [tmdbTrendingMeta.id, buildTmdbTrending],
-  [tmdbTrendingMoviesMeta.id, buildTmdbTrendingMovies],
-  [tmdbTrendingTvMeta.id, buildTmdbTrendingTv],
-  [tmdbTvDetailsMeta.id, buildTmdbTvDetails],
-  [webFetchMeta.id, buildWebFetch],
-  [webSearchMeta.id, buildWebSearch],
-]);
+const BUILDERS = {
+  "agents-create": buildAgentsCreate,
+  "agents-delete": buildAgentsDelete,
+  "agents-get": buildAgentsGet,
+  "agents-list": buildAgentsList,
+  "agents-list-models": buildAgentsListModels,
+  "agents-list-tools": buildAgentsListTools,
+  "agents-update": buildAgentsUpdate,
+  "core-now": buildCoreNow,
+  "github-read": buildGithubRead,
+  "tmdb-discover-movie": buildTmdbDiscoverMovie,
+  "tmdb-discover-tv": buildTmdbDiscoverTv,
+  "tmdb-movie-details": buildTmdbMovieDetails,
+  "tmdb-search": buildTmdbSearch,
+  "tmdb-trending": buildTmdbTrending,
+  "tmdb-trending-movies": buildTmdbTrendingMovies,
+  "tmdb-trending-tv": buildTmdbTrendingTv,
+  "tmdb-tv-details": buildTmdbTvDetails,
+  "web-fetch": buildWebFetch,
+  "web-search": buildWebSearch,
+} satisfies Record<string, (config: unknown, context: ToolContext) => Tool>;
+
+const builders = new Map(Object.entries(BUILDERS));
 
 export const buildTool = (id: string, config: unknown, context: ToolContext) => {
   return builders.get(id)?.(config, context);
 };
+
+export type BuiltinToolSet = Record<keyof typeof BUILDERS, Tool>;

@@ -3,6 +3,8 @@ import { cacheLife, cacheTag } from "next/cache";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+import type { AppUIMessage } from "@/lib/app-ui-message";
+
 import { ChatView } from "@/components/chat-view";
 import { appRuntime } from "@/db/service";
 import { getAgentForUser, listAgentsForUser } from "@/lib/agents";
@@ -68,7 +70,7 @@ export default async function ChatPage({ params }: Props) {
       agentName={resolvedAgent.name}
       agents={agents.map((a) => ({ id: a.id, name: a.name }))}
       conversationId={conversationId}
-      initialMessages={initialMessages}
+      initialMessages={initialMessages as AppUIMessage[]}
       modelId={conv.modelId}
       subagentTraces={subagentTraces}
       suggestions={[]}
