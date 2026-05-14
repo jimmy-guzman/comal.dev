@@ -408,7 +408,12 @@ export const ChatView = ({
             <div className="flex shrink-0 items-center gap-1">
               {conversationId === null ? null : (
                 <>
-                  <Button asChild className="hidden text-muted-foreground sm:flex" size="icon-sm" variant="ghost">
+                  <Button
+                    asChild
+                    className="text-muted-foreground hidden sm:flex"
+                    size="icon-sm"
+                    variant="ghost"
+                  >
                     <Link href={`/chats/${conversationId}/trace`}>
                       <ListTreeIcon className="size-4" />
                       <span className="sr-only">view trace</span>
