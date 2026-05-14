@@ -1,9 +1,6 @@
-"use client";
-
 import type { TraceStep } from "@/lib/chat/trace";
 
 import { TraceStepCard } from "@/components/trace-step-card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Props {
   steps: TraceStep[];
@@ -19,12 +16,10 @@ export function TraceTimeline({ steps }: Props) {
   }
 
   return (
-    <ScrollArea className="h-full">
-      <div className="flex flex-col gap-1 py-4">
-        {steps.map((step) => {
-          return <TraceStepCard key={step.sequence} step={step} />;
-        })}
-      </div>
-    </ScrollArea>
+    <div className="flex flex-col gap-1 py-4">
+      {steps.map((step) => {
+        return <TraceStepCard key={step.sequence} step={step} />;
+      })}
+    </div>
   );
 }

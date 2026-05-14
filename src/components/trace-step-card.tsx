@@ -183,15 +183,15 @@ function TokenUsageDisplay({ step }: { step: TraceStep }) {
   const parts: string[] = [];
 
   if (step.tokenUsage.promptTokens !== undefined) {
-    parts.push(`prompt: ${step.tokenUsage.promptTokens.toLocaleString()}`);
+    parts.push(`prompt tokens: ${step.tokenUsage.promptTokens.toLocaleString()}`);
   }
 
   if (step.tokenUsage.completionTokens !== undefined) {
-    parts.push(`completion: ${step.tokenUsage.completionTokens.toLocaleString()}`);
+    parts.push(`completion tokens: ${step.tokenUsage.completionTokens.toLocaleString()}`);
   }
 
   if (step.tokenUsage.totalTokens !== undefined) {
-    parts.push(`total: ${step.tokenUsage.totalTokens.toLocaleString()}`);
+    parts.push(`total tokens: ${step.tokenUsage.totalTokens.toLocaleString()}`);
   }
 
   if (parts.length === 0) return null;
