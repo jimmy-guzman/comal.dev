@@ -155,7 +155,7 @@ export const listEvalRunsForAgent = (agentId: string) => {
   });
 };
 
-export const createEvalRun = (input: {
+interface EvalRunInsert {
   agentVersionId?: null | string;
   evalId: string;
   id?: string;
@@ -163,7 +163,9 @@ export const createEvalRun = (input: {
   rationale?: null | string;
   runGroupId?: null | string;
   score: number;
-}) => {
+}
+
+export const createEvalRun = (input: EvalRunInsert) => {
   return Effect.gen(function* () {
     const db = yield* Database;
 
@@ -178,5 +180,27 @@ export const createEvalRun = (input: {
         score: input.score,
       });
     });
+  });
+};
+
+export const createEvalRuns = (inputs: EvalRunInsert[]) => {
+  return Effect.gen(function* () {
+    if (inputs.length === 0) return;
+
+    const db = yield* Database;
+
+    const rows = inputs.map((input) => {
+      return {
+        agentVersionId: input.agentVersionId ?? null,
+        evalId: input.evalId,
+        id: input.id ?? nanoid(),
+        output: input.output,
+        rationale: input.rationale ?? null,
+        runGroupId: input.runGroupId ?? null,
+        score: input.score,
+      };
+    });
+
+    yield* runMutation(() => db.insert(agentEvalRun).values(rows));
   });
 };

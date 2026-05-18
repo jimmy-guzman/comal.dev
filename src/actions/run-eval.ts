@@ -11,7 +11,7 @@ import { loadAgent } from "@/agents";
 import { appRuntime } from "@/db/service";
 import { LLMError, NotFoundError, ValidationError } from "@/lib/errors";
 import { scoreEval, scoreEvalLLM } from "@/lib/eval-scorer";
-import { createEvalRun, getEvalWithOwnership } from "@/lib/evals";
+import { createEvalRun, createEvalRuns, getEvalWithOwnership } from "@/lib/evals";
 import { openrouter } from "@/lib/openrouter";
 import { authClient } from "@/lib/safe-action";
 
@@ -83,16 +83,20 @@ export const runEvalAction = authClient
         const id = nanoid();
 
         trialResults.push({ id, output, score });
-
-        yield* createEvalRun({
-          agentVersionId: agentConfig.versionId,
-          evalId: parsedInput.evalId,
-          id,
-          output,
-          runGroupId,
-          score,
-        });
       }
+
+      yield* createEvalRuns(
+        trialResults.map((trial) => {
+          return {
+            agentVersionId: agentConfig.versionId,
+            evalId: parsedInput.evalId,
+            id: trial.id,
+            output: trial.output,
+            runGroupId,
+            score: trial.score,
+          };
+        }),
+      );
 
       const scores = trialResults.map((trial) => trial.score);
       const sum = scores.reduce((acc, value) => acc + value, 0);
