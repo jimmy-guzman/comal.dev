@@ -34,7 +34,6 @@ import {
 import { chatErrorCopyFor, classifyChatError } from "@/lib/chat/errors";
 import { appendChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
 import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
-import { logChatStream } from "@/lib/chat/stream-logger";
 import { LLMError, MessageConversionError, ValidationError } from "@/lib/errors";
 import { openrouter } from "@/lib/openrouter";
 import {
@@ -547,14 +546,7 @@ export async function POST(req: Request) {
               InferUIMessageChunk<AppUIMessage>
             >({
               transform(chunk, controller) {
-                logChatStream("chat-stream:ui", { chunk, conversationId });
-
                 if (chunk.type === "tool-input-delta" && resolvedToolInputs.has(chunk.toolCallId)) {
-                  logChatStream("chat-stream:ui:dropped-stray-delta", {
-                    conversationId,
-                    toolCallId: chunk.toolCallId,
-                  });
-
                   return;
                 }
 

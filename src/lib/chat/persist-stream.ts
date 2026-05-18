@@ -15,7 +15,6 @@ import type { ChatEventInput } from "./events";
 
 import { createSegmentBuffer, mapStreamPartToEvent } from "./event-mapper";
 import { validateEventPayload } from "./events";
-import { logChatStream } from "./stream-logger";
 
 interface AppendChatEventArgs {
   conversationId: string;
@@ -185,13 +184,9 @@ export const persistChatStream = async (args: PersistStreamArgs): Promise<Persis
   let totalCostMicrodollars: null | number = null;
 
   for await (const part of args.fullStream) {
-    logChatStream("chat-stream:persist:part", { conversationId: args.conversationId, part });
-
     const event = mapStreamPartToEvent(part, ctx);
 
     if (event === null) continue;
-
-    logChatStream("chat-stream:persist:event", { conversationId: args.conversationId, event });
 
     if (isPreliminaryToolOutput(event)) continue;
 
