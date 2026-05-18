@@ -12,6 +12,9 @@ export const env = createEnv({
     DATABASE_URL: z.url(),
     GITHUB_CLIENT_ID: z.string().min(1),
     GITHUB_CLIENT_SECRET: z.string().min(1),
+    LOG_LEVEL: z
+      .enum(["all", "trace", "debug", "info", "warning", "error", "fatal", "none"])
+      .optional(),
     OPENROUTER_API_KEY: z.string().min(1),
     TAVILY_API_KEY: z.string().min(1),
     TMDB_READ_ACCESS_TOKEN: z.string().min(1),
