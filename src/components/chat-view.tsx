@@ -341,9 +341,9 @@ export const ChatView = ({
                       addToolApprovalResponse={addToolApprovalResponse}
                       canRetry={canRetry}
                       isLastMessage={index === messages.length - 1}
-                      isStreaming={isStreaming}
                       message={message}
                       onRetry={handleRetry}
+                      status={status}
                       subagentTraces={subagentTraces}
                     />
                   </MessageContent>
