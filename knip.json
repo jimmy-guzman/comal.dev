@@ -8,5 +8,5 @@
     "src/clients/**/*.ts",
     "scripts/**"
   ],
-  "ignore": [".agents/**", ".claude/**"]
+  "ignore": [".agents/**", ".claude/**", "skills/**"]
 }
