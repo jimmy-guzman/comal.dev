@@ -1,3 +1,5 @@
+import type { InferUIMessageChunk } from "ai";
+
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -519,8 +521,10 @@ export async function POST(req: Request) {
           });
         }
 
-        writer.merge(
-          result.toUIMessageStream({
+        const resolvedToolInputs = new Set<string>();
+
+        const uiMessageStream = result
+          .toUIMessageStream({
             onError: (error) => {
               logError("UI message stream error", error);
 
@@ -535,8 +539,27 @@ export async function POST(req: Request) {
               });
             },
             originalMessages: validation.data,
-          }),
-        );
+          })
+          .pipeThrough(
+            new TransformStream<
+              InferUIMessageChunk<AppUIMessage>,
+              InferUIMessageChunk<AppUIMessage>
+            >({
+              transform(chunk, controller) {
+                if (chunk.type === "tool-input-delta" && resolvedToolInputs.has(chunk.toolCallId)) {
+                  return;
+                }
+
+                if (chunk.type === "tool-input-available") {
+                  resolvedToolInputs.add(chunk.toolCallId);
+                }
+
+                controller.enqueue(chunk);
+              },
+            }),
+          );
+
+        writer.merge(uiMessageStream);
 
         if (isFirstTurn && userMessage) {
           try {
