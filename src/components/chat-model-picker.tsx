@@ -42,7 +42,7 @@ export const ChatModelPicker = ({ onValueChange, value }: Props) => {
       <ModelSelectorTrigger asChild>
         <Button
           aria-label="select model"
-          className="text-muted-foreground hover:text-foreground h-8 min-w-0 flex-1 gap-1.5 px-2 font-medium"
+          className="text-muted-foreground hover:text-foreground h-8 min-w-0 gap-1.5 px-2 font-medium"
           size="sm"
           variant="ghost"
         >
