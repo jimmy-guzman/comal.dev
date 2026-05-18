@@ -18,6 +18,7 @@ interface MessagePartsProps {
   addToolApprovalResponse: (response: { approved: boolean; id: string }) => void;
   canRetry: boolean;
   isLastMessage: boolean;
+  isLoading: boolean;
   isStreaming: boolean;
   message: UIMessage;
   onRetry?: () => void;
@@ -55,6 +56,7 @@ export const MessageParts = ({
   addToolApprovalResponse,
   canRetry,
   isLastMessage,
+  isLoading,
   isStreaming,
   message,
   onRetry,
@@ -75,7 +77,7 @@ export const MessageParts = ({
   const shouldShowThinkingCue =
     message.role === "assistant" &&
     isLastMessage &&
-    isStreaming &&
+    isLoading &&
     !hasStreamingText &&
     !isReasoningStreaming &&
     !hasVisibleThinkingSignal;
