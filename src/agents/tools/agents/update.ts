@@ -148,7 +148,11 @@ export const buildAgentsUpdate = (_config: unknown, context: ToolContext) => {
           defaultModelId,
           description,
           evals: agentExit.value.evals.map((e) => {
-            return { ...e, scorer: e.scorer as Scorer };
+            return {
+              ...e,
+              expected: e.expected ?? undefined,
+              scorer: e.scorer as Scorer,
+            };
           }),
           name,
           subAgents: resolvedSubAgents,

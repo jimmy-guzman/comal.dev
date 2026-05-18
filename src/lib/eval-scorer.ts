@@ -1,4 +1,10 @@
-import type { Scorer } from "@/lib/eval-input-schema";
+import { generateText, Output } from "ai";
+import { z } from "zod";
+
+import { JUDGE_MODEL_ID } from "@/lib/eval-input-schema";
+import { openrouter } from "@/lib/openrouter";
+
+export type StringScorer = "contains" | "exact" | "levenshtein";
 
 const levenshteinDistance = (a: string, b: string): number => {
   const m = a.length;
@@ -30,7 +36,35 @@ const levenshteinDistance = (a: string, b: string): number => {
   return prev[n] ?? 0;
 };
 
-export const scoreEval = (scorer: Scorer, output: string, expected: string): number => {
+const judgeResponseSchema = z.object({
+  rationale: z.string().trim().min(1).max(2000),
+  score: z.number().min(0).max(1),
+});
+
+const JUDGE_SYSTEM_PROMPT = `You are an evaluation judge for an AI agent's output.
+
+Given the agent's input and output (and optionally a reference expected answer), assign a score from 0 to 1:
+- 1.0: output fully addresses the input (matches the expected answer if one is provided)
+- 0.7 to 0.9: output is mostly correct with minor issues
+- 0.4 to 0.6: output partially addresses the input
+- 0.1 to 0.3: output mostly misses the point
+- 0.0: output is wrong, off-topic, or empty
+
+Return a JSON object with:
+- score: a number between 0 and 1
+- rationale: 1 to 3 sentences explaining the score`;
+
+const buildJudgePrompt = (input: string, output: string, expected?: string) => {
+  const lines = [`Input:\n${input}`, `Output:\n${output}`];
+
+  if (expected) {
+    lines.push(`Expected (reference answer):\n${expected}`);
+  }
+
+  return lines.join("\n\n");
+};
+
+export const scoreEval = (scorer: StringScorer, output: string, expected: string): number => {
   if (scorer === "contains") {
     return output.toLowerCase().includes(expected.toLowerCase()) ? 1 : 0;
   }
@@ -48,4 +82,19 @@ export const scoreEval = (scorer: Scorer, output: string, expected: string): num
   const distance = levenshteinDistance(trimmedOutput, trimmedExpected);
 
   return 1 - distance / maxLen;
+};
+
+export const scoreEvalLLM = async (
+  input: string,
+  output: string,
+  expected?: string,
+): Promise<{ rationale: string; score: number }> => {
+  const result = await generateText({
+    messages: [{ content: buildJudgePrompt(input, output, expected), role: "user" }],
+    model: openrouter(JUDGE_MODEL_ID),
+    output: Output.object({ schema: judgeResponseSchema }),
+    system: JUDGE_SYSTEM_PROMPT,
+  });
+
+  return { rationale: result.output.rationale, score: result.output.score };
 };

@@ -6,43 +6,49 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import type { Scorer } from "@/lib/eval-input-schema";
+import type { EvalRunSummary } from "@/lib/evals";
 
 import { updateAgentEvalsAction } from "@/actions/update-agent-evals";
 import { AgentEvalPicker } from "@/components/agent-eval-picker";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
-import { SCORER_OPTIONS } from "@/lib/eval-input-schema";
+import { SCORER_OPTIONS, STRING_SCORERS } from "@/lib/eval-input-schema";
 
 const formSchema = z.object({
   evals: z.array(
-    z.object({
-      expected: z.string().trim().min(1).max(10_000),
-      id: z.string().optional(),
-      input: z.string().trim().min(1).max(10_000),
-      name: z.string().trim().min(1).max(200),
-      scorer: z.enum(SCORER_OPTIONS),
-    }),
+    z
+      .object({
+        expected: z.string().trim().min(1).max(10_000).optional(),
+        id: z.string().optional(),
+        input: z.string().trim().min(1).max(10_000),
+        name: z.string().trim().min(1).max(200),
+        scorer: z.enum(SCORER_OPTIONS),
+        trials: z.number().int().min(1).max(10),
+      })
+      .superRefine((value, ctx) => {
+        if (STRING_SCORERS.includes(value.scorer) && !value.expected) {
+          ctx.addIssue({
+            code: "custom",
+            message: "Expected output is required for this scorer.",
+            path: ["expected"],
+          });
+        }
+      }),
   ),
 });
 
-interface EvalRun {
-  evalId: string;
-  lastRunAt: Date | null;
-  lastRunOutput: null | string;
-  lastRunScore: null | number;
-}
-
 interface InitialEval {
-  expected: string;
+  expected?: string;
   id: string;
   input: string;
   name: string;
   scorer: Scorer;
+  trials: number;
 }
 
 interface Props {
   agentId: string;
-  evalRuns: EvalRun[];
+  evalRuns: EvalRunSummary[];
   initialEvals: InitialEval[];
 }
 
@@ -56,8 +62,24 @@ export const AgentEvalsForm = ({ agentId, evalRuns, initialEvals }: Props) => {
   const form = useForm({
     defaultValues: {
       evals: initialEvals.map(
-        (e): { expected: string; id?: string; input: string; name: string; scorer: Scorer } => {
-          return { expected: e.expected, id: e.id, input: e.input, name: e.name, scorer: e.scorer };
+        (
+          e,
+        ): {
+          expected?: string;
+          id?: string;
+          input: string;
+          name: string;
+          scorer: Scorer;
+          trials: number;
+        } => {
+          return {
+            expected: e.expected,
+            id: e.id,
+            input: e.input,
+            name: e.name,
+            scorer: e.scorer,
+            trials: e.trials,
+          };
         },
       ),
     },
@@ -66,11 +88,12 @@ export const AgentEvalsForm = ({ agentId, evalRuns, initialEvals }: Props) => {
         agentId,
         evals: value.evals.map((e) => {
           return {
-            expected: e.expected.trim(),
+            expected: e.expected?.trim() ? e.expected.trim() : undefined,
             id: e.id,
             input: e.input.trim(),
             name: e.name.trim(),
             scorer: e.scorer,
+            trials: e.trials,
           };
         }),
       });

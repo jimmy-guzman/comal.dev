@@ -45,7 +45,9 @@ export const updateAgentPromptAction = authClient
       updateAgent(agentId, ctx.auth.user.id, {
         defaultModelId: current.defaultModelId,
         description: current.description ?? undefined,
-        evals: current.evals.map((e) => ({ ...e, scorer: e.scorer as Scorer })),
+        evals: current.evals.map((e) => {
+          return { ...e, expected: e.expected ?? undefined, scorer: e.scorer as Scorer };
+        }),
         name: current.name,
         subAgents: current.subAgents.map((s) => {
           return {

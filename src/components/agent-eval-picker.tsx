@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import type { Scorer } from "@/lib/eval-input-schema";
+import type { EvalRunAggregate, EvalRunSummary } from "@/lib/evals";
 
 import { runEvalAction } from "@/actions/run-eval";
 import { Badge } from "@/components/ui/badge";
@@ -28,47 +29,59 @@ const isScorer = (value: string): value is Scorer => {
 };
 
 interface EvalSelection {
-  expected: string;
+  expected?: string;
   id?: string;
   input: string;
   name: string;
   scorer: Scorer;
+  trials: number;
 }
 
 interface EvalRunResult {
+  aggregate?: EvalRunAggregate;
   output: string;
+  rationale?: string;
   score: number;
 }
 
-interface InitialRun {
-  evalId: string;
-  lastRunAt: Date | null;
-  lastRunOutput: null | string;
-  lastRunScore: null | number;
-}
-
 interface Props {
-  initialRuns?: InitialRun[];
+  initialRuns?: EvalRunSummary[];
   isEdit: boolean;
   onChange: (next: EvalSelection[]) => void;
   value: EvalSelection[];
 }
 
-const DEFAULT_INITIAL_RUNS: InitialRun[] = [];
+const DEFAULT_INITIAL_RUNS: EvalRunSummary[] = [];
 
 const PASS_THRESHOLD = 0.8;
 
 const formatScore = (score: number) => score.toFixed(2);
 
-const getScore = (result: EvalRunResult | InitialRun) => {
-  return "score" in result ? result.score : result.lastRunScore;
+const isLiveResult = (result: EvalRunResult | EvalRunSummary): result is EvalRunResult => {
+  return "output" in result;
 };
 
-const getOutput = (result: EvalRunResult | InitialRun) => {
-  return "output" in result ? result.output : result.lastRunOutput;
+const getScore = (result: EvalRunResult | EvalRunSummary) => {
+  if (isLiveResult(result)) {
+    return result.aggregate ? result.aggregate.mean : result.score;
+  }
+
+  return result.lastRunAggregate ? result.lastRunAggregate.mean : result.lastRunScore;
 };
 
-const EvalRunBadge = ({ result }: { result: EvalRunResult | InitialRun | null }) => {
+const getOutput = (result: EvalRunResult | EvalRunSummary) => {
+  return isLiveResult(result) ? result.output : result.lastRunOutput;
+};
+
+const getRationale = (result: EvalRunResult | EvalRunSummary) => {
+  return isLiveResult(result) ? (result.rationale ?? null) : result.lastRunRationale;
+};
+
+const getAggregate = (result: EvalRunResult | EvalRunSummary) => {
+  return isLiveResult(result) ? (result.aggregate ?? null) : result.lastRunAggregate;
+};
+
+const EvalRunBadge = ({ result }: { result: EvalRunResult | EvalRunSummary | null }) => {
   const score = result ? getScore(result) : null;
 
   if (score === null) {
@@ -104,7 +117,7 @@ const EvalRow = ({
   onRemove,
 }: {
   entry: EvalSelection;
-  initialRun: InitialRun | null;
+  initialRun: EvalRunSummary | null;
   isEdit: boolean;
   onChange: (next: EvalSelection) => void;
   onRemove: () => void;
@@ -117,14 +130,22 @@ const EvalRow = ({
       toast.error(error.serverError ?? "failed to run eval.");
     },
     onSuccess: ({ data }) => {
-      setRunResult(data);
+      setRunResult({
+        aggregate: "aggregate" in data ? data.aggregate : undefined,
+        output: data.output,
+        rationale: "rationale" in data ? data.rationale : undefined,
+        score: data.score,
+      });
       setIsExpanded(true);
     },
   });
 
   const canRun = isEdit && Boolean(entry.id);
-  const result = runResult ?? initialRun;
+  const result: EvalRunResult | EvalRunSummary | null = runResult ?? initialRun;
   const output = result ? getOutput(result) : null;
+  const rationale = result ? getRationale(result) : null;
+  const aggregate = result ? getAggregate(result) : null;
+  const isJudge = entry.scorer === "llm-judge";
 
   return (
     <div className="rounded-md border p-3">
@@ -196,18 +217,20 @@ const EvalRow = ({
             value={entry.input}
           />
         </Field>
-        <Field>
-          <FieldLabel className="text-xs">expected</FieldLabel>
-          <Textarea
-            className="field-sizing-content min-h-16 resize-none font-mono text-xs"
-            maxLength={10_000}
-            onChange={(event) => {
-              onChange({ ...entry, expected: event.target.value });
-            }}
-            placeholder="what the response should contain or match"
-            value={entry.expected}
-          />
-        </Field>
+        {isJudge ? null : (
+          <Field>
+            <FieldLabel className="text-xs">expected</FieldLabel>
+            <Textarea
+              className="field-sizing-content min-h-16 resize-none font-mono text-xs"
+              maxLength={10_000}
+              onChange={(event) => {
+                onChange({ ...entry, expected: event.target.value });
+              }}
+              placeholder="what the response should contain or match"
+              value={entry.expected ?? ""}
+            />
+          </Field>
+        )}
         <Field>
           <FieldLabel className="text-xs">scorer</FieldLabel>
           <Select
@@ -230,23 +253,73 @@ const EvalRow = ({
             </SelectContent>
           </Select>
         </Field>
+        {isJudge ? null : (
+          <Field>
+            <FieldLabel className="text-xs">trials</FieldLabel>
+            <Input
+              max={10}
+              min={1}
+              onChange={(event) => {
+                const next = Number.parseInt(event.target.value, 10);
+
+                onChange({
+                  ...entry,
+                  trials: Number.isFinite(next) ? Math.min(10, Math.max(1, next)) : 1,
+                });
+              }}
+              step={1}
+              type="number"
+              value={entry.trials}
+            />
+          </Field>
+        )}
       </div>
       {output && isExpanded ? (
         <>
           <Separator className="my-3" />
           <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-1">
-              <span className="text-muted-foreground text-xs">output</span>
-              <pre className="max-h-32 overflow-y-auto font-mono text-xs break-words whitespace-pre-wrap">
-                {output}
-              </pre>
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-muted-foreground text-xs">expected</span>
-              <pre className="max-h-32 overflow-y-auto font-mono text-xs break-words whitespace-pre-wrap">
-                {entry.expected}
-              </pre>
-            </div>
+            {aggregate ? (
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground text-xs">trials ({aggregate.count})</span>
+                <div className="text-xs">
+                  mean {formatScore(aggregate.mean)} · min {formatScore(aggregate.min)} · max{" "}
+                  {formatScore(aggregate.max)}
+                </div>
+                <ol className="text-muted-foreground list-decimal pl-4 text-xs">
+                  {aggregate.trials.map((trial) => {
+                    return (
+                      <li className="break-words" key={trial.id}>
+                        <div className="text-xs">score {formatScore(trial.score)}</div>
+                        <pre className="max-h-24 overflow-y-auto font-mono whitespace-pre-wrap">
+                          {trial.output}
+                        </pre>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground text-xs">output</span>
+                <pre className="max-h-32 overflow-y-auto font-mono text-xs break-words whitespace-pre-wrap">
+                  {output}
+                </pre>
+              </div>
+            )}
+            {rationale ? (
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground text-xs">rationale</span>
+                <p className="text-xs break-words whitespace-pre-wrap">{rationale}</p>
+              </div>
+            ) : null}
+            {entry.expected ? (
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground text-xs">expected</span>
+                <pre className="max-h-32 overflow-y-auto font-mono text-xs break-words whitespace-pre-wrap">
+                  {entry.expected}
+                </pre>
+              </div>
+            ) : null}
           </div>
         </>
       ) : null}
@@ -261,7 +334,7 @@ export const AgentEvalPicker = ({
   value,
 }: Props) => {
   const handleAdd = () => {
-    onChange([...value, { expected: "", input: "", name: "", scorer: "contains" }]);
+    onChange([...value, { input: "", name: "", scorer: "contains", trials: 1 }]);
   };
 
   const handleChange = (index: number, next: EvalSelection) => {

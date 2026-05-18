@@ -10,6 +10,7 @@ import { z } from "zod";
 import type { OwnedAgent } from "@/components/agent-subagent-picker";
 import type { ModelId } from "@/config/models";
 import type { Scorer } from "@/lib/eval-input-schema";
+import type { EvalRunSummary } from "@/lib/evals";
 
 import { createAgentAction } from "@/actions/create-agent";
 import { updateAgentAction } from "@/actions/update-agent";
@@ -32,19 +33,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { getModelCostLabel, MODEL_GROUPS, MODEL_IDS } from "@/config/models";
 import { initialToolSelections } from "@/lib/agent-tool-selection";
-import { SCORER_OPTIONS } from "@/lib/eval-input-schema";
+import { SCORER_OPTIONS, STRING_SCORERS } from "@/lib/eval-input-schema";
 
 const formSchema = z.object({
   defaultModelId: z.enum(MODEL_IDS),
   description: z.string().trim().max(500),
   evals: z.array(
-    z.object({
-      expected: z.string().trim().min(1).max(10_000),
-      id: z.string().optional(),
-      input: z.string().trim().min(1).max(10_000),
-      name: z.string().trim().min(1).max(200),
-      scorer: z.enum(SCORER_OPTIONS),
-    }),
+    z
+      .object({
+        expected: z.string().trim().min(1).max(10_000).optional(),
+        id: z.string().optional(),
+        input: z.string().trim().min(1).max(10_000),
+        name: z.string().trim().min(1).max(200),
+        scorer: z.enum(SCORER_OPTIONS),
+        trials: z.number().int().min(1).max(10),
+      })
+      .superRefine((value, ctx) => {
+        if (STRING_SCORERS.includes(value.scorer) && !value.expected) {
+          ctx.addIssue({
+            code: "custom",
+            message: "Expected output is required for this scorer.",
+            path: ["expected"],
+          });
+        }
+      }),
   ),
   name: z.string().trim().min(1).max(100),
   subAgents: z
@@ -106,7 +118,14 @@ const formSchema = z.object({
 interface InitialAgent {
   defaultModelId: string;
   description: null | string;
-  evals: { expected: string; id: string; input: string; name: string; scorer: Scorer }[];
+  evals: {
+    expected?: string;
+    id: string;
+    input: string;
+    name: string;
+    scorer: Scorer;
+    trials: number;
+  }[];
   id: string;
   name: string;
   subAgents: { alias: string; childAgentId: string; descriptionOverride: null | string }[];
@@ -114,15 +133,8 @@ interface InitialAgent {
   tools: { config: unknown; toolId: string }[];
 }
 
-interface EvalRun {
-  evalId: string;
-  lastRunAt: Date | null;
-  lastRunOutput: null | string;
-  lastRunScore: null | number;
-}
-
 interface Props {
-  evalRuns?: EvalRun[];
+  evalRuns?: EvalRunSummary[];
   initialAgent?: InitialAgent;
   ownedAgents?: OwnedAgent[];
 }
@@ -190,7 +202,7 @@ const ErrorDot = () => {
   );
 };
 
-const DEFAULT_EVAL_RUNS: EvalRun[] = [];
+const DEFAULT_EVAL_RUNS: EvalRunSummary[] = [];
 
 export const AgentForm = ({
   evalRuns = DEFAULT_EVAL_RUNS,
@@ -230,13 +242,23 @@ export const AgentForm = ({
       description: initialAgent?.description ?? "",
       evals:
         initialAgent?.evals.map(
-          (e): { expected: string; id?: string; input: string; name: string; scorer: Scorer } => {
+          (
+            e,
+          ): {
+            expected?: string;
+            id?: string;
+            input: string;
+            name: string;
+            scorer: Scorer;
+            trials: number;
+          } => {
             return {
               expected: e.expected,
               id: e.id,
               input: e.input,
               name: e.name,
               scorer: e.scorer,
+              trials: e.trials,
             };
           },
         ) ?? [],
@@ -262,11 +284,12 @@ export const AgentForm = ({
         description: value.description.trim() || undefined,
         evals: value.evals.map((e) => {
           return {
-            expected: e.expected.trim(),
+            expected: e.expected?.trim() ? e.expected.trim() : undefined,
             id: e.id,
             input: e.input.trim(),
             name: e.name.trim(),
             scorer: e.scorer,
+            trials: e.trials,
           };
         }),
         name: value.name.trim(),

@@ -89,7 +89,16 @@ export const agentVersion = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     evals: jsonb("evals")
-      .$type<{ expected: string; id?: string; input: string; name: string; scorer: string }[]>()
+      .$type<
+        {
+          expected?: string;
+          id?: string;
+          input: string;
+          name: string;
+          scorer: string;
+          trials?: number;
+        }[]
+      >()
       .notNull()
       .default([]),
     id: text("id").primaryKey(),
