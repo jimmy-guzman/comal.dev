@@ -113,7 +113,8 @@ export const listEvalRunsForAgent = (agentId: string) => {
             score: agentEvalRun.score,
           })
           .from(agentEvalRun)
-          .where(inArray(agentEvalRun.runGroupId, groupIds));
+          .where(inArray(agentEvalRun.runGroupId, groupIds))
+          .orderBy(agentEvalRun.runGroupId, agentEvalRun.createdAt, agentEvalRun.id);
       });
 
       const buckets = new Map<string, EvalRunTrial[]>();

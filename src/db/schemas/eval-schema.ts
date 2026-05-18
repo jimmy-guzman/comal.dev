@@ -28,7 +28,10 @@ export const agentEval = pgTable(
         "agent_eval_scorer_valid",
         sql`${table.scorer} IN ('contains', 'exact', 'levenshtein', 'llm-judge')`,
       ),
-      check("agent_eval_trials_valid", sql`${table.trials} >= 1 AND ${table.trials} <= 10`),
+      check(
+        "agent_eval_trials_valid",
+        sql`(${table.scorer} = 'llm-judge' AND ${table.trials} = 1) OR (${table.scorer} <> 'llm-judge' AND ${table.trials} >= 1 AND ${table.trials} <= 10)`,
+      ),
     ];
   },
 );

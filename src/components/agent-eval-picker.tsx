@@ -153,7 +153,7 @@ const EvalRow = ({
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">{entry.name || "untitled eval"}</span>
           <EvalRunBadge result={result} />
-          {output ? (
+          {result ? (
             <Button
               onClick={() => {
                 setIsExpanded((v) => !v);
@@ -274,7 +274,7 @@ const EvalRow = ({
           </Field>
         )}
       </div>
-      {output && isExpanded ? (
+      {result && isExpanded ? (
         <>
           <Separator className="my-3" />
           <div className="flex flex-col gap-2">
@@ -298,14 +298,14 @@ const EvalRow = ({
                   })}
                 </ol>
               </div>
-            ) : (
+            ) : output ? (
               <div className="flex flex-col gap-1">
                 <span className="text-muted-foreground text-xs">output</span>
                 <pre className="max-h-32 overflow-y-auto font-mono text-xs break-words whitespace-pre-wrap">
                   {output}
                 </pre>
               </div>
-            )}
+            ) : null}
             {rationale ? (
               <div className="flex flex-col gap-1">
                 <span className="text-muted-foreground text-xs">rationale</span>

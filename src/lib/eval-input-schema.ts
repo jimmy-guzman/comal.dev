@@ -25,4 +25,7 @@ export const evalEntrySchema = z
         path: ["expected"],
       });
     }
+  })
+  .transform((value) => {
+    return value.scorer === "llm-judge" ? { ...value, trials: 1 } : value;
   });

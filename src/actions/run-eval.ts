@@ -9,7 +9,7 @@ import type { StringScorer } from "@/lib/eval-scorer";
 
 import { loadAgent } from "@/agents";
 import { appRuntime } from "@/db/service";
-import { LLMError, NotFoundError } from "@/lib/errors";
+import { LLMError, NotFoundError, ValidationError } from "@/lib/errors";
 import { scoreEval, scoreEvalLLM } from "@/lib/eval-scorer";
 import { createEvalRun, getEvalWithOwnership } from "@/lib/evals";
 import { openrouter } from "@/lib/openrouter";
@@ -61,8 +61,16 @@ export const runEvalAction = authClient
         return { output, rationale: judgment.rationale, score: judgment.score };
       }
 
+      if (!evalRow.expected) {
+        return yield* Effect.fail(
+          new ValidationError({
+            message: `Eval "${evalRow.name}" uses scorer "${evalRow.scorer}" but has no expected output.`,
+          }),
+        );
+      }
+
       const stringScorer = evalRow.scorer as StringScorer;
-      const expected = evalRow.expected ?? "";
+      const { expected } = evalRow;
       const trials = Math.max(1, evalRow.trials);
       const runGroupId = trials > 1 ? nanoid() : null;
 
@@ -112,8 +120,14 @@ export const runEvalAction = authClient
     if (Exit.isFailure(exit)) {
       const { cause } = exit;
 
-      if (cause._tag === "Fail" && cause.error._tag === "NotFoundError") {
-        throw new NotFoundError({ resource: "eval" });
+      if (cause._tag === "Fail") {
+        if (cause.error._tag === "NotFoundError") {
+          throw new NotFoundError({ resource: "eval" });
+        }
+
+        if (cause.error._tag === "ValidationError") {
+          throw new Error(cause.error.message);
+        }
       }
 
       throw new Error("Failed to run eval.");
