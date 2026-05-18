@@ -1,6 +1,6 @@
 "use client";
 
-import type { UIMessage } from "ai";
+import type { ChatStatus, UIMessage } from "ai";
 
 import { isToolUIPart } from "ai";
 import { BrainIcon } from "lucide-react";
@@ -18,10 +18,9 @@ interface MessagePartsProps {
   addToolApprovalResponse: (response: { approved: boolean; id: string }) => void;
   canRetry: boolean;
   isLastMessage: boolean;
-  isLoading: boolean;
-  isStreaming: boolean;
   message: UIMessage;
   onRetry?: () => void;
+  status: ChatStatus;
   subagentTraces?: SubagentTraces;
 }
 
@@ -56,12 +55,14 @@ export const MessageParts = ({
   addToolApprovalResponse,
   canRetry,
   isLastMessage,
-  isLoading,
-  isStreaming,
   message,
   onRetry,
+  status,
   subagentTraces,
 }: MessagePartsProps) => {
+  const isStreaming = status === "streaming";
+  const isLoading = status === "submitted" || isStreaming;
+
   const reasoningParts = message.parts.filter((part) => {
     return part.type === "reasoning";
   });

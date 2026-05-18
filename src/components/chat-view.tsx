@@ -317,8 +317,8 @@ export const ChatView = ({
   };
 
   const isStreaming = status === "streaming";
-  const isLoading = status === "submitted" || isStreaming;
-  const shouldShowTrailingThinkingCue = isLoading && messages.at(-1)?.role !== "assistant";
+  const shouldShowTrailingThinkingCue =
+    (status === "submitted" || isStreaming) && messages.at(-1)?.role !== "assistant";
   const canRetry = status === "ready" || status === "error";
   const liveErrorInfo =
     error !== undefined && !lastMessageHasErrorPart(messages) ? errorToInfo(error) : null;
@@ -341,10 +341,9 @@ export const ChatView = ({
                       addToolApprovalResponse={addToolApprovalResponse}
                       canRetry={canRetry}
                       isLastMessage={index === messages.length - 1}
-                      isLoading={isLoading}
-                      isStreaming={isStreaming}
                       message={message}
                       onRetry={handleRetry}
+                      status={status}
                       subagentTraces={subagentTraces}
                     />
                   </MessageContent>
