@@ -1,7 +1,7 @@
 "use server";
 
 import { generateText } from "ai";
-import { Effect, Exit } from "effect";
+import { Cause, Effect, Exit } from "effect";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 
@@ -134,7 +134,7 @@ export const runEvalAction = authClient
         }
       }
 
-      throw new Error("Failed to run eval.");
+      throw new Error(`Failed to run eval: ${Cause.pretty(cause)}`);
     }
 
     return exit.value;
