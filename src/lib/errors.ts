@@ -2,10 +2,12 @@ import { Data } from "effect";
 
 export class DatabaseError extends Data.TaggedError("DatabaseError")<{
   cause: unknown;
+  message: string;
 }> {}
 
 export class LLMError extends Data.TaggedError("LLMError")<{
   cause: unknown;
+  message: string;
 }> {}
 
 export class MessageConversionError extends Data.TaggedError("MessageConversionError")<{

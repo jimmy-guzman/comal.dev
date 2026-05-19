@@ -1,6 +1,6 @@
 "use server";
 
-import { Exit } from "effect";
+import { Cause, Exit } from "effect";
 import { updateTag } from "next/cache";
 import { z } from "zod";
 
@@ -33,7 +33,7 @@ export const updateAgentEvalsAction = authClient
         if (cause.error._tag === "NotFoundError") throw new NotFoundError({ resource: "agent" });
       }
 
-      throw new Error("Failed to update agent.");
+      throw new Error(`Failed to update agent (ownership): ${Cause.pretty(cause)}`);
     }
 
     const current = await appRuntime.runPromise(getAgentForUser(agentId, ctx.auth.user.id));
@@ -58,7 +58,9 @@ export const updateAgentEvalsAction = authClient
       }),
     );
 
-    if (Exit.isFailure(exit)) throw new Error("Failed to update agent.");
+    if (Exit.isFailure(exit)) {
+      throw new Error(`Failed to update agent: ${Cause.pretty(exit.cause)}`);
+    }
 
     updateTag(`agents:${ctx.auth.user.id}`);
     updateTag(`agent:${agentId}`);

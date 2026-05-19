@@ -22,11 +22,12 @@ interface AgentSubAgentInput {
 }
 
 interface AgentEvalInput {
-  expected: string;
+  expected?: string;
   id?: string;
   input: string;
   name: string;
   scorer: Scorer;
+  trials: number;
 }
 
 interface AgentInput {
@@ -105,6 +106,7 @@ export const getAgentForUser = (agentId: string, userId: string) => {
               input: agentEval.input,
               name: agentEval.name,
               scorer: agentEval.scorer,
+              trials: agentEval.trials,
             })
             .from(agentEval)
             .where(eq(agentEval.agentId, agentId));
@@ -150,8 +152,15 @@ const buildVersionSubAgents = (subAgents: AgentSubAgentInput[]) => {
 };
 
 const buildVersionEvals = (evals: AgentEvalInput[]) => {
-  return evals.map(({ expected, id, input, name, scorer }) => {
-    return { expected, ...(id === undefined ? {} : { id }), input, name, scorer };
+  return evals.map(({ expected, id, input, name, scorer, trials }) => {
+    return {
+      ...(expected === undefined ? {} : { expected }),
+      ...(id === undefined ? {} : { id }),
+      input,
+      name,
+      scorer,
+      trials,
+    };
   });
 };
 
@@ -208,11 +217,12 @@ export const createAgent = (userId: string, input: AgentInput) => {
             input.evals.map((evalEntry) => {
               return {
                 agentId: id,
-                expected: evalEntry.expected,
+                expected: evalEntry.expected ?? null,
                 id: nanoid(),
                 input: evalEntry.input,
                 name: evalEntry.name,
                 scorer: evalEntry.scorer,
+                trials: evalEntry.trials,
               };
             }),
           );
@@ -290,19 +300,21 @@ export const updateAgent = (agentId: string, userId: string, input: AgentInput) 
             ? tx
                 .update(agentEval)
                 .set({
-                  expected: evalEntry.expected,
+                  expected: evalEntry.expected ?? null,
                   input: evalEntry.input,
                   name: evalEntry.name,
                   scorer: evalEntry.scorer,
+                  trials: evalEntry.trials,
                 })
                 .where(and(eq(agentEval.id, evalEntry.id), eq(agentEval.agentId, agentId)))
             : tx.insert(agentEval).values({
                 agentId,
-                expected: evalEntry.expected,
+                expected: evalEntry.expected ?? null,
                 id: nanoid(),
                 input: evalEntry.input,
                 name: evalEntry.name,
                 scorer: evalEntry.scorer,
+                trials: evalEntry.trials,
               }));
         }
       });

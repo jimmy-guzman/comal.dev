@@ -23,7 +23,12 @@ const retrySchedule = Schedule.exponential("100 millis").pipe(
  */
 export const runQuery = <A>(query: () => Promise<A>) => {
   return Effect.tryPromise({
-    catch: (cause) => new DatabaseError({ cause }),
+    catch: (cause) => {
+      return new DatabaseError({
+        cause,
+        message: cause instanceof Error ? cause.message : String(cause),
+      });
+    },
     try: query,
   }).pipe(
     Effect.tapError((error) => {
@@ -41,7 +46,12 @@ export const runQuery = <A>(query: () => Promise<A>) => {
  */
 export const runMutation = <A>(query: () => Promise<A>) => {
   return Effect.tryPromise({
-    catch: (cause) => new DatabaseError({ cause }),
+    catch: (cause) => {
+      return new DatabaseError({
+        cause,
+        message: cause instanceof Error ? cause.message : String(cause),
+      });
+    },
     try: query,
   });
 };

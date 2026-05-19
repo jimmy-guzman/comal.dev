@@ -196,7 +196,12 @@ const generateTitleEffect = (
 ): Effect.Effect<string, DatabaseError | LLMError, Database> => {
   return Effect.gen(function* () {
     const { text: title } = yield* Effect.tryPromise({
-      catch: (cause) => new LLMError({ cause }),
+      catch: (cause) => {
+        return new LLMError({
+          cause,
+          message: cause instanceof Error ? cause.message : String(cause),
+        });
+      },
       try: () => {
         return generateText({
           model: openrouter(modelId),
