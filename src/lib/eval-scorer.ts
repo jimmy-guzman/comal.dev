@@ -38,8 +38,10 @@ const levenshteinDistance = (a: string, b: string): number => {
 
 const judgeResponseSchema = z.object({
   rationale: z.string().trim().min(1).max(2000),
-  score: z.number().min(0).max(1),
+  score: z.number(),
 });
+
+const clampScore = (value: number) => Math.min(1, Math.max(0, value));
 
 const JUDGE_SYSTEM_PROMPT = `You are an evaluation judge for an AI agent's output.
 
@@ -92,5 +94,5 @@ export const scoreEvalLLM = async (
     system: JUDGE_SYSTEM_PROMPT,
   });
 
-  return { rationale: result.output.rationale, score: result.output.score };
+  return { rationale: result.output.rationale, score: clampScore(result.output.score) };
 };
