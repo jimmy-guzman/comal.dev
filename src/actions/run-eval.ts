@@ -5,12 +5,10 @@ import { Cause, Effect, Exit } from "effect";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 
-import type { StringScorer } from "@/lib/eval-scorer";
-
 import { loadAgent } from "@/agents";
 import { appRuntime } from "@/db/service";
 import { LLMError, NotFoundError, ValidationError } from "@/lib/errors";
-import { scoreEval, scoreEvalLLM } from "@/lib/eval-scorer";
+import { isStringScorer, scoreEval, scoreEvalLLM } from "@/lib/eval-scorer";
 import { createEvalRun, createEvalRuns, getEvalWithOwnership } from "@/lib/evals";
 import { openrouter } from "@/lib/openrouter";
 import { authClient } from "@/lib/safe-action";
@@ -71,6 +69,14 @@ export const runEvalAction = authClient
         return { output, rationale: judgment.rationale, score: judgment.score };
       }
 
+      if (!isStringScorer(evalRow.scorer)) {
+        return yield* Effect.fail(
+          new ValidationError({
+            message: `Eval "${evalRow.name}" has unknown scorer "${evalRow.scorer}".`,
+          }),
+        );
+      }
+
       if (!evalRow.expected) {
         return yield* Effect.fail(
           new ValidationError({
@@ -79,7 +85,7 @@ export const runEvalAction = authClient
         );
       }
 
-      const stringScorer = evalRow.scorer as StringScorer;
+      const stringScorer = evalRow.scorer;
       const { expected } = evalRow;
       const trials = Math.max(1, evalRow.trials);
       const runGroupId = trials > 1 ? nanoid() : null;

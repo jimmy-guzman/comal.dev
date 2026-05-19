@@ -6,6 +6,10 @@ import { openrouter } from "@/lib/openrouter";
 
 export type StringScorer = "contains" | "exact" | "levenshtein";
 
+export const isStringScorer = (value: string): value is StringScorer => {
+  return value === "contains" || value === "exact" || value === "levenshtein";
+};
+
 const levenshteinDistance = (a: string, b: string): number => {
   const m = a.length;
   const n = b.length;
