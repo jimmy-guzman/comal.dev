@@ -26,7 +26,12 @@ export const runEvalAction = authClient
 
       const runOnce = () => {
         return Effect.tryPromise({
-          catch: (cause) => new LLMError({ cause }),
+          catch: (cause) => {
+            return new LLMError({
+              cause,
+              message: cause instanceof Error ? cause.message : String(cause),
+            });
+          },
           try: () => {
             return generateText({
               maxOutputTokens: MAX_OUTPUT_TOKENS,
@@ -44,7 +49,12 @@ export const runEvalAction = authClient
         const output = result.text;
 
         const judgment = yield* Effect.tryPromise({
-          catch: (cause) => new LLMError({ cause }),
+          catch: (cause) => {
+            return new LLMError({
+              cause,
+              message: cause instanceof Error ? cause.message : String(cause),
+            });
+          },
           try: () => {
             return scoreEvalLLM(evalRow.input, output, evalRow.expected ?? undefined);
           },

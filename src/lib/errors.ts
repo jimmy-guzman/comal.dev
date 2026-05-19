@@ -7,6 +7,7 @@ export class DatabaseError extends Data.TaggedError("DatabaseError")<{
 
 export class LLMError extends Data.TaggedError("LLMError")<{
   cause: unknown;
+  message: string;
 }> {}
 
 export class MessageConversionError extends Data.TaggedError("MessageConversionError")<{
