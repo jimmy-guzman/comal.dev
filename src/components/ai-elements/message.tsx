@@ -5,6 +5,7 @@ import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
 import type { UIMessage } from "ai";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import Link from "next/link";
 import type { ComponentProps, HTMLAttributes, ReactElement, ReactNode } from "react";
 import {
   createContext,
@@ -284,11 +285,6 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 const streamdownPlugins = { cjk, math, mermaid };
 
-const streamdownLinkSafety = {
-  enabled: true,
-  renderModal: (props) => <LinkSafetyModal {...props} />,
-} satisfies ComponentProps<typeof Streamdown>["linkSafety"];
-
 const LANGUAGE_PATTERN = /language-([^\s]+)/;
 
 const FALLBACK_LANGUAGE = "text" as BundledLanguage;
@@ -344,7 +340,74 @@ const MarkdownCodeBlock = ({ className, children }: MarkdownCodeProps) => {
   );
 };
 
+const INCOMPLETE_LINK_HREF = "streamdown:incomplete-link";
+
+type MarkdownAnchorProps = ComponentProps<"a"> & { node?: unknown };
+
+const isInternalHref = (href: string) => href.startsWith("/") && !href.startsWith("//");
+
+const toInternalUrl = (href: string) => {
+  const url = new URL(href, "http://localhost");
+
+  return { hash: url.hash, pathname: url.pathname, search: url.search };
+};
+
+const ExternalLink = ({ children, href }: { children: ReactNode; href: string }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        className="text-primary appearance-none text-left font-medium wrap-anywhere underline"
+        onClick={() => {
+          setIsModalOpen(true);
+        }}
+        type="button"
+      >
+        {children}
+      </button>
+      <LinkSafetyModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+        }}
+        onConfirm={() => {
+          window.open(href, "_blank", "noreferrer");
+        }}
+        url={href}
+      />
+    </>
+  );
+};
+
+const MarkdownAnchor = ({
+  children,
+  className,
+  href,
+  node: _node,
+  ...props
+}: MarkdownAnchorProps) => {
+  if (!href || href === INCOMPLETE_LINK_HREF) {
+    return <span className={className}>{children}</span>;
+  }
+
+  if (isInternalHref(href)) {
+    return (
+      <Link
+        className={cn("wrap-anywhere font-medium text-primary underline", className)}
+        href={toInternalUrl(href)}
+        {...props}
+      >
+        {children}
+      </Link>
+    );
+  }
+
+  return <ExternalLink href={href}>{children}</ExternalLink>;
+};
+
 const streamdownComponents = {
+  a: MarkdownAnchor,
   code: MarkdownCodeBlock,
   inlineCode: InlineCode,
 } satisfies ComponentProps<typeof Streamdown>["components"];
@@ -357,7 +420,6 @@ export const MessageResponse = memo(
       className={cn("size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0", className)}
       components={streamdownComponents}
       controls={streamdownControls}
-      linkSafety={streamdownLinkSafety}
       plugins={streamdownPlugins}
       {...props}
     />
