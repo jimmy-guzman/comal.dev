@@ -18,8 +18,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -97,123 +98,131 @@ const SaveAsEvalForm = ({ agentId, defaultExpected, defaultInput, onSaved }: For
         void form.handleSubmit();
       }}
     >
-      <form.Field name="name">
-        {(field) => {
-          const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+      <ScrollArea className="max-h-[60vh]">
+        <FieldGroup className="pr-3">
+          <form.Field name="name">
+            {(field) => {
+              const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-          return (
-            <Field data-invalid={isInvalid || undefined}>
-              <FieldLabel htmlFor={field.name}>name</FieldLabel>
-              <Input
-                aria-invalid={isInvalid || undefined}
-                id={field.name}
-                maxLength={200}
-                name={field.name}
-                onBlur={field.handleBlur}
-                onChange={(event) => {
-                  field.handleChange(event.target.value);
-                }}
-                placeholder="greets the user"
-                value={field.state.value}
-              />
-              {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
-            </Field>
-          );
-        }}
-      </form.Field>
+              return (
+                <Field data-invalid={isInvalid || undefined}>
+                  <FieldLabel htmlFor={field.name}>name</FieldLabel>
+                  <Input
+                    aria-invalid={isInvalid || undefined}
+                    id={field.name}
+                    maxLength={200}
+                    name={field.name}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => {
+                      field.handleChange(event.target.value);
+                    }}
+                    placeholder="greets the user"
+                    value={field.state.value}
+                  />
+                  {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+                </Field>
+              );
+            }}
+          </form.Field>
 
-      <form.Field name="input">
-        {(field) => {
-          const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+          <form.Field name="input">
+            {(field) => {
+              const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-          return (
-            <Field data-invalid={isInvalid || undefined}>
-              <FieldLabel htmlFor={field.name}>input</FieldLabel>
-              <FieldDescription>the user message sent to the agent.</FieldDescription>
-              <Textarea
-                aria-invalid={isInvalid || undefined}
-                className="resize-none font-mono text-xs"
-                id={field.name}
-                maxLength={10_000}
-                name={field.name}
-                onBlur={field.handleBlur}
-                onChange={(event) => {
-                  field.handleChange(event.target.value);
-                }}
-                rows={4}
-                value={field.state.value}
-              />
-              {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
-            </Field>
-          );
-        }}
-      </form.Field>
+              return (
+                <Field data-invalid={isInvalid || undefined}>
+                  <FieldLabel htmlFor={field.name}>input</FieldLabel>
+                  <FieldDescription>the user message sent to the agent.</FieldDescription>
+                  <Textarea
+                    aria-invalid={isInvalid || undefined}
+                    className="resize-none font-mono text-xs"
+                    id={field.name}
+                    maxLength={10_000}
+                    name={field.name}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => {
+                      field.handleChange(event.target.value);
+                    }}
+                    rows={4}
+                    value={field.state.value}
+                  />
+                  {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+                </Field>
+              );
+            }}
+          </form.Field>
 
-      <form.Subscribe selector={(state) => state.values.scorer}>
-        {(scorer) => {
-          if (scorer === "llm-judge") return null;
+          <form.Subscribe selector={(state) => state.values.scorer}>
+            {(scorer) => {
+              if (scorer === "llm-judge") return null;
 
-          return (
-            <form.Field name="expected">
-              {(field) => {
-                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+              return (
+                <form.Field name="expected">
+                  {(field) => {
+                    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-                return (
-                  <Field data-invalid={isInvalid || undefined}>
-                    <FieldLabel htmlFor={field.name}>expected</FieldLabel>
-                    <FieldDescription>what the response should contain or match.</FieldDescription>
-                    <Textarea
-                      aria-invalid={isInvalid || undefined}
-                      className="resize-none font-mono text-xs"
-                      id={field.name}
-                      maxLength={10_000}
-                      name={field.name}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => {
-                        field.handleChange(event.target.value);
-                      }}
-                      rows={4}
-                      value={field.state.value}
-                    />
-                    {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
-                  </Field>
-                );
-              }}
-            </form.Field>
-          );
-        }}
-      </form.Subscribe>
-
-      <form.Field name="scorer">
-        {(field) => {
-          return (
-            <Field>
-              <FieldLabel htmlFor={field.name}>scorer</FieldLabel>
-              <Select
-                onValueChange={(value) => {
-                  if (isScorer(value)) field.handleChange(value);
-                }}
-                value={field.state.value}
-              >
-                <SelectTrigger id={field.name}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SCORER_OPTIONS.map((option) => {
                     return (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
+                      <Field data-invalid={isInvalid || undefined}>
+                        <FieldLabel htmlFor={field.name}>expected</FieldLabel>
+                        <FieldDescription>
+                          what the response should contain or match.
+                        </FieldDescription>
+                        <Textarea
+                          aria-invalid={isInvalid || undefined}
+                          className="resize-none font-mono text-xs"
+                          id={field.name}
+                          maxLength={10_000}
+                          name={field.name}
+                          onBlur={field.handleBlur}
+                          onChange={(event) => {
+                            field.handleChange(event.target.value);
+                          }}
+                          rows={4}
+                          value={field.state.value}
+                        />
+                        {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
+                      </Field>
                     );
-                  })}
-                </SelectContent>
-              </Select>
-            </Field>
-          );
-        }}
-      </form.Field>
+                  }}
+                </form.Field>
+              );
+            }}
+          </form.Subscribe>
 
-      {result.serverError ? <p className="text-destructive text-sm">{result.serverError}</p> : null}
+          <form.Field name="scorer">
+            {(field) => {
+              return (
+                <Field>
+                  <FieldLabel htmlFor={field.name}>scorer</FieldLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      if (isScorer(value)) field.handleChange(value);
+                    }}
+                    value={field.state.value}
+                  >
+                    <SelectTrigger id={field.name}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SCORER_OPTIONS.map((option) => {
+                        return (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              );
+            }}
+          </form.Field>
+
+          {result.serverError ? (
+            <p className="text-destructive text-sm">{result.serverError}</p>
+          ) : null}
+        </FieldGroup>
+      </ScrollArea>
 
       <DialogFooter>
         <DialogClose asChild>
