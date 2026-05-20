@@ -40,6 +40,7 @@ export type NoConfigShape = (typeof noConfigSchema)["shape"];
 export const approvalConfigSchema = z.object({
   needsApproval: z
     .boolean()
+    .default(false)
     .describe("Ask before each call. Recommended for tools that fetch external content."),
 });
 
