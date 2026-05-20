@@ -1,4 +1,4 @@
-import { generateText, tool } from "ai";
+import { generateText, stepCountIs, tool } from "ai";
 import { Effect, Exit } from "effect";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -17,7 +17,7 @@ const MAX_OUTPUT_TOKENS = 2048;
 export const buildEvalsRun = (_config: unknown, context: ToolContext) => {
   return tool({
     description:
-      "Run a single eval against the agent's current configuration. Records the run and returns the score, output, and (for multi-trial string scorers) the aggregate.",
+      "Run a single eval against the agent's current configuration. Returns the score, the agent's output, and (for llm-judge) the rationale; multi-trial string scorers also return an aggregate. This is the complete record of the run. Eval runs are not saved as traces, so debug failures from the returned output and rationale.",
     execute: async ({ evalId }) => {
       const program = Effect.gen(function* () {
         const evalRow = yield* getEvalWithOwnership(evalId, context.userId);
@@ -36,6 +36,7 @@ export const buildEvalsRun = (_config: unknown, context: ToolContext) => {
                 maxOutputTokens: MAX_OUTPUT_TOKENS,
                 messages: [{ content: evalRow.input, role: "user" }],
                 model: openrouter(agentConfig.defaultModelId),
+                stopWhen: stepCountIs(8),
                 system: agentConfig.systemPrompt,
                 tools: agentConfig.tools,
               });

@@ -11,7 +11,7 @@ import type { ToolContext } from "../types";
 export const buildTracesListForAgent = (_config: unknown, context: ToolContext) => {
   return tool({
     description:
-      "List recent conversations for an agent with aggregated start/end time, event count, and total cost. Use traces-get for the full per-step timeline of one conversation.",
+      "List recent chat conversations for an agent with aggregated start/end time, event count, and total cost. Eval runs are not included. Use traces-get for the full per-step timeline of one conversation.",
     execute: async ({ agentId, cursor, limit }) => {
       const ownership = await appRuntime.runPromiseExit(
         assertAgentOwnership(agentId, context.userId),

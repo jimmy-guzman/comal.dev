@@ -11,7 +11,7 @@ import type { ToolContext } from "../types";
 export const buildTracesGet = (_config: unknown, context: ToolContext) => {
   return tool({
     description:
-      "Get the projected execution trace for a conversation: ordered, timed steps with tool calls, inputs/outputs, errors, and token usage. Sub-agent steps are nested under their parent tool call.",
+      "Get the projected execution trace for a chat conversation: ordered, timed steps with tool calls, inputs/outputs, errors, and token usage. Sub-agent steps are nested under their parent tool call. Eval runs are not chat conversations and have no trace here.",
     execute: async ({ conversationId }) => {
       const exit = await appRuntime.runPromiseExit(
         getConversationTrace(context.userId, conversationId),
