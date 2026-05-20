@@ -38,17 +38,22 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {mostRecent === undefined ? (
-        <form action={provisionSystemAgentAction}>
-          <Button size="lg" type="submit">
-            get started
+      <div className="flex flex-col items-center gap-3">
+        {mostRecent === undefined ? (
+          <form action={provisionSystemAgentAction}>
+            <Button size="lg" type="submit">
+              get started
+            </Button>
+          </form>
+        ) : (
+          <Button asChild size="lg">
+            <Link href={`/chats/new?agent=${mostRecent.id}`}>new chat</Link>
           </Button>
-        </form>
-      ) : (
-        <Button asChild size="lg">
-          <Link href={`/chats/new?agent=${mostRecent.id}`}>new chat</Link>
-        </Button>
-      )}
+        )}
+        <p className="text-muted-foreground text-xs">
+          Alpha build, expect breaking changes and possible data loss.
+        </p>
+      </div>
     </div>
   );
 }

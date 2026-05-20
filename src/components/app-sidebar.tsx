@@ -9,6 +9,7 @@ import { useLayoutEffect } from "react";
 
 import { DeleteConversationButton } from "@/components/delete-conversation-button";
 import { NewChatButton } from "@/components/new-chat-button";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -135,6 +136,7 @@ export const AppSidebar = ({ agents, isSignedIn }: Props) => {
           <Link className="flex items-center gap-2" href="/">
             <Image alt="comal.dev mascot" height={32} src="/mascot.svg" width={32} />
             <span className="text-sm font-semibold">comal.dev</span>
+            <Badge variant="outline">alpha</Badge>
           </Link>
         </div>
       </SidebarHeader>
