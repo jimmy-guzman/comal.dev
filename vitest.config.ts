@@ -19,6 +19,17 @@ export default defineConfig({
           },
         },
         test: {
+          env: {
+            BETTER_AUTH_SECRET: "test-secret",
+            DATABASE_URL: "postgres://test:test@localhost:5432/test",
+            GITHUB_CLIENT_ID: "test",
+            GITHUB_CLIENT_SECRET: "test",
+            OPENROUTER_API_KEY: "test",
+            TAVILY_API_KEY: "test",
+            TMDB_READ_ACCESS_TOKEN: "test",
+            UPSTASH_REDIS_REST_TOKEN: "test",
+            UPSTASH_REDIS_REST_URL: "https://test.upstash.io",
+          },
           environment: "node",
           include: ["src/**/*.spec.ts"],
           name: "node",
