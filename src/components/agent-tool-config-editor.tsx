@@ -162,6 +162,11 @@ export const AgentToolConfigEditor = ({ idPrefix, onChange, schema, value }: Pro
           return null;
         }
 
+        const isDefault = fieldSchema instanceof z.ZodDefault;
+        const resolvedSchema = isDefault ? (fieldSchema.def.innerType as z.ZodType) : fieldSchema;
+        const resolvedValue =
+          value[key] === undefined && isDefault ? fieldSchema.def.defaultValue : value[key];
+
         return (
           <FieldRenderer
             description={fieldSchema.description}
@@ -171,8 +176,8 @@ export const AgentToolConfigEditor = ({ idPrefix, onChange, schema, value }: Pro
             onChange={(next) => {
               onChange({ ...value, [key]: next });
             }}
-            schema={fieldSchema}
-            value={value[key]}
+            schema={resolvedSchema}
+            value={resolvedValue}
           />
         );
       })}
