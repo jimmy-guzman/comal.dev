@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { provisionSystemAgentAction } from "@/actions/provision-system-agent";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { appRuntime } from "@/db/service";
 import { listAgentsForUser } from "@/lib/agents";
@@ -22,7 +23,10 @@ export default async function HomePage() {
       <div className="flex flex-col items-center gap-4 text-center">
         <Image alt="comal.dev mascot" height={80} priority src="/mascot.svg" width={80} />
         <div className="flex flex-col gap-2">
-          <h1 className="text-4xl font-semibold tracking-tight">comal.dev</h1>
+          <div className="flex items-center justify-center gap-2">
+            <h1 className="text-4xl font-semibold tracking-tight">comal.dev</h1>
+            <Badge variant="outline">alpha</Badge>
+          </div>
           <p className="text-muted-foreground max-w-sm text-sm">
             A playground to compose your own AI agents from a shared toolbox, built by{" "}
             <a
@@ -38,22 +42,17 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-3">
-        {mostRecent === undefined ? (
-          <form action={provisionSystemAgentAction}>
-            <Button size="lg" type="submit">
-              get started
-            </Button>
-          </form>
-        ) : (
-          <Button asChild size="lg">
-            <Link href={`/chats/new?agent=${mostRecent.id}`}>new chat</Link>
+      {mostRecent === undefined ? (
+        <form action={provisionSystemAgentAction}>
+          <Button size="lg" type="submit">
+            get started
           </Button>
-        )}
-        <p className="text-muted-foreground text-xs">
-          Alpha build, expect breaking changes and possible data loss.
-        </p>
-      </div>
+        </form>
+      ) : (
+        <Button asChild size="lg">
+          <Link href={`/chats/new?agent=${mostRecent.id}`}>new chat</Link>
+        </Button>
+      )}
     </div>
   );
 }
