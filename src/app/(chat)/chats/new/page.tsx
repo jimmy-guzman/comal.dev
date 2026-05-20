@@ -57,7 +57,9 @@ export default async function NewChatPage({ searchParams }: Props) {
     <ChatView
       agentId={resolvedAgent.id}
       agentName={resolvedAgent.name}
-      agents={agents.map((a) => ({ id: a.id, name: a.name }))}
+      agents={agents.map((a) => {
+        return { id: a.id, isSystem: a.isSystem, name: a.name };
+      })}
       conversationId={null}
       initialMessages={[]}
       modelId={resolvedAgent.defaultModelId}

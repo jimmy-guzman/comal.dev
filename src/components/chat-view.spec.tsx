@@ -85,7 +85,7 @@ describe("ChatView", () => {
         <ChatView
           agentId="agent-1"
           agentName="Agent One"
-          agents={[{ id: "agent-1", name: "Agent One" }]}
+          agents={[{ id: "agent-1", isSystem: false, name: "Agent One" }]}
           conversationId={null}
           initialMessages={[]}
           modelId="gpt-test"
