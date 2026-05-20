@@ -130,7 +130,7 @@ export const buildSubagentTool = ({
 
       const lastMessages = [...messageMap.values()];
 
-      return {
+      yield {
         runId,
         status: "done" as const,
         text: lastAssistantText(lastMessages),
