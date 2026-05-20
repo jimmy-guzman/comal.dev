@@ -37,6 +37,7 @@ import { ChatAgentPicker } from "@/components/chat-agent-picker";
 import { ChatModelPicker } from "@/components/chat-model-picker";
 import { DeleteConversationButton } from "@/components/delete-conversation-button";
 import { ErrorPart } from "@/components/error-part";
+import { MessageActionsMenu } from "@/components/message-actions";
 import { MessageParts } from "@/components/message-parts";
 import { Button } from "@/components/ui/button";
 import { useConversations } from "@/hooks/use-conversations";
@@ -116,10 +117,17 @@ const lastMessageHasErrorPart = (messages: UIMessage[]): boolean => {
   return last.parts.some((part) => part.type === "data-error");
 };
 
+const getMessageText = (message: UIMessage) => {
+  return message.parts
+    .filter((part) => part.type === "text")
+    .map((part) => part.text)
+    .join("");
+};
+
 interface Props {
   agentId: string;
   agentName: string;
-  agents: { id: string; name: string }[];
+  agents: { id: string; isSystem: boolean; name: string }[];
   conversationId: null | string;
   initialMessages: AppUIMessage[];
   modelId: string;
@@ -320,6 +328,7 @@ export const ChatView = ({
   const shouldShowTrailingThinkingCue =
     (status === "submitted" || isStreaming) && messages.at(-1)?.role !== "assistant";
   const canRetry = status === "ready" || status === "error";
+  const currentAgentIsSystem = agents.find((a) => a.id === currentAgentId)?.isSystem ?? false;
   const liveErrorInfo =
     error !== undefined && !lastMessageHasErrorPart(messages) ? errorToInfo(error) : null;
 
@@ -334,18 +343,39 @@ export const ChatView = ({
             />
           ) : (
             messages.map((message, index) => {
+              const isLastMessage = index === messages.length - 1;
+              const isActive = isLastMessage && (status === "submitted" || status === "streaming");
+              const assistantText = message.role === "assistant" ? getMessageText(message) : "";
+              const precedingUser =
+                message.role === "assistant"
+                  ? messages.slice(0, index).findLast((m) => m.role === "user")
+                  : undefined;
+              const userText = precedingUser ? getMessageText(precedingUser) : "";
+              const showActions =
+                !isActive &&
+                !currentAgentIsSystem &&
+                assistantText.trim() !== "" &&
+                userText.trim() !== "";
+
               return (
                 <Message from={message.role} key={message.id}>
                   <MessageContent>
                     <MessageParts
                       addToolApprovalResponse={addToolApprovalResponse}
                       canRetry={canRetry}
-                      isLastMessage={index === messages.length - 1}
+                      isLastMessage={isLastMessage}
                       message={message}
                       onRetry={handleRetry}
                       status={status}
                       subagentTraces={subagentTraces}
                     />
+                    {showActions ? (
+                      <MessageActionsMenu
+                        agentId={currentAgentId}
+                        assistantText={assistantText}
+                        userText={userText}
+                      />
+                    ) : null}
                   </MessageContent>
                 </Message>
               );
