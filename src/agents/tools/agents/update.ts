@@ -3,18 +3,10 @@ import { Effect, Exit } from "effect";
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
-import type { Scorer } from "@/lib/eval-input-schema";
-
 import { MODEL_IDS } from "@/config/models";
 import { appRuntime } from "@/db/service";
 import { detectCycle } from "@/lib/agent-graph";
-import {
-  assertAgentOwnership,
-  getAgentForUser,
-  listOwnedAgentIds,
-  listOwnerSubAgentEdges,
-  updateAgent,
-} from "@/lib/agents";
+import { listOwnedAgentIds, listOwnerSubAgentEdges, updateAgent } from "@/lib/agents";
 
 import type { ToolContext } from "../types";
 
@@ -59,24 +51,6 @@ export const buildAgentsUpdate = (_config: unknown, context: ToolContext) => {
       systemPrompt,
       tools,
     }) => {
-      const ownershipExit = await appRuntime.runPromiseExit(
-        assertAgentOwnership(agentId, context.userId),
-      );
-
-      if (Exit.isFailure(ownershipExit)) {
-        return { error: "Agent not found or not owned by you." };
-      }
-
-      const agentExit = await appRuntime.runPromiseExit(getAgentForUser(agentId, context.userId));
-
-      if (Exit.isFailure(agentExit)) {
-        return { error: "Agent not found." };
-      }
-
-      if (agentExit.value.isSystem) {
-        return { error: "System agents cannot be updated." };
-      }
-
       if (!(MODEL_IDS as readonly string[]).includes(defaultModelId)) {
         return {
           error: `Invalid model ID "${defaultModelId}". Use agents-list-models to see options.`,
@@ -144,24 +118,29 @@ export const buildAgentsUpdate = (_config: unknown, context: ToolContext) => {
       }
 
       const exit = await appRuntime.runPromiseExit(
-        updateAgent(agentId, context.userId, {
-          defaultModelId,
-          description,
-          evals: agentExit.value.evals.map((e) => {
-            return {
-              ...e,
-              expected: e.expected ?? undefined,
-              scorer: e.scorer as Scorer,
-            };
-          }),
-          name,
-          subAgents: resolvedSubAgents,
-          systemPrompt,
-          tools: resolvedTools,
+        updateAgent(agentId, context.userId, (current) => {
+          return {
+            ...current,
+            defaultModelId,
+            description,
+            name,
+            subAgents: resolvedSubAgents,
+            systemPrompt,
+            tools: resolvedTools,
+          };
         }),
       );
 
       if (Exit.isFailure(exit)) {
+        const { cause } = exit;
+
+        if (
+          cause._tag === "Fail" &&
+          (cause.error._tag === "NotFoundError" || cause.error._tag === "ForbiddenError")
+        ) {
+          return { error: "Agent not found, not owned by you, or a system agent." };
+        }
+
         return { error: "Failed to update agent." };
       }
 

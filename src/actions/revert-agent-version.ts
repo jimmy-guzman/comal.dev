@@ -9,8 +9,6 @@ import type { Scorer } from "@/lib/eval-input-schema";
 import { appRuntime } from "@/db/service";
 import { detectCycle } from "@/lib/agent-graph";
 import {
-  assertAgentOwnership,
-  getAgentForUser,
   getAgentVersion,
   listOwnedAgentIds,
   listOwnerSubAgentEdges,
@@ -29,34 +27,9 @@ export const revertAgentVersionAction = authClient
   .action(async ({ ctx, parsedInput }) => {
     const { agentId, versionId } = parsedInput;
 
-    const ownership = await appRuntime.runPromiseExit(
-      assertAgentOwnership(agentId, ctx.auth.user.id),
+    const version = await appRuntime.runPromise(
+      getAgentVersion(versionId, agentId, ctx.auth.user.id),
     );
-
-    if (Exit.isFailure(ownership)) {
-      const { cause } = ownership;
-
-      if (cause._tag === "Fail") {
-        if (cause.error._tag === "ForbiddenError") throw new ForbiddenError();
-
-        if (cause.error._tag === "NotFoundError") {
-          throw new NotFoundError({ resource: "agent" });
-        }
-      }
-
-      throw new Error("Failed to revert agent.");
-    }
-
-    const [version, agentRow] = await appRuntime.runPromise(
-      Effect.all([
-        getAgentVersion(versionId, agentId, ctx.auth.user.id),
-        getAgentForUser(agentId, ctx.auth.user.id),
-      ]),
-    );
-
-    if (agentRow.isSystem) {
-      throw new ForbiddenError();
-    }
 
     if (version.subAgents.length > 0) {
       const childIds = version.subAgents.map((s) => s.childAgentId);
@@ -97,31 +70,40 @@ export const revertAgentVersionAction = authClient
     }
 
     const exit = await appRuntime.runPromiseExit(
-      updateAgent(agentId, ctx.auth.user.id, {
-        defaultModelId: version.modelId,
-        description: agentRow.description ?? undefined,
-        evals: version.evals.map((e) => {
-          return {
-            ...e,
-            expected: e.expected ?? undefined,
-            scorer: e.scorer as Scorer,
-            trials: e.trials ?? 1,
-          };
-        }),
-        name: agentRow.name,
-        subAgents: version.subAgents.map((s) => {
-          return {
-            alias: s.alias,
-            childAgentId: s.childAgentId,
-            descriptionOverride: s.descriptionOverride ?? undefined,
-          };
-        }),
-        systemPrompt: version.systemPrompt,
-        tools: version.tools,
+      updateAgent(agentId, ctx.auth.user.id, (current) => {
+        return {
+          ...current,
+          defaultModelId: version.modelId,
+          evals: version.evals.map((e) => {
+            return {
+              ...e,
+              expected: e.expected ?? undefined,
+              scorer: e.scorer as Scorer,
+              trials: e.trials ?? 1,
+            };
+          }),
+          subAgents: version.subAgents.map((s) => {
+            return {
+              alias: s.alias,
+              childAgentId: s.childAgentId,
+              descriptionOverride: s.descriptionOverride ?? undefined,
+            };
+          }),
+          systemPrompt: version.systemPrompt,
+          tools: version.tools,
+        };
       }),
     );
 
     if (Exit.isFailure(exit)) {
+      const { cause } = exit;
+
+      if (cause._tag === "Fail") {
+        if (cause.error._tag === "ForbiddenError") throw new ForbiddenError();
+
+        if (cause.error._tag === "NotFoundError") throw new NotFoundError({ resource: "agent" });
+      }
+
       throw new Error("Failed to revert agent.");
     }
 

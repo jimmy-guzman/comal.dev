@@ -8,8 +8,6 @@ import type { Scorer } from "@/lib/eval-input-schema";
 import { appRuntime } from "@/db/service";
 import { detectCycle } from "@/lib/agent-graph";
 import {
-  assertAgentOwnership,
-  getAgentForUser,
   getAgentVersion,
   listOwnedAgentIds,
   listOwnerSubAgentEdges,
@@ -23,30 +21,15 @@ export const buildAgentsRevertToVersion = (_config: unknown, context: ToolContex
     description:
       "Revert an agent's configuration to a previous version snapshot. Creates a new version reflecting the reverted state. Confirm with the user before reverting.",
     execute: async ({ agentId, versionId }) => {
-      const ownership = await appRuntime.runPromiseExit(
-        assertAgentOwnership(agentId, context.userId),
+      const versionExit = await appRuntime.runPromiseExit(
+        getAgentVersion(versionId, agentId, context.userId),
       );
 
-      if (Exit.isFailure(ownership)) {
-        return { error: "Agent not found or not owned by you." };
-      }
-
-      const loadExit = await appRuntime.runPromiseExit(
-        Effect.all([
-          getAgentVersion(versionId, agentId, context.userId),
-          getAgentForUser(agentId, context.userId),
-        ]),
-      );
-
-      if (Exit.isFailure(loadExit)) {
+      if (Exit.isFailure(versionExit)) {
         return { error: "Version not found for this agent." };
       }
 
-      const [version, agentRow] = loadExit.value;
-
-      if (agentRow.isSystem) {
-        return { error: "System agents cannot be reverted." };
-      }
+      const version = versionExit.value;
 
       if (version.subAgents.length > 0) {
         const childIds = version.subAgents.map((s) => s.childAgentId);
@@ -89,31 +72,41 @@ export const buildAgentsRevertToVersion = (_config: unknown, context: ToolContex
       }
 
       const exit = await appRuntime.runPromiseExit(
-        updateAgent(agentId, context.userId, {
-          defaultModelId: version.modelId,
-          description: agentRow.description ?? undefined,
-          evals: version.evals.map((e) => {
-            return {
-              ...e,
-              expected: e.expected ?? undefined,
-              scorer: e.scorer as Scorer,
-              trials: e.trials ?? 1,
-            };
-          }),
-          name: agentRow.name,
-          subAgents: version.subAgents.map((s) => {
-            return {
-              alias: s.alias,
-              childAgentId: s.childAgentId,
-              descriptionOverride: s.descriptionOverride ?? undefined,
-            };
-          }),
-          systemPrompt: version.systemPrompt,
-          tools: version.tools,
+        updateAgent(agentId, context.userId, (current) => {
+          return {
+            ...current,
+            defaultModelId: version.modelId,
+            evals: version.evals.map((e) => {
+              return {
+                ...e,
+                expected: e.expected ?? undefined,
+                scorer: e.scorer as Scorer,
+                trials: e.trials ?? 1,
+              };
+            }),
+            subAgents: version.subAgents.map((s) => {
+              return {
+                alias: s.alias,
+                childAgentId: s.childAgentId,
+                descriptionOverride: s.descriptionOverride ?? undefined,
+              };
+            }),
+            systemPrompt: version.systemPrompt,
+            tools: version.tools,
+          };
         }),
       );
 
       if (Exit.isFailure(exit)) {
+        const { cause } = exit;
+
+        if (
+          cause._tag === "Fail" &&
+          (cause.error._tag === "NotFoundError" || cause.error._tag === "ForbiddenError")
+        ) {
+          return { error: "Agent not found, not owned by you, or a system agent." };
+        }
+
         return { error: "Failed to revert agent." };
       }
 

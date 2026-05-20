@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { Scorer } from "@/lib/eval-input-schema";
 
 import { appRuntime } from "@/db/service";
-import { getAgentForUser, updateAgent } from "@/lib/agents";
+import { updateAgent } from "@/lib/agents";
 import { evalEntrySchema, SCORER_OPTIONS } from "@/lib/eval-input-schema";
 import { getEvalWithOwnership } from "@/lib/evals";
 
@@ -38,14 +38,6 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
       const existing = existingExit.value;
       const { agentId } = existing;
 
-      const current = await appRuntime.runPromise(getAgentForUser(agentId, context.userId));
-
-      if (current.isSystem) return { error: "System agents cannot be edited." };
-
-      if (!current.evals.some((e) => e.id === evalId)) {
-        return { error: "Eval not found or not owned by you." };
-      }
-
       const parsed = evalEntrySchema.safeParse({
         expected: expected ?? existing.expected ?? undefined,
         id: evalId,
@@ -59,31 +51,29 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
         return { error: parsed.error.issues[0]?.message ?? "Invalid eval after update." };
       }
 
-      const nextEvals = current.evals.map((e) => {
-        if (e.id === evalId) return parsed.data;
-
-        return { ...e, expected: e.expected ?? undefined, scorer: e.scorer as Scorer };
-      });
+      const updatedEval = parsed.data;
 
       const exit = await appRuntime.runPromiseExit(
-        updateAgent(agentId, context.userId, {
-          defaultModelId: current.defaultModelId,
-          description: current.description ?? undefined,
-          evals: nextEvals,
-          name: current.name,
-          subAgents: current.subAgents.map((s) => {
-            return {
-              alias: s.alias,
-              childAgentId: s.childAgentId,
-              descriptionOverride: s.descriptionOverride ?? undefined,
-            };
-          }),
-          systemPrompt: current.systemPrompt,
-          tools: current.tools,
+        updateAgent(agentId, context.userId, (current) => {
+          return {
+            ...current,
+            evals: current.evals.map((e) => (e.id === evalId ? updatedEval : e)),
+          };
         }),
       );
 
-      if (Exit.isFailure(exit)) return { error: "Failed to update eval." };
+      if (Exit.isFailure(exit)) {
+        const { cause } = exit;
+
+        if (
+          cause._tag === "Fail" &&
+          (cause.error._tag === "NotFoundError" || cause.error._tag === "ForbiddenError")
+        ) {
+          return { error: "Agent not found, not owned by you, or a system agent." };
+        }
+
+        return { error: "Failed to update eval." };
+      }
 
       revalidateTag(`agents:${context.userId}`, "max");
       revalidateTag(`agent:${agentId}`, "max");
