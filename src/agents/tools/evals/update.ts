@@ -51,13 +51,32 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
         return { error: parsed.error.issues[0]?.message ?? "Invalid eval after update." };
       }
 
-      const updatedEval = parsed.data;
+      const overrides = {
+        ...(expected === undefined ? {} : { expected }),
+        ...(input === undefined ? {} : { input }),
+        ...(name === undefined ? {} : { name }),
+        ...(scorer === undefined ? {} : { scorer }),
+        ...(trials === undefined ? {} : { trials }),
+      };
+
+      const patchOutcome = { evalMissing: false };
 
       const exit = await appRuntime.runPromiseExit(
         updateAgent(agentId, context.userId, (current) => {
+          const target = current.evals.find((e) => e.id === evalId);
+
+          if (!target) {
+            patchOutcome.evalMissing = true;
+
+            return current;
+          }
+
+          const merged = { ...target, ...overrides };
+          const nextEval = merged.scorer === "llm-judge" ? { ...merged, trials: 1 } : merged;
+
           return {
             ...current,
-            evals: current.evals.map((e) => (e.id === evalId ? updatedEval : e)),
+            evals: current.evals.map((e) => (e.id === evalId ? nextEval : e)),
           };
         }),
       );
@@ -73,6 +92,10 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
         }
 
         return { error: "Failed to update eval." };
+      }
+
+      if (patchOutcome.evalMissing) {
+        return { error: "Eval not found or not owned by you." };
       }
 
       revalidateTag(`agents:${context.userId}`, "max");

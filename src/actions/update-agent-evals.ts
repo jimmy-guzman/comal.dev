@@ -1,6 +1,6 @@
 "use server";
 
-import { Cause, Exit } from "effect";
+import { Exit } from "effect";
 import { updateTag } from "next/cache";
 import { z } from "zod";
 
@@ -35,7 +35,7 @@ export const updateAgentEvalsAction = authClient
         if (cause.error._tag === "NotFoundError") throw new NotFoundError({ resource: "agent" });
       }
 
-      throw new Error(`Failed to update agent: ${Cause.pretty(cause)}`);
+      throw new Error("Failed to update agent.");
     }
 
     updateTag(`agents:${ctx.auth.user.id}`);
