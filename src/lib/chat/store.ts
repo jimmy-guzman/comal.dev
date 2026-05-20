@@ -172,6 +172,25 @@ export interface TraceListResult {
   traces: TraceSummary[];
 }
 
+const encodeTraceCursor = (endedAt: Date, conversationId: string) => {
+  return `${endedAt.toISOString()}|${conversationId}`;
+};
+
+const decodeTraceCursor = (
+  cursor: string,
+): undefined | { conversationId: string; endedAt: Date } => {
+  const separator = cursor.indexOf("|");
+
+  if (separator <= 0) return undefined;
+
+  const endedAt = new Date(cursor.slice(0, separator));
+  const conversationId = cursor.slice(separator + 1);
+
+  if (conversationId.length === 0 || Number.isNaN(endedAt.getTime())) return undefined;
+
+  return { conversationId, endedAt };
+};
+
 export const listTracesForAgent = (
   agentId: string,
   userId: string,
@@ -180,15 +199,14 @@ export const listTracesForAgent = (
   return Effect.gen(function* () {
     const db = yield* Database;
     const limit = Math.min(Math.max(options.limit ?? 20, 1), 100);
-    const cursorDate = options.cursor ? new Date(options.cursor) : undefined;
+    const cursor = options.cursor ? decodeTraceCursor(options.cursor) : undefined;
+    const lastEventAt = sql<Date>`max(coalesce(${chatEvent.endedAt}, ${chatEvent.createdAt}))`;
 
     const rows = yield* runQuery(() => {
       return db
         .select({
           conversationId: chatEvent.conversationId,
-          endedAt: sql<Date>`max(coalesce(${chatEvent.endedAt}, ${chatEvent.createdAt}))`.as(
-            "ended_at",
-          ),
+          endedAt: lastEventAt.as("ended_at"),
           eventCount: sql<number>`count(*)::int`.as("event_count"),
           startedAt: sql<Date>`min(${chatEvent.createdAt})`.as("started_at"),
           totalCostMicrodollars:
@@ -201,11 +219,11 @@ export const listTracesForAgent = (
         .where(and(eq(conversation.agentId, agentId), eq(conversation.userId, userId)))
         .groupBy(chatEvent.conversationId)
         .having(
-          cursorDate
-            ? sql`max(coalesce(${chatEvent.endedAt}, ${chatEvent.createdAt})) < ${cursorDate}`
+          cursor
+            ? sql`(${lastEventAt} < ${cursor.endedAt}) or (${lastEventAt} = ${cursor.endedAt} and ${chatEvent.conversationId} < ${cursor.conversationId})`
             : undefined,
         )
-        .orderBy(sql`max(coalesce(${chatEvent.endedAt}, ${chatEvent.createdAt})) desc`)
+        .orderBy(sql`${lastEventAt} desc, ${chatEvent.conversationId} desc`)
         .limit(limit + 1);
     });
 
@@ -214,7 +232,9 @@ export const listTracesForAgent = (
     const lastRow = traces.at(-1);
 
     return {
-      ...(hasMore && lastRow ? { nextCursor: new Date(lastRow.endedAt).toISOString() } : {}),
+      ...(hasMore && lastRow
+        ? { nextCursor: encodeTraceCursor(new Date(lastRow.endedAt), lastRow.conversationId) }
+        : {}),
       traces,
     };
   });

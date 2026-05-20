@@ -27,8 +27,22 @@ export const buildTracesListForAgent = (_config: unknown, context: ToolContext) 
       agentId: z.string().min(1).describe("The ID of the agent whose traces to list."),
       cursor: z
         .string()
+        .refine(
+          (value) => {
+            const separator = value.indexOf("|");
+
+            return (
+              separator > 0 &&
+              separator < value.length - 1 &&
+              !Number.isNaN(Date.parse(value.slice(0, separator)))
+            );
+          },
+          {
+            message: "cursor must be a value returned verbatim from a previous call's nextCursor.",
+          },
+        )
         .optional()
-        .describe("Pagination cursor from a previous call's nextCursor."),
+        .describe("Pagination cursor copied verbatim from a previous call's nextCursor."),
       limit: z
         .number()
         .int()
