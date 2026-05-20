@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -99,7 +99,7 @@ const SaveAsEvalForm = ({ agentId, defaultExpected, defaultInput, onSaved }: For
       }}
     >
       <ScrollArea className="max-h-[60vh]">
-        <div className="flex flex-col gap-4 pr-3">
+        <FieldGroup className="pr-3">
           <form.Field name="name">
             {(field) => {
               const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
@@ -221,7 +221,7 @@ const SaveAsEvalForm = ({ agentId, defaultExpected, defaultInput, onSaved }: For
           {result.serverError ? (
             <p className="text-destructive text-sm">{result.serverError}</p>
           ) : null}
-        </div>
+        </FieldGroup>
       </ScrollArea>
 
       <DialogFooter>
