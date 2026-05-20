@@ -3,8 +3,10 @@ import { z } from "zod";
 export const groups = {
   agents: { id: "agents", label: "Agents" },
   core: { id: "core", label: "Core" },
+  evals: { id: "evals", label: "Evals" },
   github: { id: "github", label: "GitHub" },
   tmdb: { id: "tmdb", label: "TMDB" },
+  traces: { id: "traces", label: "Traces" },
   web: { id: "web", label: "Web" },
 } as const satisfies Record<string, { id: string; label: string }>;
 
@@ -38,6 +40,7 @@ export type NoConfigShape = (typeof noConfigSchema)["shape"];
 export const approvalConfigSchema = z.object({
   needsApproval: z
     .boolean()
+    .default(false)
     .describe("Ask before each call. Recommended for tools that fetch external content."),
 });
 

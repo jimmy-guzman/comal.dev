@@ -4,12 +4,20 @@ import type { ToolContext } from "./types";
 
 import { buildAgentsCreate } from "./agents/create";
 import { buildAgentsDelete } from "./agents/delete";
+import { buildAgentsDiffVersions } from "./agents/diff-versions";
 import { buildAgentsGet } from "./agents/get";
 import { buildAgentsList } from "./agents/list";
 import { buildAgentsListModels } from "./agents/list-models";
 import { buildAgentsListTools } from "./agents/list-tools";
+import { buildAgentsListVersions } from "./agents/list-versions";
+import { buildAgentsRevertToVersion } from "./agents/revert-to-version";
 import { buildAgentsUpdate } from "./agents/update";
 import { buildCoreNow } from "./core/now";
+import { buildEvalsCreate } from "./evals/create";
+import { buildEvalsDelete } from "./evals/delete";
+import { buildEvalsList } from "./evals/list";
+import { buildEvalsRun } from "./evals/run";
+import { buildEvalsUpdate } from "./evals/update";
 import { buildGithubRead } from "./github/read";
 import { buildTmdbDiscoverMovie } from "./tmdb/discover-movie";
 import { buildTmdbDiscoverTv } from "./tmdb/discover-tv";
@@ -19,18 +27,28 @@ import { buildTmdbTrending } from "./tmdb/trending";
 import { buildTmdbTrendingMovies } from "./tmdb/trending-movies";
 import { buildTmdbTrendingTv } from "./tmdb/trending-tv";
 import { buildTmdbTvDetails } from "./tmdb/tv-details";
+import { buildTracesGet } from "./traces/get";
+import { buildTracesListForAgent } from "./traces/list-for-agent";
 import { buildWebFetch } from "./web/fetch";
 import { buildWebSearch } from "./web/search";
 
 const BUILDERS = {
   "agents-create": buildAgentsCreate,
   "agents-delete": buildAgentsDelete,
+  "agents-diff-versions": buildAgentsDiffVersions,
   "agents-get": buildAgentsGet,
   "agents-list": buildAgentsList,
   "agents-list-models": buildAgentsListModels,
   "agents-list-tools": buildAgentsListTools,
+  "agents-list-versions": buildAgentsListVersions,
+  "agents-revert-to-version": buildAgentsRevertToVersion,
   "agents-update": buildAgentsUpdate,
   "core-now": buildCoreNow,
+  "evals-create": buildEvalsCreate,
+  "evals-delete": buildEvalsDelete,
+  "evals-list": buildEvalsList,
+  "evals-run": buildEvalsRun,
+  "evals-update": buildEvalsUpdate,
   "github-read": buildGithubRead,
   "tmdb-discover-movie": buildTmdbDiscoverMovie,
   "tmdb-discover-tv": buildTmdbDiscoverTv,
@@ -40,6 +58,8 @@ const BUILDERS = {
   "tmdb-trending-movies": buildTmdbTrendingMovies,
   "tmdb-trending-tv": buildTmdbTrendingTv,
   "tmdb-tv-details": buildTmdbTvDetails,
+  "traces-get": buildTracesGet,
+  "traces-list-for-agent": buildTracesListForAgent,
   "web-fetch": buildWebFetch,
   "web-search": buildWebSearch,
 } satisfies Record<string, (config: unknown, context: ToolContext) => Tool>;

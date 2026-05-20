@@ -1,6 +1,6 @@
 "use server";
 
-import { generateText } from "ai";
+import { generateText, stepCountIs } from "ai";
 import { Cause, Effect, Exit } from "effect";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -35,6 +35,7 @@ export const runEvalAction = authClient
               maxOutputTokens: MAX_OUTPUT_TOKENS,
               messages: [{ content: evalRow.input, role: "user" }],
               model: openrouter(agentConfig.defaultModelId),
+              stopWhen: stepCountIs(8),
               system: agentConfig.systemPrompt,
               tools: agentConfig.tools,
             });

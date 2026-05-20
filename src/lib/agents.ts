@@ -295,9 +295,27 @@ export const updateAgent = (agentId: string, userId: string, input: AgentInput) 
               .where(and(eq(agentEval.agentId, agentId), notInArray(agentEval.id, keepEvalIds)))
           : tx.delete(agentEval).where(eq(agentEval.agentId, agentId)));
 
+        const existingRows = await tx
+          .select({ id: agentEval.id })
+          .from(agentEval)
+          .where(eq(agentEval.agentId, agentId));
+        const existingIds = new Set(existingRows.map((row) => row.id));
+
         for (const evalEntry of input.evals) {
-          await (evalEntry.id
-            ? tx
+          const existingId =
+            evalEntry.id !== undefined && existingIds.has(evalEntry.id) ? evalEntry.id : undefined;
+
+          await (existingId === undefined
+            ? tx.insert(agentEval).values({
+                agentId,
+                expected: evalEntry.expected ?? null,
+                id: evalEntry.id ?? nanoid(),
+                input: evalEntry.input,
+                name: evalEntry.name,
+                scorer: evalEntry.scorer,
+                trials: evalEntry.trials,
+              })
+            : tx
                 .update(agentEval)
                 .set({
                   expected: evalEntry.expected ?? null,
@@ -306,16 +324,7 @@ export const updateAgent = (agentId: string, userId: string, input: AgentInput) 
                   scorer: evalEntry.scorer,
                   trials: evalEntry.trials,
                 })
-                .where(and(eq(agentEval.id, evalEntry.id), eq(agentEval.agentId, agentId)))
-            : tx.insert(agentEval).values({
-                agentId,
-                expected: evalEntry.expected ?? null,
-                id: nanoid(),
-                input: evalEntry.input,
-                name: evalEntry.name,
-                scorer: evalEntry.scorer,
-                trials: evalEntry.trials,
-              }));
+                .where(and(eq(agentEval.id, existingId), eq(agentEval.agentId, agentId))));
         }
       });
     });
