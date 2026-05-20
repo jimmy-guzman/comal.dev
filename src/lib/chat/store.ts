@@ -1,4 +1,4 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { Effect } from "effect";
 
 import type { DatabaseError } from "@/lib/errors";
@@ -155,6 +155,67 @@ export const getConversationTrace = (
       id: conv.id,
       modelId: conv.modelId,
       title: conv.title,
+    };
+  });
+};
+
+interface TraceSummary {
+  conversationId: string;
+  endedAt: Date;
+  eventCount: number;
+  startedAt: Date;
+  totalCostMicrodollars: number;
+}
+
+export interface TraceListResult {
+  nextCursor?: string;
+  traces: TraceSummary[];
+}
+
+export const listTracesForAgent = (
+  agentId: string,
+  userId: string,
+  options: { cursor?: string; limit?: number } = {},
+): Effect.Effect<TraceListResult, DatabaseError, Database> => {
+  return Effect.gen(function* () {
+    const db = yield* Database;
+    const limit = Math.min(Math.max(options.limit ?? 20, 1), 100);
+    const cursorDate = options.cursor ? new Date(options.cursor) : undefined;
+
+    const rows = yield* runQuery(() => {
+      return db
+        .select({
+          conversationId: chatEvent.conversationId,
+          endedAt: sql<Date>`max(coalesce(${chatEvent.endedAt}, ${chatEvent.createdAt}))`.as(
+            "ended_at",
+          ),
+          eventCount: sql<number>`count(*)::int`.as("event_count"),
+          startedAt: sql<Date>`min(${chatEvent.createdAt})`.as("started_at"),
+          totalCostMicrodollars:
+            sql<number>`coalesce(sum(${chatEvent.costMicrodollars}), 0)::int`.as(
+              "total_cost_microdollars",
+            ),
+        })
+        .from(chatEvent)
+        .innerJoin(conversation, eq(conversation.id, chatEvent.conversationId))
+        .where(and(eq(conversation.agentId, agentId), eq(conversation.userId, userId)))
+        .groupBy(chatEvent.conversationId)
+        .having(
+          cursorDate
+            ? sql`max(coalesce(${chatEvent.endedAt}, ${chatEvent.createdAt})) < ${cursorDate}`
+            : undefined,
+        )
+        .orderBy(sql`max(coalesce(${chatEvent.endedAt}, ${chatEvent.createdAt})) desc`)
+        .limit(limit + 1);
+    });
+
+    const traces = rows.slice(0, limit);
+    const hasMore = rows.length > limit;
+    const lastRow = traces.at(-1);
+
+    return {
+      ...(hasMore && lastRow ? { nextCursor: new Date(lastRow.endedAt).toISOString() } : {}),
+      traces,
     };
   });
 };
