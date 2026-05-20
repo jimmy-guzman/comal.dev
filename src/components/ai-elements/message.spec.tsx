@@ -32,6 +32,15 @@ describe("MessageResponse markdown links", () => {
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
+  it("renders an incomplete streaming link as inert text", () => {
+    render(<MessageResponse>{"See [Research Helper]("}</MessageResponse>);
+
+    expect(screen.getByText(/Research Helper/)).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
   it("gates an external link behind the safety modal", async () => {
     const user = userEvent.setup();
 
