@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -33,13 +34,15 @@ export const MessageActionsMenu = ({ agentId, assistantText, userText }: Props) 
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-40">
-            <DropdownMenuItem
-              onSelect={() => {
-                setDialogOpen(true);
-              }}
-            >
-              save as eval
-            </DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onSelect={() => {
+                  setDialogOpen(true);
+                }}
+              >
+                save as eval
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </MessageActions>
