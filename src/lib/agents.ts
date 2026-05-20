@@ -40,6 +40,8 @@ interface AgentInput {
   tools: AgentToolInput[];
 }
 
+type AgentPatch = (current: AgentInput) => AgentInput;
+
 export const listAgentsForUser = (userId: string) => {
   return Effect.gen(function* () {
     const db = yield* Database;
@@ -234,12 +236,74 @@ export const createAgent = (userId: string, input: AgentInput) => {
   });
 };
 
-export const updateAgent = (agentId: string, userId: string, input: AgentInput) => {
+export const updateAgent = (agentId: string, userId: string, patch: AgentPatch) => {
   return Effect.gen(function* () {
     const db = yield* Database;
 
-    yield* runMutation(() => {
+    const outcome = yield* runMutation(() => {
       return db.transaction(async (tx) => {
+        const lockedRows = await tx
+          .select()
+          .from(agent)
+          .where(eq(agent.id, agentId))
+          .for("update")
+          .limit(1);
+
+        const row = lockedRows.at(0);
+
+        if (!row) return "not-found" as const;
+
+        if (row.userId !== userId) return "forbidden" as const;
+
+        if (row.isSystem) return "forbidden" as const;
+
+        const tools = await tx
+          .select({ config: agentTool.config, toolId: agentTool.toolId })
+          .from(agentTool)
+          .where(eq(agentTool.agentId, agentId));
+
+        const subAgents = await tx
+          .select({
+            alias: agentSubagent.alias,
+            childAgentId: agentSubagent.childAgentId,
+            descriptionOverride: agentSubagent.descriptionOverride,
+          })
+          .from(agentSubagent)
+          .where(eq(agentSubagent.parentAgentId, agentId));
+
+        const evals = await tx
+          .select({
+            expected: agentEval.expected,
+            id: agentEval.id,
+            input: agentEval.input,
+            name: agentEval.name,
+            scorer: agentEval.scorer,
+            trials: agentEval.trials,
+          })
+          .from(agentEval)
+          .where(eq(agentEval.agentId, agentId));
+
+        const input = patch({
+          defaultModelId: row.defaultModelId,
+          description: row.description ?? undefined,
+          evals: evals.map((evalRow) => {
+            return {
+              ...evalRow,
+              expected: evalRow.expected ?? undefined,
+              scorer: evalRow.scorer as Scorer,
+            };
+          }),
+          name: row.name,
+          subAgents: subAgents.map((subAgent) => {
+            return {
+              ...subAgent,
+              descriptionOverride: subAgent.descriptionOverride ?? undefined,
+            };
+          }),
+          systemPrompt: row.systemPrompt,
+          tools,
+        });
+
         await tx.insert(agentVersion).values({
           agentId,
           createdBy: userId,
@@ -299,7 +363,7 @@ export const updateAgent = (agentId: string, userId: string, input: AgentInput) 
           .select({ id: agentEval.id })
           .from(agentEval)
           .where(eq(agentEval.agentId, agentId));
-        const existingIds = new Set(existingRows.map((row) => row.id));
+        const existingIds = new Set(existingRows.map((existing) => existing.id));
 
         for (const evalEntry of input.evals) {
           const existingId =
@@ -326,8 +390,18 @@ export const updateAgent = (agentId: string, userId: string, input: AgentInput) 
                 })
                 .where(and(eq(agentEval.id, existingId), eq(agentEval.agentId, agentId))));
         }
+
+        return "ok" as const;
       });
     });
+
+    if (outcome === "not-found") {
+      yield* Effect.fail(new NotFoundError({ resource: "agent" }));
+    }
+
+    if (outcome === "forbidden") {
+      yield* Effect.fail(new ForbiddenError());
+    }
   });
 };
 

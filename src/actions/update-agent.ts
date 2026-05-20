@@ -8,13 +8,7 @@ import { z } from "zod";
 import { appRuntime } from "@/db/service";
 import { detectCycle } from "@/lib/agent-graph";
 import { agentInputSchema } from "@/lib/agent-input-schema";
-import {
-  assertAgentOwnership,
-  getAgentForUser,
-  listOwnedAgentIds,
-  listOwnerSubAgentEdges,
-  updateAgent,
-} from "@/lib/agents";
+import { listOwnedAgentIds, listOwnerSubAgentEdges, updateAgent } from "@/lib/agents";
 import { ForbiddenError, NotFoundError } from "@/lib/errors";
 import { authClient } from "@/lib/safe-action";
 
@@ -26,30 +20,6 @@ export const updateAgentAction = authClient
   .inputSchema(inputSchema)
   .action(async ({ ctx, parsedInput }) => {
     const { agentId, ...input } = parsedInput;
-
-    const ownership = await appRuntime.runPromiseExit(
-      assertAgentOwnership(agentId, ctx.auth.user.id),
-    );
-
-    if (Exit.isFailure(ownership)) {
-      const { cause } = ownership;
-
-      if (cause._tag === "Fail") {
-        if (cause.error._tag === "ForbiddenError") throw new ForbiddenError();
-
-        if (cause.error._tag === "NotFoundError") {
-          throw new NotFoundError({ resource: "agent" });
-        }
-      }
-
-      throw new Error("Failed to update agent.");
-    }
-
-    const agentRow = await appRuntime.runPromise(getAgentForUser(agentId, ctx.auth.user.id));
-
-    if (agentRow.isSystem) {
-      throw new ForbiddenError();
-    }
 
     if (input.subAgents.length > 0) {
       const childIds = input.subAgents.map((s) => s.childAgentId);
@@ -109,9 +79,19 @@ export const updateAgentAction = authClient
       }
     }
 
-    const exit = await appRuntime.runPromiseExit(updateAgent(agentId, ctx.auth.user.id, input));
+    const exit = await appRuntime.runPromiseExit(
+      updateAgent(agentId, ctx.auth.user.id, () => input),
+    );
 
     if (Exit.isFailure(exit)) {
+      const { cause } = exit;
+
+      if (cause._tag === "Fail") {
+        if (cause.error._tag === "ForbiddenError") throw new ForbiddenError();
+
+        if (cause.error._tag === "NotFoundError") throw new NotFoundError({ resource: "agent" });
+      }
+
       throw new Error("Failed to update agent.");
     }
 

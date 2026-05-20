@@ -5,18 +5,10 @@ import { returnValidationErrors } from "next-safe-action";
 import { updateTag } from "next/cache";
 import { z } from "zod";
 
-import type { Scorer } from "@/lib/eval-input-schema";
-
 import { appRuntime } from "@/db/service";
 import { detectCycle } from "@/lib/agent-graph";
 import { agentInputSchema } from "@/lib/agent-input-schema";
-import {
-  assertAgentOwnership,
-  getAgentForUser,
-  listOwnedAgentIds,
-  listOwnerSubAgentEdges,
-  updateAgent,
-} from "@/lib/agents";
+import { listOwnedAgentIds, listOwnerSubAgentEdges, updateAgent } from "@/lib/agents";
 import { ForbiddenError, NotFoundError } from "@/lib/errors";
 import { authClient } from "@/lib/safe-action";
 
@@ -29,26 +21,6 @@ export const updateAgentSubagentsAction = authClient
   .inputSchema(inputSchema)
   .action(async ({ ctx, parsedInput }) => {
     const { agentId, subAgents } = parsedInput;
-
-    const ownership = await appRuntime.runPromiseExit(
-      assertAgentOwnership(agentId, ctx.auth.user.id),
-    );
-
-    if (Exit.isFailure(ownership)) {
-      const { cause } = ownership;
-
-      if (cause._tag === "Fail") {
-        if (cause.error._tag === "ForbiddenError") throw new ForbiddenError();
-
-        if (cause.error._tag === "NotFoundError") throw new NotFoundError({ resource: "agent" });
-      }
-
-      throw new Error("Failed to update agent.");
-    }
-
-    const current = await appRuntime.runPromise(getAgentForUser(agentId, ctx.auth.user.id));
-
-    if (current.isSystem) throw new ForbiddenError();
 
     if (subAgents.length > 0) {
       const childIds = subAgents.map((s) => s.childAgentId);
@@ -107,20 +79,22 @@ export const updateAgentSubagentsAction = authClient
     }
 
     const exit = await appRuntime.runPromiseExit(
-      updateAgent(agentId, ctx.auth.user.id, {
-        defaultModelId: current.defaultModelId,
-        description: current.description ?? undefined,
-        evals: current.evals.map((e) => {
-          return { ...e, expected: e.expected ?? undefined, scorer: e.scorer as Scorer };
-        }),
-        name: current.name,
-        subAgents,
-        systemPrompt: current.systemPrompt,
-        tools: current.tools,
+      updateAgent(agentId, ctx.auth.user.id, (current) => {
+        return { ...current, subAgents };
       }),
     );
 
-    if (Exit.isFailure(exit)) throw new Error("Failed to update agent.");
+    if (Exit.isFailure(exit)) {
+      const { cause } = exit;
+
+      if (cause._tag === "Fail") {
+        if (cause.error._tag === "ForbiddenError") throw new ForbiddenError();
+
+        if (cause.error._tag === "NotFoundError") throw new NotFoundError({ resource: "agent" });
+      }
+
+      throw new Error("Failed to update agent.");
+    }
 
     updateTag(`agents:${ctx.auth.user.id}`);
     updateTag(`agent:${agentId}`);
