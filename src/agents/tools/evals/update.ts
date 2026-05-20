@@ -42,6 +42,10 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
 
       if (current.isSystem) return { error: "System agents cannot be edited." };
 
+      if (!current.evals.some((e) => e.id === evalId)) {
+        return { error: "Eval not found or not owned by you." };
+      }
+
       const parsed = evalEntrySchema.safeParse({
         expected: expected ?? existing.expected ?? undefined,
         id: evalId,
