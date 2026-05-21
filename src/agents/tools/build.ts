@@ -15,6 +15,7 @@ import { buildAgentsUpdate } from "./agents/update";
 import { buildCoreNow } from "./core/now";
 import { buildEvalsCreate } from "./evals/create";
 import { buildEvalsDelete } from "./evals/delete";
+import { buildEvalsGetHistory } from "./evals/get-history";
 import { buildEvalsList } from "./evals/list";
 import { buildEvalsRun } from "./evals/run";
 import { buildEvalsRunBatch } from "./evals/run-batch";
@@ -47,6 +48,7 @@ const BUILDERS = {
   "core-now": buildCoreNow,
   "evals-create": buildEvalsCreate,
   "evals-delete": buildEvalsDelete,
+  "evals-get-history": buildEvalsGetHistory,
   "evals-list": buildEvalsList,
   "evals-run": buildEvalsRun,
   "evals-run-batch": buildEvalsRunBatch,

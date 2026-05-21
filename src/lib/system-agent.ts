@@ -27,6 +27,7 @@ const SYSTEM_AGENT_TOOLS = [
   "evals-delete",
   "evals-run",
   "evals-run-batch",
+  "evals-get-history",
   "traces-list-for-agent",
   "traces-get",
   "web-search",

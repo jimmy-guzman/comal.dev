@@ -13,6 +13,7 @@ import { agentsUpdateMeta } from "./agents/update.meta";
 import { coreNowMeta } from "./core/now.meta";
 import { evalsCreateMeta } from "./evals/create.meta";
 import { evalsDeleteMeta } from "./evals/delete.meta";
+import { evalsGetHistoryMeta } from "./evals/get-history.meta";
 import { evalsListMeta } from "./evals/list.meta";
 import { evalsRunBatchMeta } from "./evals/run-batch.meta";
 import { evalsRunMeta } from "./evals/run.meta";
@@ -46,6 +47,7 @@ const metadata = Object.freeze([
   Object.freeze(coreNowMeta),
   Object.freeze(evalsCreateMeta),
   Object.freeze(evalsDeleteMeta),
+  Object.freeze(evalsGetHistoryMeta),
   Object.freeze(evalsListMeta),
   Object.freeze(evalsRunBatchMeta),
   Object.freeze(evalsRunMeta),

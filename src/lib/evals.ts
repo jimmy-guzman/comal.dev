@@ -1,8 +1,8 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
 
-import { agent } from "@/db/schemas/agent-schema";
+import { agent, agentVersion } from "@/db/schemas/agent-schema";
 import { agentEval, agentEvalRun } from "@/db/schemas/eval-schema";
 import { Database, runMutation, runQuery } from "@/db/service";
 import { NotFoundError } from "@/lib/errors";
@@ -32,6 +32,62 @@ export interface EvalRunSummary {
   lastRunRunGroupId: null | string;
   lastRunScore: null | number;
 }
+
+interface EvalVersionRow {
+  meanScore: number;
+  runCount: number;
+  versionCreatedAt: Date;
+  versionId: string;
+}
+
+export interface EvalVersionScore extends EvalVersionRow {
+  isRegression: boolean;
+  ordinal: number;
+}
+
+interface EvalRunHistoryItem {
+  agentVersionId: null | string;
+  conversationId: null | string;
+  createdAt: Date;
+  evalId: string;
+  id: string;
+  output: string;
+  rationale: null | string;
+  runGroupId: null | string;
+  score: number;
+}
+
+interface EvalRunHistoryResult {
+  nextCursor?: string;
+  runs: EvalRunHistoryItem[];
+}
+
+export const deriveEvalScoreTrend = (rows: EvalVersionRow[]): EvalVersionScore[] => {
+  return rows.map((row, index) => {
+    return {
+      ...row,
+      isRegression: index > 0 && row.meanScore < rows[index - 1].meanScore,
+      ordinal: index + 1,
+    };
+  });
+};
+
+const encodeRunCursor = (createdAt: Date, id: string) => {
+  return `${createdAt.toISOString()}|${id}`;
+};
+
+const decodeRunCursor = (cursor: string): undefined | { createdAt: Date; id: string } => {
+  const separator = cursor.indexOf("|");
+
+  if (separator <= 0) return undefined;
+
+  const createdAt = new Date(cursor.slice(0, separator));
+  const id = cursor.slice(separator + 1);
+
+  if (id.length === 0 || Number.isNaN(createdAt.getTime())) return undefined;
+
+  return { createdAt, id };
+};
 
 export const getEvalWithOwnership = (evalId: string, userId: string) => {
   return Effect.gen(function* () {
@@ -162,6 +218,78 @@ export const listEvalRunsForAgent = (agentId: string) => {
           : null,
       };
     });
+  });
+};
+
+export const getEvalScoreTrend = (agentId: string) => {
+  return Effect.gen(function* () {
+    const db = yield* Database;
+
+    const rows = yield* runQuery(() => {
+      return db
+        .select({
+          meanScore: sql<number>`avg(${agentEvalRun.score})::float8`,
+          runCount: sql<number>`count(*)::int`,
+          versionCreatedAt: agentVersion.createdAt,
+          versionId: agentVersion.id,
+        })
+        .from(agentEvalRun)
+        .innerJoin(agentVersion, eq(agentVersion.id, agentEvalRun.agentVersionId))
+        .where(eq(agentVersion.agentId, agentId))
+        .groupBy(agentVersion.id, agentVersion.createdAt)
+        .orderBy(agentVersion.createdAt, agentVersion.id);
+    });
+
+    return deriveEvalScoreTrend(rows);
+  });
+};
+
+export const listEvalRunHistory = (
+  agentId: string,
+  options: { cursor?: string; evalId?: string; limit?: number } = {},
+) => {
+  return Effect.gen(function* () {
+    const db = yield* Database;
+
+    const limit = Math.min(Math.max(options.limit ?? 20, 1), 100);
+    const cursor = options.cursor ? decodeRunCursor(options.cursor) : undefined;
+
+    const rows = yield* runQuery(() => {
+      return db
+        .select({
+          agentVersionId: agentEvalRun.agentVersionId,
+          conversationId: agentEvalRun.conversationId,
+          createdAt: agentEvalRun.createdAt,
+          evalId: agentEvalRun.evalId,
+          id: agentEvalRun.id,
+          output: agentEvalRun.output,
+          rationale: agentEvalRun.rationale,
+          runGroupId: agentEvalRun.runGroupId,
+          score: agentEvalRun.score,
+        })
+        .from(agentEvalRun)
+        .innerJoin(agentEval, eq(agentEval.id, agentEvalRun.evalId))
+        .where(
+          and(
+            eq(agentEval.agentId, agentId),
+            options.evalId ? eq(agentEvalRun.evalId, options.evalId) : undefined,
+            cursor
+              ? sql`(${agentEvalRun.createdAt} < ${cursor.createdAt}) or (${agentEvalRun.createdAt} = ${cursor.createdAt} and ${agentEvalRun.id} < ${cursor.id})`
+              : undefined,
+          ),
+        )
+        .orderBy(desc(agentEvalRun.createdAt), desc(agentEvalRun.id))
+        .limit(limit + 1);
+    });
+
+    const runs = rows.slice(0, limit);
+    const lastRow = runs.at(-1);
+    const hasMore = rows.length > limit;
+
+    return {
+      nextCursor: hasMore && lastRow ? encodeRunCursor(lastRow.createdAt, lastRow.id) : undefined,
+      runs,
+    } satisfies EvalRunHistoryResult;
   });
 };
 

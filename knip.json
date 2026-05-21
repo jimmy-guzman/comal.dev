@@ -4,6 +4,7 @@
   "entry": [
     "src/components/ui/**",
     "src/components/ai-elements/**",
+    "src/components/evilcharts/**",
     "src/db/schemas/**",
     "src/clients/**/*.ts",
     "scripts/**"
