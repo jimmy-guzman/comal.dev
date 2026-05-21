@@ -576,6 +576,7 @@ export const AgentForm = ({
                     response.
                   </FieldDescription>
                   <AgentEvalPicker
+                    agentId={initialAgent?.id}
                     initialRuns={evalRuns}
                     isEdit={isEdit}
                     onChange={(next) => {

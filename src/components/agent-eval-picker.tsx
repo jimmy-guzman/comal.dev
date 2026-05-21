@@ -10,6 +10,7 @@ import type { Scorer } from "@/lib/eval-input-schema";
 import type { EvalRunAggregate, EvalRunSummary } from "@/lib/evals";
 
 import { runEvalAction } from "@/actions/run-eval";
+import { runEvalSuiteAction } from "@/actions/run-eval-suite";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -47,6 +48,7 @@ interface EvalRunResult {
 }
 
 interface Props {
+  agentId?: string;
   initialRuns?: EvalRunSummary[];
   isEdit: boolean;
   onChange: (next: EvalSelection[]) => void;
@@ -129,12 +131,14 @@ const EvalRunBadge = ({ result }: { result: EvalRunResult | EvalRunSummary | nul
 };
 
 const EvalRow = ({
+  batchResult,
   entry,
   initialRun,
   isEdit,
   onChange,
   onRemove,
 }: {
+  batchResult: EvalRunResult | null;
   entry: EvalSelection;
   initialRun: EvalRunSummary | null;
   isEdit: boolean;
@@ -143,6 +147,12 @@ const EvalRow = ({
 }) => {
   const [runResult, setRunResult] = useState<EvalRunResult | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [seenBatchResult, setSeenBatchResult] = useState(batchResult);
+
+  if (seenBatchResult !== batchResult) {
+    setSeenBatchResult(batchResult);
+    setRunResult(null);
+  }
 
   const { execute, isPending } = useAction(runEvalAction, {
     onError: ({ error }) => {
@@ -161,7 +171,7 @@ const EvalRow = ({
   });
 
   const canRun = isEdit && Boolean(entry.id);
-  const result: EvalRunResult | EvalRunSummary | null = runResult ?? initialRun;
+  const result: EvalRunResult | EvalRunSummary | null = runResult ?? batchResult ?? initialRun;
   const output = result ? getOutput(result) : null;
   const rationale = result ? getRationale(result) : null;
   const aggregate = result ? getAggregate(result) : null;
@@ -354,11 +364,47 @@ const EvalRow = ({
 };
 
 export const AgentEvalPicker = ({
+  agentId,
   initialRuns = DEFAULT_INITIAL_RUNS,
   isEdit,
   onChange,
   value,
 }: Props) => {
+  const [batchResults, setBatchResults] = useState<Map<string, EvalRunResult>>(() => {
+    return new Map();
+  });
+
+  const { execute: runAll, isPending: isRunningAll } = useAction(runEvalSuiteAction, {
+    onError: ({ error }) => {
+      toast.error(error.serverError ?? "failed to run evals.");
+    },
+    onSuccess: ({ data }) => {
+      const next = new Map<string, EvalRunResult>();
+      const failed: string[] = [];
+
+      for (const item of data.results) {
+        if ("error" in item) {
+          failed.push(item.name);
+          continue;
+        }
+
+        next.set(item.evalId, {
+          aggregate: "aggregate" in item ? item.aggregate : undefined,
+          conversationId: item.conversationId,
+          output: item.output,
+          rationale: "rationale" in item ? item.rationale : undefined,
+          score: item.score,
+        });
+      }
+
+      setBatchResults(next);
+
+      if (failed.length > 0) {
+        toast.error(`${failed.length} eval${failed.length === 1 ? "" : "s"} failed to run.`);
+      }
+    },
+  });
+
   const handleAdd = () => {
     onChange([...value, { input: "", name: "", scorer: "contains", trials: 1 }]);
   };
@@ -377,11 +423,15 @@ export const AgentEvalPicker = ({
     return initialRuns.find((r) => r.evalId === evalId) ?? null;
   };
 
+  const hasSavedEvals = value.some((e) => e.id !== undefined);
+  const canRunAll = isEdit && Boolean(agentId) && hasSavedEvals;
+
   return (
     <div className="flex flex-col gap-3">
       {value.map((entry, index) => {
         return (
           <EvalRow
+            batchResult={entry.id ? (batchResults.get(entry.id) ?? null) : null}
             entry={entry}
             initialRun={getInitialRun(entry.id)}
             isEdit={isEdit}
@@ -401,6 +451,25 @@ export const AgentEvalPicker = ({
           add eval
         </Button>
         {value.length > 0 ? <Badge variant="secondary">{value.length}</Badge> : null}
+        {canRunAll ? (
+          <Button
+            className="ml-auto"
+            disabled={isRunningAll}
+            onClick={() => {
+              if (agentId) runAll({ agentId });
+            }}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            {isRunningAll ? (
+              <LoaderIcon className="size-3 animate-spin" />
+            ) : (
+              <PlayIcon className="size-3" />
+            )}
+            run all evals
+          </Button>
+        ) : null}
       </div>
     </div>
   );

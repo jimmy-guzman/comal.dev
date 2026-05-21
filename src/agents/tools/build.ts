@@ -17,6 +17,7 @@ import { buildEvalsCreate } from "./evals/create";
 import { buildEvalsDelete } from "./evals/delete";
 import { buildEvalsList } from "./evals/list";
 import { buildEvalsRun } from "./evals/run";
+import { buildEvalsRunBatch } from "./evals/run-batch";
 import { buildEvalsUpdate } from "./evals/update";
 import { buildGithubRead } from "./github/read";
 import { buildTmdbDiscoverMovie } from "./tmdb/discover-movie";
@@ -48,6 +49,7 @@ const BUILDERS = {
   "evals-delete": buildEvalsDelete,
   "evals-list": buildEvalsList,
   "evals-run": buildEvalsRun,
+  "evals-run-batch": buildEvalsRunBatch,
   "evals-update": buildEvalsUpdate,
   "github-read": buildGithubRead,
   "tmdb-discover-movie": buildTmdbDiscoverMovie,
