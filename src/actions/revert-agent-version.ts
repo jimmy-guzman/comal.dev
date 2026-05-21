@@ -1,19 +1,13 @@
 "use server";
 
-import { Effect, Exit } from "effect";
+import { Exit } from "effect";
 import { updateTag } from "next/cache";
 import { z } from "zod";
 
 import type { Scorer } from "@/lib/eval-input-schema";
 
 import { appRuntime } from "@/db/service";
-import { detectCycle } from "@/lib/agent-graph";
-import {
-  getAgentVersion,
-  listOwnedAgentIds,
-  listOwnerSubAgentEdges,
-  updateAgent,
-} from "@/lib/agents";
+import { getAgentVersion, listOwnedAgentIds, updateAgent } from "@/lib/agents";
 import { ForbiddenError, NotFoundError } from "@/lib/errors";
 import { authClient } from "@/lib/safe-action";
 
@@ -34,38 +28,14 @@ export const revertAgentVersionAction = authClient
     if (version.subAgents.length > 0) {
       const childIds = version.subAgents.map((s) => s.childAgentId);
 
-      const validation = await appRuntime.runPromise(
-        Effect.all({
-          edges: listOwnerSubAgentEdges(ctx.auth.user.id),
-          owned: listOwnedAgentIds(ctx.auth.user.id, childIds),
-        }),
-      );
+      const owned = await appRuntime.runPromise(listOwnedAgentIds(ctx.auth.user.id, childIds));
 
-      const ownedIds = new Set(validation.owned.map((row) => row.id));
+      const ownedIds = new Set(owned.map((row) => row.id));
 
       for (const sub of version.subAgents) {
         if (!ownedIds.has(sub.childAgentId)) {
           throw new Error(`sub-agent ${sub.childAgentId} no longer exists or is not owned.`);
         }
-      }
-
-      const edgeMap = new Map<string, string[]>();
-
-      for (const edge of validation.edges) {
-        if (edge.parentAgentId === agentId) continue;
-
-        const list = edgeMap.get(edge.parentAgentId) ?? [];
-
-        list.push(edge.childAgentId);
-        edgeMap.set(edge.parentAgentId, list);
-      }
-
-      edgeMap.set(agentId, childIds);
-
-      const cycle = detectCycle(edgeMap, agentId);
-
-      if (cycle) {
-        throw new Error(`revert would create a cycle: ${cycle.join(" -> ")}.`);
       }
     }
 
@@ -99,6 +69,10 @@ export const revertAgentVersionAction = authClient
       const { cause } = exit;
 
       if (cause._tag === "Fail") {
+        if (cause.error._tag === "AgentCycleError") {
+          throw new Error(`revert would create a cycle: ${cause.error.cycle.join(" -> ")}.`);
+        }
+
         if (cause.error._tag === "ForbiddenError") throw new ForbiddenError();
 
         if (cause.error._tag === "NotFoundError") throw new NotFoundError({ resource: "agent" });

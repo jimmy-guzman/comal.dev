@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { MODEL_IDS } from "@/config/models";
 import { appRuntime } from "@/db/service";
-import { detectCycle } from "@/lib/agent-graph";
+import { detectSubAgentCycle } from "@/lib/agent-graph";
 import { createAgent, listOwnedAgentIds, listOwnerSubAgentEdges } from "@/lib/agents";
 
 import type { ToolContext } from "../types";
@@ -88,18 +88,7 @@ export const buildAgentsCreate = (_config: unknown, context: ToolContext) => {
           }
         }
 
-        const edgeMap = new Map<string, string[]>();
-
-        for (const edge of validation.edges) {
-          const list = edgeMap.get(edge.parentAgentId) ?? [];
-
-          list.push(edge.childAgentId);
-          edgeMap.set(edge.parentAgentId, list);
-        }
-
-        edgeMap.set(PROPOSED_PARENT_ID, childIds);
-
-        const cycle = detectCycle(edgeMap, PROPOSED_PARENT_ID);
+        const cycle = detectSubAgentCycle(validation.edges, PROPOSED_PARENT_ID, childIds);
 
         if (cycle) {
           return { error: `Sub-agent selection would create a cycle: ${cycle.join(" -> ")}.` };

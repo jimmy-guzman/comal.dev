@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { detectCycle } from "./agent-graph";
+import { detectCycle, detectSubAgentCycle } from "./agent-graph";
 
 describe("detectCycle", () => {
   it("should return null for a single node with no edges", () => {
@@ -81,5 +81,42 @@ describe("detectCycle", () => {
     const edges = new Map<string, string[]>([["a", ["unknown"]]]);
 
     expect(detectCycle(edges, "a")).toBeNull();
+  });
+});
+
+describe("detectSubAgentCycle", () => {
+  it("should return null when the new children have no path back to the parent", () => {
+    const edges = [{ childAgentId: "c", parentAgentId: "b" }];
+
+    expect(detectSubAgentCycle(edges, "a", ["b"])).toBeNull();
+  });
+
+  it("should detect a self-link as a cycle", () => {
+    expect(detectSubAgentCycle([], "a", ["a"])).toStrictEqual(["a", "a"]);
+  });
+
+  it("should detect the two-node race: adding a -> b while b -> a already exists", () => {
+    const edges = [{ childAgentId: "a", parentAgentId: "b" }];
+
+    expect(detectSubAgentCycle(edges, "a", ["b"])).toStrictEqual(["a", "b", "a"]);
+  });
+
+  it("should detect a deeper cycle closed by the proposed edge", () => {
+    const edges = [
+      { childAgentId: "c1", parentAgentId: "p1" },
+      { childAgentId: "p2", parentAgentId: "c1" },
+      { childAgentId: "p1", parentAgentId: "c2" },
+    ];
+
+    expect(detectSubAgentCycle(edges, "p2", ["c2"])).toStrictEqual(["p2", "c2", "p1", "c1", "p2"]);
+  });
+
+  it("should return null when replacing the parent's children breaks an existing cycle", () => {
+    const edges = [
+      { childAgentId: "b", parentAgentId: "a" },
+      { childAgentId: "a", parentAgentId: "b" },
+    ];
+
+    expect(detectSubAgentCycle(edges, "a", [])).toBeNull();
   });
 });

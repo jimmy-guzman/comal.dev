@@ -5,7 +5,7 @@ import { returnValidationErrors } from "next-safe-action";
 import { updateTag } from "next/cache";
 
 import { appRuntime } from "@/db/service";
-import { detectCycle } from "@/lib/agent-graph";
+import { detectSubAgentCycle } from "@/lib/agent-graph";
 import { agentInputSchema } from "@/lib/agent-input-schema";
 import { createAgent, listOwnedAgentIds, listOwnerSubAgentEdges } from "@/lib/agents";
 import { authClient } from "@/lib/safe-action";
@@ -37,18 +37,7 @@ export const createAgentAction = authClient
         }
       }
 
-      const edgeMap = new Map<string, string[]>();
-
-      for (const edge of validation.edges) {
-        const list = edgeMap.get(edge.parentAgentId) ?? [];
-
-        list.push(edge.childAgentId);
-        edgeMap.set(edge.parentAgentId, list);
-      }
-
-      edgeMap.set(PROPOSED_PARENT_ID, childIds);
-
-      const cycle = detectCycle(edgeMap, PROPOSED_PARENT_ID);
+      const cycle = detectSubAgentCycle(validation.edges, PROPOSED_PARENT_ID, childIds);
 
       if (cycle) {
         returnValidationErrors(agentInputSchema, {

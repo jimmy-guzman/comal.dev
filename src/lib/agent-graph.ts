@@ -36,3 +36,28 @@ const walk = (
 export const detectCycle = (edges: Edges, startId: string): null | string[] => {
   return walk(edges, startId, new Set(), []);
 };
+
+/**
+ * Detects whether wiring `childIds` as `parentId`'s sub-agents would create a
+ * cycle, given the owner's existing parent->child `edges`. `parentId`'s own
+ * outgoing edges are replaced by `childIds`. Returns the cycle path, or `null`
+ * when the result stays acyclic.
+ */
+export const detectSubAgentCycle = (
+  edges: Iterable<{ childAgentId: string; parentAgentId: string }>,
+  parentId: string,
+  childIds: string[],
+): null | string[] => {
+  const edgeMap = new Map<string, string[]>();
+
+  for (const edge of edges) {
+    const list = edgeMap.get(edge.parentAgentId) ?? [];
+
+    list.push(edge.childAgentId);
+    edgeMap.set(edge.parentAgentId, list);
+  }
+
+  edgeMap.set(parentId, childIds);
+
+  return detectCycle(edgeMap, parentId);
+};
