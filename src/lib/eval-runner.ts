@@ -222,7 +222,11 @@ const failureMessage = (cause: Cause.Cause<RunEvalError>) => {
 
   const error = failure.value;
 
-  return error._tag === "NotFoundError" ? "Eval or agent not found." : error.message;
+  if (error._tag === "NotFoundError") return "Eval or agent not found.";
+
+  if (error._tag === "ValidationError" || error._tag === "LLMError") return error.message;
+
+  return "The eval failed to run.";
 };
 
 /**
