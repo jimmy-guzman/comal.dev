@@ -14,6 +14,7 @@ import {
 } from "@/components/evilcharts/charts/line-chart";
 import { ChartTooltip, ChartTooltipContent } from "@/components/evilcharts/ui/tooltip";
 import { formatMicrodollars } from "@/lib/format-cost";
+import { formatDayLabel } from "@/lib/format-date";
 
 interface Props {
   data: AgentSpendPoint[];
@@ -32,7 +33,7 @@ const formatCostTick = (value: unknown) => {
 };
 
 const formatDateTick = (value: unknown) => {
-  return typeof value === "string" ? value.slice(5) : "";
+  return typeof value === "string" ? formatDayLabel(value) : "";
 };
 
 const formatTooltipValue = (value: unknown) => {
