@@ -8,6 +8,7 @@ import { Database, runMutation, runQuery } from "@/db/service";
 import { NotFoundError } from "@/lib/errors";
 
 export interface EvalRunTrial {
+  conversationId: null | string;
   id: string;
   output: string;
   score: number;
@@ -25,6 +26,7 @@ export interface EvalRunSummary {
   evalId: string;
   lastRunAggregate: EvalRunAggregate | null;
   lastRunAt: Date | null;
+  lastRunConversationId: null | string;
   lastRunOutput: null | string;
   lastRunRationale: null | string;
   lastRunRunGroupId: null | string;
@@ -68,6 +70,7 @@ export const listEvalRunsForAgent = (agentId: string) => {
 
     const latestRun = db
       .select({
+        conversationId: agentEvalRun.conversationId,
         createdAt: agentEvalRun.createdAt,
         evalId: agentEvalRun.evalId,
         output: agentEvalRun.output,
@@ -87,6 +90,7 @@ export const listEvalRunsForAgent = (agentId: string) => {
         .select({
           evalId: latestRun.evalId,
           lastRunAt: latestRun.createdAt,
+          lastRunConversationId: latestRun.conversationId,
           lastRunOutput: latestRun.output,
           lastRunRationale: latestRun.rationale,
           lastRunRunGroupId: latestRun.runGroupId,
@@ -107,6 +111,7 @@ export const listEvalRunsForAgent = (agentId: string) => {
       const groupRows = yield* runQuery(() => {
         return db
           .select({
+            conversationId: agentEvalRun.conversationId,
             id: agentEvalRun.id,
             output: agentEvalRun.output,
             runGroupId: agentEvalRun.runGroupId,
@@ -124,7 +129,12 @@ export const listEvalRunsForAgent = (agentId: string) => {
 
         const existing = buckets.get(row.runGroupId) ?? [];
 
-        existing.push({ id: row.id, output: row.output, score: row.score });
+        existing.push({
+          conversationId: row.conversationId,
+          id: row.id,
+          output: row.output,
+          score: row.score,
+        });
         buckets.set(row.runGroupId, existing);
       }
 
@@ -157,6 +167,7 @@ export const listEvalRunsForAgent = (agentId: string) => {
 
 interface EvalRunInsert {
   agentVersionId?: null | string;
+  conversationId?: null | string;
   evalId: string;
   id?: string;
   output: string;
@@ -172,6 +183,7 @@ export const createEvalRun = (input: EvalRunInsert) => {
     yield* runMutation(() => {
       return db.insert(agentEvalRun).values({
         agentVersionId: input.agentVersionId ?? null,
+        conversationId: input.conversationId ?? null,
         evalId: input.evalId,
         id: input.id ?? nanoid(),
         output: input.output,
@@ -192,6 +204,7 @@ export const createEvalRuns = (inputs: EvalRunInsert[]) => {
     const rows = inputs.map((input) => {
       return {
         agentVersionId: input.agentVersionId ?? null,
+        conversationId: input.conversationId ?? null,
         evalId: input.evalId,
         id: input.id ?? nanoid(),
         output: input.output,

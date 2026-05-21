@@ -1,142 +1,17 @@
 "use server";
 
-import { generateText, stepCountIs } from "ai";
-import { Cause, Effect, Exit } from "effect";
-import { nanoid } from "nanoid";
+import { Cause, Exit } from "effect";
 import { z } from "zod";
 
-import { loadAgent } from "@/agents";
 import { appRuntime } from "@/db/service";
-import { LLMError, NotFoundError, ValidationError } from "@/lib/errors";
-import { isStringScorer, scoreEval, scoreEvalLLM } from "@/lib/eval-scorer";
-import { createEvalRun, createEvalRuns, getEvalWithOwnership } from "@/lib/evals";
-import { openrouter } from "@/lib/openrouter";
+import { NotFoundError } from "@/lib/errors";
+import { runEval } from "@/lib/eval-runner";
 import { authClient } from "@/lib/safe-action";
-
-const MAX_OUTPUT_TOKENS = 2048;
 
 export const runEvalAction = authClient
   .inputSchema(z.object({ evalId: z.string().min(1) }))
   .action(async ({ ctx, parsedInput }) => {
-    const program = Effect.gen(function* () {
-      const evalRow = yield* getEvalWithOwnership(parsedInput.evalId, ctx.auth.user.id);
-      const agentConfig = yield* loadAgent(evalRow.agentId, ctx.auth.user.id);
-
-      const runOnce = () => {
-        return Effect.tryPromise({
-          catch: (cause) => {
-            return new LLMError({
-              cause,
-              message: cause instanceof Error ? cause.message : String(cause),
-            });
-          },
-          try: () => {
-            return generateText({
-              maxOutputTokens: MAX_OUTPUT_TOKENS,
-              messages: [{ content: evalRow.input, role: "user" }],
-              model: openrouter(agentConfig.defaultModelId),
-              stopWhen: stepCountIs(8),
-              system: agentConfig.systemPrompt,
-              tools: agentConfig.tools,
-            });
-          },
-        });
-      };
-
-      if (evalRow.scorer === "llm-judge") {
-        const result = yield* runOnce();
-        const output = result.text;
-
-        const judgment = yield* Effect.tryPromise({
-          catch: (cause) => {
-            return new LLMError({
-              cause,
-              message: cause instanceof Error ? cause.message : String(cause),
-            });
-          },
-          try: () => {
-            return scoreEvalLLM(evalRow.input, output, evalRow.expected ?? undefined);
-          },
-        });
-
-        yield* createEvalRun({
-          agentVersionId: agentConfig.versionId,
-          evalId: parsedInput.evalId,
-          output,
-          rationale: judgment.rationale,
-          score: judgment.score,
-        });
-
-        return { output, rationale: judgment.rationale, score: judgment.score };
-      }
-
-      if (!isStringScorer(evalRow.scorer)) {
-        return yield* Effect.fail(
-          new ValidationError({
-            message: `Eval "${evalRow.name}" has unknown scorer "${evalRow.scorer}".`,
-          }),
-        );
-      }
-
-      if (!evalRow.expected) {
-        return yield* Effect.fail(
-          new ValidationError({
-            message: `Eval "${evalRow.name}" uses scorer "${evalRow.scorer}" but has no expected output.`,
-          }),
-        );
-      }
-
-      const stringScorer = evalRow.scorer;
-      const { expected } = evalRow;
-      const trials = Math.max(1, evalRow.trials);
-      const runGroupId = trials > 1 ? nanoid() : null;
-
-      const trialResults: { id: string; output: string; score: number }[] = [];
-
-      for (let i = 0; i < trials; i++) {
-        const result = yield* runOnce();
-        const output = result.text;
-        const score = scoreEval(stringScorer, output, expected);
-        const id = nanoid();
-
-        trialResults.push({ id, output, score });
-      }
-
-      yield* createEvalRuns(
-        trialResults.map((trial) => {
-          return {
-            agentVersionId: agentConfig.versionId,
-            evalId: parsedInput.evalId,
-            id: trial.id,
-            output: trial.output,
-            runGroupId,
-            score: trial.score,
-          };
-        }),
-      );
-
-      const scores = trialResults.map((trial) => trial.score);
-      const sum = scores.reduce((acc, value) => acc + value, 0);
-      const mean = sum / scores.length;
-
-      if (trials === 1) {
-        return { output: trialResults[0]?.output ?? "", score: trialResults[0]?.score ?? 0 };
-      }
-
-      return {
-        aggregate: {
-          count: trialResults.length,
-          max: Math.max(...scores),
-          mean,
-          min: Math.min(...scores),
-          trials: trialResults,
-        },
-        output: trialResults[0]?.output ?? "",
-        score: mean,
-      };
-    });
-
-    const exit = await appRuntime.runPromiseExit(program);
+    const exit = await appRuntime.runPromiseExit(runEval(parsedInput.evalId, ctx.auth.user.id));
 
     if (Exit.isFailure(exit)) {
       const { cause } = exit;
@@ -146,7 +21,7 @@ export const runEvalAction = authClient
           throw new NotFoundError({ resource: "eval" });
         }
 
-        if (cause.error._tag === "ValidationError") {
+        if (cause.error._tag === "ValidationError" || cause.error._tag === "LLMError") {
           throw new Error(cause.error.message);
         }
       }
