@@ -40,7 +40,12 @@ export interface AgentSpendPoint {
 interface EvalSuiteRunCost {
   ranAt: Date;
   runCount: number;
-  runGroupId: string;
+  suiteRunId: string;
+  totalMicrodollars: number;
+}
+
+interface EvalCostSummary {
+  suiteRuns: EvalSuiteRunCost[];
   totalMicrodollars: number;
 }
 
@@ -150,7 +155,7 @@ export const getAgentSpendByDay = (
   });
 };
 
-interface EvalSuiteOptions {
+interface EvalCostOptions {
   limit?: number;
   since?: Date;
 }
@@ -158,27 +163,48 @@ interface EvalSuiteOptions {
 export const getEvalSuiteRunCosts = (
   agentId: string,
   userId: string,
-  options: EvalSuiteOptions = {},
-): Effect.Effect<EvalSuiteRunCost[], DatabaseError, Database> => {
+  options: EvalCostOptions = {},
+): Effect.Effect<EvalCostSummary, DatabaseError, Database> => {
   return Effect.gen(function* () {
     const db = yield* Database;
     const limit = Math.min(Math.max(options.limit ?? 10, 1), 50);
 
-    const filters = [
+    const totalFilters = [
+      eq(conversation.agentId, agentId),
+      eq(conversation.userId, userId),
+      eq(conversation.kind, "eval"),
+      eq(chatEvent.eventType, "assistant-turn-finish"),
+    ];
+
+    if (options.since) totalFilters.push(gte(chatEvent.createdAt, options.since));
+
+    const totalRows = yield* runQuery(() => {
+      return db
+        .select({
+          microdollars: sql<number>`coalesce(sum(${chatEvent.costMicrodollars}), 0)::int`.as(
+            "microdollars",
+          ),
+        })
+        .from(chatEvent)
+        .innerJoin(conversation, eq(conversation.id, chatEvent.conversationId))
+        .where(and(...totalFilters));
+    });
+
+    const suiteFilters = [
       eq(conversation.agentId, agentId),
       eq(conversation.userId, userId),
       eq(chatEvent.eventType, "assistant-turn-finish"),
-      isNotNull(agentEvalRun.runGroupId),
+      isNotNull(agentEvalRun.suiteRunId),
     ];
 
-    if (options.since) filters.push(gte(agentEvalRun.createdAt, options.since));
+    if (options.since) suiteFilters.push(gte(agentEvalRun.createdAt, options.since));
 
-    const rows = yield* runQuery(() => {
+    const suiteRows = yield* runQuery(() => {
       return db
         .select({
           ranAt: sql<Date>`max(${agentEvalRun.createdAt})`.as("ran_at"),
           runCount: sql<number>`(count(distinct ${agentEvalRun.id}))::int`.as("run_count"),
-          runGroupId: agentEvalRun.runGroupId,
+          suiteRunId: agentEvalRun.suiteRunId,
           totalMicrodollars: sql<number>`coalesce(sum(${chatEvent.costMicrodollars}), 0)::int`.as(
             "total_microdollars",
           ),
@@ -186,16 +212,19 @@ export const getEvalSuiteRunCosts = (
         .from(agentEvalRun)
         .innerJoin(conversation, eq(conversation.id, agentEvalRun.conversationId))
         .innerJoin(chatEvent, eq(chatEvent.conversationId, conversation.id))
-        .where(and(...filters))
-        .groupBy(agentEvalRun.runGroupId)
+        .where(and(...suiteFilters))
+        .groupBy(agentEvalRun.suiteRunId)
         .orderBy(sql`ran_at desc`)
         .limit(limit);
     });
 
-    return rows.flatMap((row) => {
-      if (row.runGroupId === null) return [];
+    return {
+      suiteRuns: suiteRows.flatMap((row) => {
+        if (row.suiteRunId === null) return [];
 
-      return [{ ...row, runGroupId: row.runGroupId }];
-    });
+        return [{ ...row, suiteRunId: row.suiteRunId }];
+      }),
+      totalMicrodollars: totalRows[0]?.microdollars ?? 0,
+    };
   });
 };

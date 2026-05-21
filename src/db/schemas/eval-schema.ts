@@ -55,11 +55,13 @@ export const agentEvalRun = pgTable(
     rationale: text("rationale"),
     runGroupId: text("run_group_id"),
     score: real("score").notNull(),
+    suiteRunId: text("suite_run_id"),
   },
   (table) => {
     return [
       index("agent_eval_run_evalId_idx").on(table.evalId),
       index("agent_eval_run_runGroupId_idx").on(table.runGroupId),
+      index("agent_eval_run_suiteRunId_idx").on(table.suiteRunId),
       index("agent_eval_run_conversationId_idx").on(table.conversationId),
       check("agent_eval_run_score_valid", sql`${table.score} >= 0 AND ${table.score} <= 1`),
     ];

@@ -183,12 +183,12 @@ function TokenUsageDisplay({ step }: { step: TraceStep }) {
 
   const parts: string[] = [];
 
-  if (step.tokenUsage.promptTokens !== undefined) {
-    parts.push(`prompt tokens: ${step.tokenUsage.promptTokens.toLocaleString()}`);
+  if (step.tokenUsage.inputTokens !== undefined) {
+    parts.push(`input tokens: ${step.tokenUsage.inputTokens.toLocaleString()}`);
   }
 
-  if (step.tokenUsage.completionTokens !== undefined) {
-    parts.push(`completion tokens: ${step.tokenUsage.completionTokens.toLocaleString()}`);
+  if (step.tokenUsage.outputTokens !== undefined) {
+    parts.push(`output tokens: ${step.tokenUsage.outputTokens.toLocaleString()}`);
   }
 
   if (step.tokenUsage.totalTokens !== undefined) {

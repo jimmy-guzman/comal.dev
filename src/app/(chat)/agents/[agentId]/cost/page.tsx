@@ -54,7 +54,7 @@ export default async function AgentCostPage({ params, searchParams }: Props) {
   const userId = session.user.id;
   const { since, value: rangeValue } = resolveRange(range);
 
-  const [rollup, spendByDay, evalSuiteRuns] = await Promise.all([
+  const [rollup, spendByDay, evalCost] = await Promise.all([
     appRuntime.runPromise(getAgentCostRollup(agentId, userId, { since })),
     appRuntime.runPromise(getAgentSpendByDay(agentId, userId, { since })),
     appRuntime.runPromise(getEvalSuiteRunCosts(agentId, userId, { since })),
@@ -168,21 +168,24 @@ export default async function AgentCostPage({ params, searchParams }: Props) {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium">cost per eval suite run</h2>
-        {evalSuiteRuns.length === 0 ? (
-          <p className="text-muted-foreground text-sm">no eval suite runs in this range.</p>
+        <h2 className="text-lg font-medium">eval spend</h2>
+        <p className="text-muted-foreground text-sm">
+          {formatMicrodollars(evalCost.totalMicrodollars)} total across all eval runs in this range.
+        </p>
+        {evalCost.suiteRuns.length === 0 ? (
+          <p className="text-muted-foreground text-sm">no eval suite runs yet.</p>
         ) : (
           <div className="overflow-hidden rounded-md border">
-            {evalSuiteRuns.map((run) => {
+            {evalCost.suiteRuns.map((run) => {
               return (
                 <div
                   className="flex items-center justify-between gap-4 border-b px-4 py-2.5 last:border-b-0"
-                  key={run.runGroupId}
+                  key={run.suiteRunId}
                 >
                   <span className="text-sm">{formatRelative(run.ranAt)}</span>
                   <span className="flex shrink-0 items-center gap-3">
                     <span className="text-muted-foreground text-xs">
-                      {run.runCount} {run.runCount === 1 ? "run" : "runs"}
+                      {run.runCount} {run.runCount === 1 ? "eval" : "evals"}
                     </span>
                     <span className="font-mono text-sm">
                       {formatMicrodollars(run.totalMicrodollars)}

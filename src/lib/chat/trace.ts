@@ -29,8 +29,8 @@ interface TraceTool {
 }
 
 interface TraceTokenUsage {
-  completionTokens?: number;
-  promptTokens?: number;
+  inputTokens?: number;
+  outputTokens?: number;
   totalTokens?: number;
 }
 
@@ -67,8 +67,8 @@ const parseTokenUsage = (payload: unknown): null | TraceTokenUsage => {
   const u = usage as Record<string, unknown>;
 
   return {
-    completionTokens: typeof u.completionTokens === "number" ? u.completionTokens : undefined,
-    promptTokens: typeof u.promptTokens === "number" ? u.promptTokens : undefined,
+    inputTokens: typeof u.inputTokens === "number" ? u.inputTokens : undefined,
+    outputTokens: typeof u.outputTokens === "number" ? u.outputTokens : undefined,
     totalTokens: typeof u.totalTokens === "number" ? u.totalTokens : undefined,
   };
 };
