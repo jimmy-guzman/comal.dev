@@ -38,7 +38,9 @@ export default async function TracePage({ params }: Props) {
         <div className="bg-background sticky top-0 z-10 flex items-center gap-3 py-3">
           <Link
             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs"
-            href={`/chats/${conversationId}`}
+            href={
+              trace.kind === "eval" ? `/agents/${trace.agentId}/evals` : `/chats/${conversationId}`
+            }
           >
             <ArrowLeftIcon className="size-3" />
             {trace.title}

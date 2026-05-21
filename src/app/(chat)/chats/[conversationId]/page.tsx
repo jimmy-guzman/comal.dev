@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { cacheLife, cacheTag } from "next/cache";
 import { headers } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import type { AppUIMessage } from "@/lib/app-ui-message";
 
@@ -52,6 +52,8 @@ export default async function ChatPage({ params }: Props) {
   );
 
   if (!conv) notFound();
+
+  if (conv.kind === "eval") redirect(`/chats/${conversationId}/trace`);
 
   const [agents, agent] = await Promise.all([
     fetchAgents(session.user.id),

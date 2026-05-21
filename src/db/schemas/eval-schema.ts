@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import { check, index, integer, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
 
 import { agent, agentVersion } from "./agent-schema";
+import { conversation } from "./chat-schema";
 
 export const agentEval = pgTable(
   "agent_eval",
@@ -42,6 +43,9 @@ export const agentEvalRun = pgTable(
     agentVersionId: text("agent_version_id").references(() => agentVersion.id, {
       onDelete: "set null",
     }),
+    conversationId: text("conversation_id").references(() => conversation.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     evalId: text("eval_id")
       .notNull()
@@ -56,6 +60,7 @@ export const agentEvalRun = pgTable(
     return [
       index("agent_eval_run_evalId_idx").on(table.evalId),
       index("agent_eval_run_runGroupId_idx").on(table.runGroupId),
+      index("agent_eval_run_conversationId_idx").on(table.conversationId),
       check("agent_eval_run_score_valid", sql`${table.score} >= 0 AND ${table.score} <= 1`),
     ];
   },
@@ -73,6 +78,10 @@ export const agentEvalRunRelations = relations(agentEvalRun, ({ one }) => {
     agentVersion: one(agentVersion, {
       fields: [agentEvalRun.agentVersionId],
       references: [agentVersion.id],
+    }),
+    conversation: one(conversation, {
+      fields: [agentEvalRun.conversationId],
+      references: [conversation.id],
     }),
     eval: one(agentEval, { fields: [agentEvalRun.evalId], references: [agentEval.id] }),
   };

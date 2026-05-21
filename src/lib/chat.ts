@@ -38,7 +38,7 @@ export const listRecentConversationsForUser = (
         })
         .from(conversation)
         .innerJoin(agent, and(eq(agent.id, conversation.agentId), eq(agent.userId, userId)))
-        .where(eq(conversation.userId, userId))
+        .where(and(eq(conversation.userId, userId), eq(conversation.kind, "chat")))
         .orderBy(desc(conversation.createdAt))
         .limit(limit);
     });
@@ -70,7 +70,13 @@ export const listConversationsForAgent = (
           title: conversation.title,
         })
         .from(conversation)
-        .where(and(eq(conversation.userId, userId), eq(conversation.agentId, agentId)))
+        .where(
+          and(
+            eq(conversation.userId, userId),
+            eq(conversation.agentId, agentId),
+            eq(conversation.kind, "chat"),
+          ),
+        )
         .orderBy(desc(conversation.createdAt))
         .limit(20);
     });
@@ -85,6 +91,7 @@ export const listConversationsForAgent = (
 export const createConversationWithFirstUserMessage = ({
   agentId,
   agentVersionId,
+  kind = "chat",
   modelId,
   title,
   userId,
@@ -92,6 +99,7 @@ export const createConversationWithFirstUserMessage = ({
 }: {
   agentId: string;
   agentVersionId?: null | string;
+  kind?: "chat" | "eval";
   modelId: string;
   title: string;
   userId: string;
@@ -114,9 +122,15 @@ export const createConversationWithFirstUserMessage = ({
 
     yield* runMutation(() => {
       return db.transaction(async (tx) => {
-        await tx
-          .insert(conversation)
-          .values({ agentId, agentVersionId: agentVersionId ?? null, id, modelId, title, userId });
+        await tx.insert(conversation).values({
+          agentId,
+          agentVersionId: agentVersionId ?? null,
+          id,
+          kind,
+          modelId,
+          title,
+          userId,
+        });
         await tx.insert(chatEvent).values({
           conversationId: id,
           eventType: "user-message",

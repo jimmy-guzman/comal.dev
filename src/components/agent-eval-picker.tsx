@@ -2,6 +2,7 @@
 
 import { CheckCircleIcon, ChevronDownIcon, LoaderIcon, PlayIcon, XCircleIcon } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -39,6 +40,7 @@ interface EvalSelection {
 
 interface EvalRunResult {
   aggregate?: EvalRunAggregate;
+  conversationId: string;
   output: string;
   rationale?: string;
   score: number;
@@ -79,6 +81,23 @@ const getRationale = (result: EvalRunResult | EvalRunSummary) => {
 
 const getAggregate = (result: EvalRunResult | EvalRunSummary) => {
   return isLiveResult(result) ? (result.aggregate ?? null) : result.lastRunAggregate;
+};
+
+const getConversationId = (result: EvalRunResult | EvalRunSummary) => {
+  return isLiveResult(result) ? result.conversationId : result.lastRunConversationId;
+};
+
+const TraceLink = ({ conversationId }: { conversationId: null | string }) => {
+  if (!conversationId) return null;
+
+  return (
+    <Link
+      className="text-muted-foreground hover:text-foreground w-fit text-xs underline"
+      href={`/chats/${conversationId}/trace`}
+    >
+      view trace
+    </Link>
+  );
 };
 
 const EvalRunBadge = ({ result }: { result: EvalRunResult | EvalRunSummary | null }) => {
@@ -132,6 +151,7 @@ const EvalRow = ({
     onSuccess: ({ data }) => {
       setRunResult({
         aggregate: "aggregate" in data ? data.aggregate : undefined,
+        conversationId: data.conversationId,
         output: data.output,
         rationale: "rationale" in data ? data.rationale : undefined,
         score: data.score,
@@ -288,24 +308,30 @@ const EvalRow = ({
                 <ol className="text-muted-foreground list-decimal pl-4 text-xs">
                   {aggregate.trials.map((trial) => {
                     return (
-                      <li className="break-words" key={trial.id}>
+                      <li className="flex flex-col gap-1 break-words" key={trial.id}>
                         <div className="text-xs">score {formatScore(trial.score)}</div>
                         <pre className="max-h-24 overflow-y-auto font-mono whitespace-pre-wrap">
                           {trial.output}
                         </pre>
+                        <TraceLink conversationId={trial.conversationId} />
                       </li>
                     );
                   })}
                 </ol>
               </div>
-            ) : output ? (
+            ) : (
               <div className="flex flex-col gap-1">
                 <span className="text-muted-foreground text-xs">output</span>
-                <pre className="max-h-32 overflow-y-auto font-mono text-xs break-words whitespace-pre-wrap">
-                  {output}
-                </pre>
+                {output ? (
+                  <pre className="max-h-32 overflow-y-auto font-mono text-xs break-words whitespace-pre-wrap">
+                    {output}
+                  </pre>
+                ) : (
+                  <span className="text-muted-foreground text-xs">(empty)</span>
+                )}
+                <TraceLink conversationId={getConversationId(result)} />
               </div>
-            ) : null}
+            )}
             {rationale ? (
               <div className="flex flex-col gap-1">
                 <span className="text-muted-foreground text-xs">rationale</span>

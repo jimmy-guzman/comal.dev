@@ -7,7 +7,7 @@ export const evalsRunMeta = {
   configSchema: noConfigSchema,
   defaultConfig: deepFreeze({}),
   description:
-    "Runs a single eval against the agent's current configuration and records the run with its score.",
+    "Runs a single eval against the agent's current configuration, records the run with its score, and saves its execution as a traceable conversation.",
   group: "evals",
   id: "evals-run",
   name: "Run eval",

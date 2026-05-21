@@ -1,6 +1,7 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   bigserial,
+  check,
   index,
   integer,
   jsonb,
@@ -24,6 +25,7 @@ export const conversation = pgTable(
     }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     id: text("id").primaryKey(),
+    kind: text("kind").default("chat").notNull(),
     modelId: text("model_id").notNull(),
     title: text("title").notNull(),
     updatedAt: timestamp("updated_at")
@@ -39,6 +41,8 @@ export const conversation = pgTable(
       index("conversation_userId_idx").on(table.userId),
       index("conversation_agentId_idx").on(table.agentId),
       index("conversation_createdAt_idx").on(table.createdAt),
+      index("conversation_kind_idx").on(table.kind),
+      check("conversation_kind_valid", sql`${table.kind} IN ('chat', 'eval')`),
     ];
   },
 );

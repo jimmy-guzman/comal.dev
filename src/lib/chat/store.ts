@@ -15,6 +15,7 @@ interface ConversationWithEvents {
   agentId: string;
   events: ChatEventRow[];
   id: string;
+  kind: string;
   modelId: string;
   title: string;
   userId: string;
@@ -81,6 +82,7 @@ export const getConversationWithEvents = (
       agentId: conv.agentId,
       events,
       id: conv.id,
+      kind: conv.kind,
       modelId: conv.modelId,
       title: conv.title,
       userId: conv.userId,
@@ -102,9 +104,11 @@ export interface TraceEventRow {
 }
 
 interface ConversationTrace {
+  agentId: string;
   conversationCreatedAt: Date;
   events: TraceEventRow[];
   id: string;
+  kind: string;
   modelId: string;
   title: string;
 }
@@ -150,9 +154,11 @@ export const getConversationTrace = (
     });
 
     return {
+      agentId: conv.agentId,
       conversationCreatedAt: conv.createdAt,
       events: eventRows,
       id: conv.id,
+      kind: conv.kind,
       modelId: conv.modelId,
       title: conv.title,
     };
@@ -216,7 +222,13 @@ export const listTracesForAgent = (
         })
         .from(chatEvent)
         .innerJoin(conversation, eq(conversation.id, chatEvent.conversationId))
-        .where(and(eq(conversation.agentId, agentId), eq(conversation.userId, userId)))
+        .where(
+          and(
+            eq(conversation.agentId, agentId),
+            eq(conversation.userId, userId),
+            eq(conversation.kind, "chat"),
+          ),
+        )
         .groupBy(chatEvent.conversationId)
         .having(
           cursor
