@@ -237,7 +237,7 @@ export const getEvalScoreTrend = (agentId: string) => {
         .innerJoin(agentVersion, eq(agentVersion.id, agentEvalRun.agentVersionId))
         .where(eq(agentVersion.agentId, agentId))
         .groupBy(agentVersion.id, agentVersion.createdAt)
-        .orderBy(agentVersion.createdAt);
+        .orderBy(agentVersion.createdAt, agentVersion.id);
     });
 
     return deriveEvalScoreTrend(rows);

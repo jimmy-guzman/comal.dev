@@ -35,7 +35,7 @@ const toChartRow = (point: EvalVersionScore) => {
 
 const listRegressions = (trend: EvalVersionScore[]) => {
   return trend.flatMap((point, index) => {
-    if (!point.isRegression) return [];
+    if (!point.isRegression || index === 0) return [];
 
     const previous = trend[index - 1];
 
