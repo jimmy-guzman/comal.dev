@@ -8,6 +8,7 @@ import type { TraceStep } from "@/lib/chat/trace";
 import { JsonViewer } from "@/components/json-viewer";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { formatMicrodollars } from "@/lib/format-cost";
 import { SUBAGENT_PREFIX } from "@/lib/subagent-prefix";
 import { cn } from "@/lib/utils";
 
@@ -182,12 +183,12 @@ function TokenUsageDisplay({ step }: { step: TraceStep }) {
 
   const parts: string[] = [];
 
-  if (step.tokenUsage.promptTokens !== undefined) {
-    parts.push(`prompt tokens: ${step.tokenUsage.promptTokens.toLocaleString()}`);
+  if (step.tokenUsage.inputTokens !== undefined) {
+    parts.push(`input tokens: ${step.tokenUsage.inputTokens.toLocaleString()}`);
   }
 
-  if (step.tokenUsage.completionTokens !== undefined) {
-    parts.push(`completion tokens: ${step.tokenUsage.completionTokens.toLocaleString()}`);
+  if (step.tokenUsage.outputTokens !== undefined) {
+    parts.push(`output tokens: ${step.tokenUsage.outputTokens.toLocaleString()}`);
   }
 
   if (step.tokenUsage.totalTokens !== undefined) {
@@ -264,6 +265,12 @@ export function TraceStepCard({ step }: { step: TraceStep }) {
           {step.durationMs !== null && (
             <span className="text-muted-foreground font-mono text-xs">
               {formatDuration(step.durationMs)}
+            </span>
+          )}
+
+          {step.costMicrodollars !== null && (
+            <span className="text-muted-foreground font-mono text-xs">
+              {formatMicrodollars(step.costMicrodollars)}
             </span>
           )}
         </div>

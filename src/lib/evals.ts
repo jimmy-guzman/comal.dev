@@ -302,6 +302,7 @@ interface EvalRunInsert {
   rationale?: null | string;
   runGroupId?: null | string;
   score: number;
+  suiteRunId?: null | string;
 }
 
 export const createEvalRun = (input: EvalRunInsert) => {
@@ -318,6 +319,7 @@ export const createEvalRun = (input: EvalRunInsert) => {
         rationale: input.rationale ?? null,
         runGroupId: input.runGroupId ?? null,
         score: input.score,
+        suiteRunId: input.suiteRunId ?? null,
       });
     });
   });
@@ -339,6 +341,7 @@ export const createEvalRuns = (inputs: EvalRunInsert[]) => {
         rationale: input.rationale ?? null,
         runGroupId: input.runGroupId ?? null,
         score: input.score,
+        suiteRunId: input.suiteRunId ?? null,
       };
     });
 

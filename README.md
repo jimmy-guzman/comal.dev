@@ -126,6 +126,7 @@ erDiagram
 - Version history: every config change snapshots the agent, with a diff viewer and revert to any point
 - Evals: attach input/expected pairs to an agent, pick a scorer (contains, exact, Levenshtein, or an LLM judge), and run them one at a time or as a full suite to track how well the agent performs. Save an assistant reply as a new eval directly from the chat.
 - Execution traces: every conversation has a step-by-step trace view with tool inputs and outputs, timing, token usage, cost, and nested sub-agent steps
+- Cost dashboard: a per-agent view of spend by model, by conversation, and over time, plus average cost per turn and cost per eval suite run, with a 30/90/all-time range toggle
 - Conversations list at `/chats` with per-agent filtering
 - Conversational agent management via Comal, a system agent that can create and configure agents through chat
 
@@ -149,6 +150,10 @@ Built-in tools you can attach to an agent, grouped as they appear in the registr
 ### Core
 
 - **Current time**: returns the current date and time in the user's timezone.
+
+### Cost
+
+- **Summarize agent cost**: returns an agent's chat spend with totals, average cost per turn, a per-model breakdown, and the costliest conversations.
 
 ### Evals
 

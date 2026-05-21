@@ -31,7 +31,7 @@ const SUITE_CONCURRENCY = 3;
  * recorded as a run (empty output, score 0) so it can be inspected. Pre-stream
  * failures (eval/agent not found, validation) surface as typed errors.
  */
-export const runEval = (evalId: string, userId: string) => {
+export const runEval = (evalId: string, userId: string, suiteRunId: null | string = null) => {
   return Effect.gen(function* () {
     const evalRow = yield* getEvalWithOwnership(evalId, userId);
     const agentConfig = yield* loadAgent(evalRow.agentId, userId);
@@ -123,6 +123,7 @@ export const runEval = (evalId: string, userId: string) => {
         output: trial.output,
         rationale: judgment.rationale,
         score: judgment.score,
+        suiteRunId,
       });
 
       return {
@@ -177,6 +178,7 @@ export const runEval = (evalId: string, userId: string) => {
           output: outcome.output,
           runGroupId,
           score: outcome.score,
+          suiteRunId,
         };
       }),
     );
@@ -233,13 +235,14 @@ const failureMessage = (cause: Cause.Cause<RunEvalError>) => {
  * Runs every eval an agent owns, capped at {@link SUITE_CONCURRENCY} in flight by
  * an es-toolkit `Semaphore`. Each eval goes through {@link runEval}, so it gets
  * its own traced `kind="eval"` conversation. One failing eval never fails the
- * suite: its result entry carries an `error` instead. `runGroupId` is a
- * correlation handle for the invocation and is not written onto the run rows.
+ * suite: its result entry carries an `error` instead. `suiteRunId` is minted per
+ * invocation and written onto every run row through {@link runEval}, so a suite
+ * run's total cost is queryable.
  */
 export const runEvalSuite = async (
   agentId: string,
   userId: string,
-): Promise<{ results: SuiteEvalResult[]; runGroupId: string }> => {
+): Promise<{ results: SuiteEvalResult[]; suiteRunId: string }> => {
   const loaded = await appRuntime.runPromiseExit(getAgentForUser(agentId, userId));
 
   if (Exit.isFailure(loaded)) {
@@ -252,7 +255,7 @@ export const runEvalSuite = async (
     throw new Error("Failed to load the agent for the eval suite.");
   }
 
-  const runGroupId = nanoid();
+  const suiteRunId = nanoid();
   const gate = new Semaphore(SUITE_CONCURRENCY);
 
   const results = await Promise.all(
@@ -260,7 +263,7 @@ export const runEvalSuite = async (
       await gate.acquire();
 
       try {
-        const exit = await appRuntime.runPromiseExit(runEval(evalRow.id, userId));
+        const exit = await appRuntime.runPromiseExit(runEval(evalRow.id, userId, suiteRunId));
 
         if (Exit.isSuccess(exit)) {
           return { evalId: evalRow.id, name: evalRow.name, ...exit.value };
@@ -273,5 +276,5 @@ export const runEvalSuite = async (
     }),
   );
 
-  return { results, runGroupId };
+  return { results, suiteRunId };
 };

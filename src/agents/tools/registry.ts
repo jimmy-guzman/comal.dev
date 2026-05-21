@@ -11,6 +11,7 @@ import { agentsListMeta } from "./agents/list.meta";
 import { agentsRevertToVersionMeta } from "./agents/revert-to-version.meta";
 import { agentsUpdateMeta } from "./agents/update.meta";
 import { coreNowMeta } from "./core/now.meta";
+import { costSummaryMeta } from "./cost/summary.meta";
 import { evalsCreateMeta } from "./evals/create.meta";
 import { evalsDeleteMeta } from "./evals/delete.meta";
 import { evalsGetHistoryMeta } from "./evals/get-history.meta";
@@ -45,6 +46,7 @@ const metadata = Object.freeze([
   Object.freeze(agentsRevertToVersionMeta),
   Object.freeze(agentsUpdateMeta),
   Object.freeze(coreNowMeta),
+  Object.freeze(costSummaryMeta),
   Object.freeze(evalsCreateMeta),
   Object.freeze(evalsDeleteMeta),
   Object.freeze(evalsGetHistoryMeta),

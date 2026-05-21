@@ -116,8 +116,8 @@ const lookupPricing = async (modelId: string): Promise<null | PricingEntry> => {
 };
 
 interface TotalUsage {
-  completionTokens?: number;
-  promptTokens?: number;
+  inputTokens?: number;
+  outputTokens?: number;
 }
 
 const computeCostMicrodollars = async (
@@ -126,22 +126,22 @@ const computeCostMicrodollars = async (
 ): Promise<null | number> => {
   if (!modelId) return null;
 
-  const promptTokens = Math.max(
+  const inputTokens = Math.max(
     0,
-    Number.isFinite(totalUsage.promptTokens) ? (totalUsage.promptTokens ?? 0) : 0,
+    Number.isFinite(totalUsage.inputTokens) ? (totalUsage.inputTokens ?? 0) : 0,
   );
-  const completionTokens = Math.max(
+  const outputTokens = Math.max(
     0,
-    Number.isFinite(totalUsage.completionTokens) ? (totalUsage.completionTokens ?? 0) : 0,
+    Number.isFinite(totalUsage.outputTokens) ? (totalUsage.outputTokens ?? 0) : 0,
   );
 
-  if (promptTokens === 0 && completionTokens === 0) return null;
+  if (inputTokens === 0 && outputTokens === 0) return null;
 
   const pricing = await lookupPricing(modelId);
 
   if (!pricing) return null;
 
-  return Math.round(promptTokens * pricing.inputCost + completionTokens * pricing.outputCost);
+  return Math.round(inputTokens * pricing.inputCost + outputTokens * pricing.outputCost);
 };
 
 const persistChatEvent = (args: AppendChatEventArgs) => {

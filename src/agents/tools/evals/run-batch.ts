@@ -9,7 +9,7 @@ import type { ToolContext } from "../types";
 export const buildEvalsRunBatch = (_config: unknown, context: ToolContext) => {
   return tool({
     description:
-      "Run every eval for an agent in one batch (up to 3 at a time) and record each run with its score. Returns a runGroupId for the batch and one result per eval: score, output, and (for llm-judge) rationale; an eval that errors carries an error message instead.",
+      "Run every eval for an agent in one batch (up to 3 at a time) and record each run with its score. Returns a suiteRunId for the batch and one result per eval: score, output, and (for llm-judge) rationale; an eval that errors carries an error message instead.",
     execute: async ({ agentId }) => {
       try {
         return await runEvalSuite(agentId, context.userId);

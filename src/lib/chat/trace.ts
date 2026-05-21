@@ -4,6 +4,7 @@ import type { TraceEventRow } from "./store";
 
 export interface TraceStep {
   children: TraceStep[];
+  costMicrodollars: null | number;
   durationMs: null | number;
   endedAt: Date | null;
   eventType: string;
@@ -28,8 +29,8 @@ interface TraceTool {
 }
 
 interface TraceTokenUsage {
-  completionTokens?: number;
-  promptTokens?: number;
+  inputTokens?: number;
+  outputTokens?: number;
   totalTokens?: number;
 }
 
@@ -66,8 +67,8 @@ const parseTokenUsage = (payload: unknown): null | TraceTokenUsage => {
   const u = usage as Record<string, unknown>;
 
   return {
-    completionTokens: typeof u.completionTokens === "number" ? u.completionTokens : undefined,
-    promptTokens: typeof u.promptTokens === "number" ? u.promptTokens : undefined,
+    inputTokens: typeof u.inputTokens === "number" ? u.inputTokens : undefined,
+    outputTokens: typeof u.outputTokens === "number" ? u.outputTokens : undefined,
     totalTokens: typeof u.totalTokens === "number" ? u.totalTokens : undefined,
   };
 };
@@ -139,6 +140,7 @@ const projectStepsFromEvents = (events: TraceEventRow[], conversationStart: Date
 
         const step: TraceStep = {
           children: [],
+          costMicrodollars: event.costMicrodollars,
           durationMs: null,
           endedAt: null,
           eventType: event.eventType,
@@ -228,6 +230,7 @@ const projectStepsFromEvents = (events: TraceEventRow[], conversationStart: Date
       default: {
         steps.push({
           children: [],
+          costMicrodollars: event.costMicrodollars,
           durationMs: computeDuration(event),
           endedAt: event.endedAt,
           eventType: event.eventType,
