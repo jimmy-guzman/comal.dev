@@ -10,7 +10,10 @@ interface Props {
   agentId: string;
 }
 
-const NAV_ITEMS = [{ label: "overview", segment: null }] as const;
+const NAV_ITEMS = [
+  { label: "overview", segment: null },
+  { label: "cost", segment: "cost" },
+] as const;
 
 const CONFIG_ITEMS = [
   { label: "basics", segment: "basics" },

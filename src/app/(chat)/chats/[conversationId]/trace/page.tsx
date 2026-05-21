@@ -9,6 +9,7 @@ import { appRuntime } from "@/db/service";
 import { auth } from "@/lib/auth";
 import { getConversationTrace } from "@/lib/chat/store";
 import { projectTrace } from "@/lib/chat/trace";
+import { formatMicrodollars } from "@/lib/format-cost";
 
 interface Props {
   params: Promise<{ conversationId: string }>;
@@ -32,6 +33,10 @@ export default async function TracePage({ params }: Props) {
 
   const steps = projectTrace(trace.events, trace.conversationCreatedAt);
 
+  const totalCostMicrodollars = trace.events.reduce((sum, event) => {
+    return sum + (event.costMicrodollars ?? 0);
+  }, 0);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <main className="px-safe-or-4 min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
@@ -45,9 +50,12 @@ export default async function TracePage({ params }: Props) {
             <ArrowLeftIcon className="size-3" />
             {trace.title}
           </Link>
-          <span className="text-muted-foreground ml-auto text-xs">
-            {trace.events.length} events
-          </span>
+          <div className="text-muted-foreground ml-auto flex items-center gap-3 text-xs">
+            {totalCostMicrodollars > 0 && (
+              <span className="font-mono">{formatMicrodollars(totalCostMicrodollars)}</span>
+            )}
+            <span>{trace.events.length} events</span>
+          </div>
         </div>
         <TraceTimeline steps={steps} />
       </main>

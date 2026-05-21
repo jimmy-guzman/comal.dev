@@ -91,6 +91,7 @@ export const getConversationWithEvents = (
 };
 
 export interface TraceEventRow {
+  costMicrodollars: null | number;
   createdAt: Date;
   endedAt: Date | null;
   eventType: string;
@@ -137,6 +138,7 @@ export const getConversationTrace = (
     const eventRows = yield* runQuery(() => {
       return db
         .select({
+          costMicrodollars: chatEvent.costMicrodollars,
           createdAt: chatEvent.createdAt,
           endedAt: chatEvent.endedAt,
           eventType: chatEvent.eventType,

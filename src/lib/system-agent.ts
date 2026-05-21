@@ -30,6 +30,7 @@ const SYSTEM_AGENT_TOOLS = [
   "evals-get-history",
   "traces-list-for-agent",
   "traces-get",
+  "cost-summary",
   "web-search",
   "web-fetch",
   "core-now",

@@ -13,7 +13,10 @@ interface Props {
   agentId: string;
 }
 
-const NAV_ITEMS = [{ label: "overview", segment: null }] as const;
+const NAV_ITEMS = [
+  { label: "overview", segment: null },
+  { label: "cost", segment: "cost" },
+] as const;
 
 const CONFIG_ITEMS = [
   { label: "basics", segment: "basics" },
@@ -59,7 +62,9 @@ export const AgentSettingsMobileNav = ({ agentId }: Props) => {
                 size="sm"
                 variant={segment === s ? "secondary" : "ghost"}
               >
-                <Link href={`/agents/${agentId}`}>{label}</Link>
+                <Link href={s === null ? `/agents/${agentId}` : `/agents/${agentId}/${s}`}>
+                  {label}
+                </Link>
               </Button>
             );
           })}
