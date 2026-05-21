@@ -120,6 +120,7 @@ export const AgentEvalsForm = ({ agentId, evalRuns, initialEvals }: Props) => {
                 test cases for your agent. each eval sends a fixed input and checks the response.
               </FieldDescription>
               <AgentEvalPicker
+                agentId={agentId}
                 initialRuns={evalRuns}
                 isEdit
                 onChange={(next) => {

@@ -14,6 +14,7 @@ import { coreNowMeta } from "./core/now.meta";
 import { evalsCreateMeta } from "./evals/create.meta";
 import { evalsDeleteMeta } from "./evals/delete.meta";
 import { evalsListMeta } from "./evals/list.meta";
+import { evalsRunBatchMeta } from "./evals/run-batch.meta";
 import { evalsRunMeta } from "./evals/run.meta";
 import { evalsUpdateMeta } from "./evals/update.meta";
 import { githubReadMeta } from "./github/read.meta";
@@ -46,6 +47,7 @@ const metadata = Object.freeze([
   Object.freeze(evalsCreateMeta),
   Object.freeze(evalsDeleteMeta),
   Object.freeze(evalsListMeta),
+  Object.freeze(evalsRunBatchMeta),
   Object.freeze(evalsRunMeta),
   Object.freeze(evalsUpdateMeta),
   Object.freeze(githubReadMeta),

@@ -1,19 +1,24 @@
 import { stepCountIs, streamText } from "ai";
-import { Effect } from "effect";
+import { Cause, Effect, Exit, Option } from "effect";
+import { Semaphore } from "es-toolkit";
 import { nanoid } from "nanoid";
 
 import type { ChatStreamContext } from "@/lib/chat/stream-context";
 import type { EvalRunTrial } from "@/lib/evals";
 
 import { loadAgent } from "@/agents";
+import { appRuntime } from "@/db/service";
+import { getAgentForUser } from "@/lib/agents";
 import { createConversationWithFirstUserMessage } from "@/lib/chat";
 import { persistChatStream } from "@/lib/chat/persist-stream";
-import { LLMError, ValidationError } from "@/lib/errors";
+import { LLMError, NotFoundError, ValidationError } from "@/lib/errors";
 import { isStringScorer, scoreEval, scoreEvalLLM } from "@/lib/eval-scorer";
 import { createEvalRun, createEvalRuns, getEvalWithOwnership } from "@/lib/evals";
 import { openrouter } from "@/lib/openrouter";
 
 const MAX_OUTPUT_TOKENS = 2048;
+
+const SUITE_CONCURRENCY = 3;
 
 /**
  * Runs an eval against its agent's current configuration through the streaming
@@ -201,4 +206,68 @@ export const runEval = (evalId: string, userId: string) => {
       score: mean,
     };
   });
+};
+
+type RunEvalError = Effect.Effect.Error<ReturnType<typeof runEval>>;
+type RunEvalOutcome = Effect.Effect.Success<ReturnType<typeof runEval>>;
+
+type SuiteEvalResult =
+  | (RunEvalOutcome & { evalId: string; name: string })
+  | { error: string; evalId: string; name: string };
+
+const failureMessage = (cause: Cause.Cause<RunEvalError>) => {
+  const failure = Cause.failureOption(cause);
+
+  if (Option.isNone(failure)) return "The eval failed to run.";
+
+  const error = failure.value;
+
+  return error._tag === "NotFoundError" ? "Eval or agent not found." : error.message;
+};
+
+/**
+ * Runs every eval an agent owns, capped at {@link SUITE_CONCURRENCY} in flight by
+ * an es-toolkit `Semaphore`. Each eval goes through {@link runEval}, so it gets
+ * its own traced `kind="eval"` conversation. One failing eval never fails the
+ * suite: its result entry carries an `error` instead. `runGroupId` is a
+ * correlation handle for the invocation and is not written onto the run rows.
+ */
+export const runEvalSuite = async (
+  agentId: string,
+  userId: string,
+): Promise<{ results: SuiteEvalResult[]; runGroupId: string }> => {
+  const loaded = await appRuntime.runPromiseExit(getAgentForUser(agentId, userId));
+
+  if (Exit.isFailure(loaded)) {
+    const failure = Cause.failureOption(loaded.cause);
+
+    if (Option.isSome(failure) && failure.value._tag === "NotFoundError") {
+      throw new NotFoundError({ resource: "agent" });
+    }
+
+    throw new Error("Failed to load the agent for the eval suite.");
+  }
+
+  const runGroupId = nanoid();
+  const gate = new Semaphore(SUITE_CONCURRENCY);
+
+  const results = await Promise.all(
+    loaded.value.evals.map(async (evalRow): Promise<SuiteEvalResult> => {
+      await gate.acquire();
+
+      try {
+        const exit = await appRuntime.runPromiseExit(runEval(evalRow.id, userId));
+
+        if (Exit.isSuccess(exit)) {
+          return { evalId: evalRow.id, name: evalRow.name, ...exit.value };
+        }
+
+        return { error: failureMessage(exit.cause), evalId: evalRow.id, name: evalRow.name };
+      } finally {
+        gate.release();
+      }
+    }),
+  );
+
+  return { results, runGroupId };
 };

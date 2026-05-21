@@ -124,7 +124,7 @@ erDiagram
 - Conversation history with per-conversation model switching
 - Sub-agents: let an agent call other agents you own as tools, with full inner traces persisted and viewable on reload
 - Version history: every config change snapshots the agent, with a diff viewer and revert to any point
-- Evals: attach input/expected pairs to an agent, pick a scorer (contains, exact, Levenshtein, or an LLM judge), and run them on demand to track how well the agent performs. Save an assistant reply as a new eval directly from the chat.
+- Evals: attach input/expected pairs to an agent, pick a scorer (contains, exact, Levenshtein, or an LLM judge), and run them one at a time or as a full suite to track how well the agent performs. Save an assistant reply as a new eval directly from the chat.
 - Execution traces: every conversation has a step-by-step trace view with tool inputs and outputs, timing, token usage, cost, and nested sub-agent steps
 - Conversations list at `/chats` with per-agent filtering
 - Conversational agent management via Comal, a system agent that can create and configure agents through chat
@@ -157,6 +157,7 @@ Built-in tools you can attach to an agent, grouped as they appear in the registr
 - **Delete eval**: removes an eval and snapshots a new version.
 - **List evals**: lists an agent's evals with their latest run summaries.
 - **Run eval**: runs one eval against the agent's current configuration and records the score.
+- **Run eval suite**: runs every eval for an agent in one batch (up to 3 at a time) and records each score.
 
 ### GitHub
 
