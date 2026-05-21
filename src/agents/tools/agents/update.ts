@@ -1,12 +1,11 @@
 import { tool } from "ai";
-import { Effect, Exit } from "effect";
+import { Exit } from "effect";
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { MODEL_IDS } from "@/config/models";
 import { appRuntime } from "@/db/service";
-import { detectCycle } from "@/lib/agent-graph";
-import { listOwnedAgentIds, listOwnerSubAgentEdges, updateAgent } from "@/lib/agents";
+import { listOwnedAgentIds, updateAgent } from "@/lib/agents";
 
 import type { ToolContext } from "../types";
 
@@ -82,38 +81,14 @@ export const buildAgentsUpdate = (_config: unknown, context: ToolContext) => {
 
         const childIds = resolvedSubAgents.map((s) => s.childAgentId);
 
-        const validation = await appRuntime.runPromise(
-          Effect.all({
-            edges: listOwnerSubAgentEdges(context.userId),
-            owned: listOwnedAgentIds(context.userId, childIds),
-          }),
-        );
+        const owned = await appRuntime.runPromise(listOwnedAgentIds(context.userId, childIds));
 
-        const ownedIds = new Set(validation.owned.map((row) => row.id));
+        const ownedIds = new Set(owned.map((row) => row.id));
 
         for (const sub of resolvedSubAgents) {
           if (!ownedIds.has(sub.childAgentId)) {
             return { error: `Sub-agent "${sub.childAgentId}" not found or not owned by you.` };
           }
-        }
-
-        const edgeMap = new Map<string, string[]>();
-
-        for (const edge of validation.edges) {
-          if (edge.parentAgentId === agentId) continue;
-
-          const list = edgeMap.get(edge.parentAgentId) ?? [];
-
-          list.push(edge.childAgentId);
-          edgeMap.set(edge.parentAgentId, list);
-        }
-
-        edgeMap.set(agentId, childIds);
-
-        const cycle = detectCycle(edgeMap, agentId);
-
-        if (cycle) {
-          return { error: `Sub-agent selection would create a cycle: ${cycle.join(" -> ")}.` };
         }
       }
 
@@ -134,11 +109,16 @@ export const buildAgentsUpdate = (_config: unknown, context: ToolContext) => {
       if (Exit.isFailure(exit)) {
         const { cause } = exit;
 
-        if (
-          cause._tag === "Fail" &&
-          (cause.error._tag === "NotFoundError" || cause.error._tag === "ForbiddenError")
-        ) {
-          return { error: "Agent not found, not owned by you, or a system agent." };
+        if (cause._tag === "Fail") {
+          if (cause.error._tag === "AgentCycleError") {
+            return {
+              error: `Sub-agent selection would create a cycle: ${cause.error.cycle.join(" -> ")}.`,
+            };
+          }
+
+          if (cause.error._tag === "NotFoundError" || cause.error._tag === "ForbiddenError") {
+            return { error: "Agent not found, not owned by you, or a system agent." };
+          }
         }
 
         return { error: "Failed to update agent." };

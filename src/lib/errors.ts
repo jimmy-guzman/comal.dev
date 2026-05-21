@@ -26,3 +26,7 @@ export class ValidationError extends Data.TaggedError("ValidationError")<{
   cause?: unknown;
   message: string;
 }> {}
+
+export class AgentCycleError extends Data.TaggedError("AgentCycleError")<{
+  cycle: string[];
+}> {}

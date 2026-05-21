@@ -8,7 +8,8 @@ import { agent, agentSubagent, agentTool, agentVersion } from "@/db/schemas/agen
 import { user } from "@/db/schemas/auth-schema";
 import { agentEval } from "@/db/schemas/eval-schema";
 import { Database, runMutation, runQuery } from "@/db/service";
-import { ForbiddenError, NotFoundError } from "@/lib/errors";
+import { detectSubAgentCycle } from "@/lib/agent-graph";
+import { AgentCycleError, ForbiddenError, NotFoundError } from "@/lib/errors";
 
 interface AgentToolInput {
   config: unknown;
@@ -242,18 +243,24 @@ export const updateAgent = (agentId: string, userId: string, patch: AgentPatch) 
 
     const outcome = yield* runMutation(() => {
       return db.transaction(async (tx) => {
-        const lockedRows = await tx
+        const ownerAgents = await tx
           .select()
           .from(agent)
-          .where(eq(agent.id, agentId))
-          .for("update")
-          .limit(1);
+          .where(eq(agent.userId, userId))
+          .orderBy(agent.id)
+          .for("update");
 
-        const row = lockedRows.at(0);
+        const row = ownerAgents.find((ownerAgent) => ownerAgent.id === agentId);
 
-        if (!row) return "not-found" as const;
+        if (!row) {
+          const existing = await tx
+            .select({ id: agent.id })
+            .from(agent)
+            .where(eq(agent.id, agentId))
+            .limit(1);
 
-        if (row.userId !== userId) return "forbidden" as const;
+          return existing.length > 0 ? ("forbidden" as const) : ("not-found" as const);
+        }
 
         if (row.isSystem) return "forbidden" as const;
 
@@ -303,6 +310,23 @@ export const updateAgent = (agentId: string, userId: string, patch: AgentPatch) 
           systemPrompt: row.systemPrompt,
           tools,
         });
+
+        const ownerEdges = await tx
+          .select({
+            childAgentId: agentSubagent.childAgentId,
+            parentAgentId: agentSubagent.parentAgentId,
+          })
+          .from(agentSubagent)
+          .innerJoin(agent, eq(agent.id, agentSubagent.parentAgentId))
+          .where(eq(agent.userId, userId));
+
+        const cycle = detectSubAgentCycle(
+          ownerEdges,
+          agentId,
+          input.subAgents.map((subAgent) => subAgent.childAgentId),
+        );
+
+        if (cycle) return { cycle } as const;
 
         await tx.insert(agentVersion).values({
           agentId,
@@ -401,6 +425,10 @@ export const updateAgent = (agentId: string, userId: string, patch: AgentPatch) 
 
     if (outcome === "forbidden") {
       yield* Effect.fail(new ForbiddenError());
+    }
+
+    if (typeof outcome === "object") {
+      yield* Effect.fail(new AgentCycleError({ cycle: outcome.cycle }));
     }
   });
 };
