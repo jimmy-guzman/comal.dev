@@ -18,7 +18,6 @@ interface ModelCost {
 
 interface ConversationCost {
   conversationId: string;
-  lastEventAt: Date;
   microdollars: number;
   title: string;
   turnCount: number;
@@ -96,7 +95,6 @@ export const getAgentCostRollup = (
       return db
         .select({
           conversationId: chatEvent.conversationId,
-          lastEventAt: sql<Date>`max(${chatEvent.createdAt})`.as("last_event_at"),
           microdollars: sql<number>`coalesce(sum(${chatEvent.costMicrodollars}), 0)::int`.as(
             "microdollars",
           ),
@@ -222,7 +220,7 @@ export const getEvalSuiteRunCosts = (
       suiteRuns: suiteRows.flatMap((row) => {
         if (row.suiteRunId === null) return [];
 
-        return [{ ...row, suiteRunId: row.suiteRunId }];
+        return [{ ...row, ranAt: new Date(row.ranAt), suiteRunId: row.suiteRunId }];
       }),
       totalMicrodollars: totalRows[0]?.microdollars ?? 0,
     };
