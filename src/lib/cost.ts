@@ -191,6 +191,7 @@ export const getEvalSuiteRunCosts = (
     const suiteFilters = [
       eq(conversation.agentId, agentId),
       eq(conversation.userId, userId),
+      eq(conversation.kind, "eval"),
       eq(chatEvent.eventType, "assistant-turn-finish"),
       isNotNull(agentEvalRun.suiteRunId),
     ];
