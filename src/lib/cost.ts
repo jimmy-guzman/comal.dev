@@ -195,7 +195,7 @@ export const getEvalSuiteRunCosts = (
       isNotNull(agentEvalRun.suiteRunId),
     ];
 
-    if (options.since) suiteFilters.push(gte(agentEvalRun.createdAt, options.since));
+    if (options.since) suiteFilters.push(gte(chatEvent.createdAt, options.since));
 
     const suiteRows = yield* runQuery(() => {
       return db
