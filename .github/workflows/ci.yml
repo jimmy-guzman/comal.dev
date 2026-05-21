@@ -27,8 +27,8 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.13
-      - name: Cache bun dependencies
-        uses: actions/cache@v4
+      - name: Restore bun dependency cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
