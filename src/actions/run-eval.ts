@@ -21,7 +21,7 @@ export const runEvalAction = authClient
           throw new NotFoundError({ resource: "eval" });
         }
 
-        if (cause.error._tag === "ValidationError") {
+        if (cause.error._tag === "ValidationError" || cause.error._tag === "LLMError") {
           throw new Error(cause.error.message);
         }
       }
