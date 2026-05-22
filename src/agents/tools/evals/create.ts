@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { appRuntime } from "@/db/service";
 import { updateAgent } from "@/lib/agents";
-import { SCORER_OPTIONS, STRING_SCORERS } from "@/lib/eval-input-schema";
+import { OUTPUT_SCORER_OPTIONS, STRING_SCORERS } from "@/lib/eval-input-schema";
 
 import type { ToolContext } from "../types";
 
@@ -71,7 +71,7 @@ export const buildEvalsCreate = (_config: unknown, context: ToolContext) => {
       input: z.string().min(1).max(10_000).describe("The user input prompt to evaluate."),
       name: z.string().min(1).max(200).describe("A short name for the eval."),
       scorer: z
-        .enum(SCORER_OPTIONS)
+        .enum(OUTPUT_SCORER_OPTIONS)
         .describe("The scorer: exact, contains, levenshtein, or llm-judge."),
       trials: z
         .number()

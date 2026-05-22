@@ -1,5 +1,7 @@
 import { relations, sql } from "drizzle-orm";
-import { check, index, integer, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
+import { check, index, integer, jsonb, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
+
+import type { ToolCallAssertion } from "@/lib/eval-input-schema";
 
 import { agent, agentVersion } from "./agent-schema";
 import { conversation } from "./chat-schema";
@@ -10,6 +12,7 @@ export const agentEval = pgTable(
     agentId: text("agent_id")
       .notNull()
       .references(() => agent.id, { onDelete: "cascade" }),
+    assertion: jsonb("assertion").$type<ToolCallAssertion>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     expected: text("expected"),
     id: text("id").primaryKey(),
@@ -27,11 +30,11 @@ export const agentEval = pgTable(
       index("agent_eval_agentId_idx").on(table.agentId),
       check(
         "agent_eval_scorer_valid",
-        sql`${table.scorer} IN ('contains', 'exact', 'levenshtein', 'llm-judge')`,
+        sql`${table.scorer} IN ('contains', 'exact', 'levenshtein', 'llm-judge', 'tool-call')`,
       ),
       check(
         "agent_eval_trials_valid",
-        sql`(${table.scorer} = 'llm-judge' AND ${table.trials} = 1) OR (${table.scorer} <> 'llm-judge' AND ${table.trials} >= 1 AND ${table.trials} <= 10)`,
+        sql`(${table.scorer} IN ('llm-judge', 'tool-call') AND ${table.trials} = 1) OR (${table.scorer} NOT IN ('llm-judge', 'tool-call') AND ${table.trials} >= 1 AND ${table.trials} <= 10)`,
       ),
     ];
   },

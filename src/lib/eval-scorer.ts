@@ -1,8 +1,12 @@
 import { generateText, Output } from "ai";
+import { isEqual } from "es-toolkit";
 import { z } from "zod";
+
+import type { ToolCallAssertion } from "@/lib/eval-input-schema";
 
 import { JUDGE_MODEL_ID } from "@/lib/eval-input-schema";
 import { openrouter } from "@/lib/openrouter";
+import { SUBAGENT_PREFIX } from "@/lib/subagent-prefix";
 
 export type StringScorer = "contains" | "exact" | "levenshtein";
 
@@ -84,6 +88,65 @@ export const scoreEval = (scorer: StringScorer, output: string, expected: string
   const distance = levenshteinDistance(trimmedOutput, trimmedExpected);
 
   return 1 - distance / maxLen;
+};
+
+export interface ToolCallRecord {
+  input: unknown;
+  toolName: string;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === "object" && value !== null;
+};
+
+const displayToolName = (toolName: string) => {
+  return toolName.startsWith(SUBAGENT_PREFIX)
+    ? `${toolName.slice(SUBAGENT_PREFIX.length)} (sub-agent)`
+    : toolName;
+};
+
+const matchesArgs = (input: unknown, expected: Record<string, unknown>) => {
+  if (!isRecord(input)) return false;
+
+  return Object.entries(expected).every(([key, value]) => {
+    return isEqual(input[key], value);
+  });
+};
+
+export const scoreToolCall = (
+  assertion: ToolCallAssertion,
+  calls: ToolCallRecord[],
+): { rationale: string; score: number } => {
+  const checks: { label: string; ok: boolean }[] = [];
+  const called = new Set(calls.map((call) => call.toolName));
+
+  for (const tool of assertion.mustCall ?? []) {
+    checks.push({ label: `must call ${displayToolName(tool)}`, ok: called.has(tool) });
+  }
+
+  for (const tool of assertion.mustNotCall ?? []) {
+    checks.push({ label: `must not call ${displayToolName(tool)}`, ok: !called.has(tool) });
+  }
+
+  for (const { argsMatch, tool } of assertion.mustCallWithArgs ?? []) {
+    const ok = calls.some((call) => {
+      return call.toolName === tool && matchesArgs(call.input, argsMatch);
+    });
+
+    checks.push({ label: `must call ${displayToolName(tool)} with matching args`, ok });
+  }
+
+  if (checks.length === 0) {
+    return { rationale: "No tool-call constraints.", score: 1 };
+  }
+
+  const passed = checks.filter((check) => check.ok).length;
+  const lines = checks.map((check) => `${check.ok ? "✓" : "✗"} ${check.label}`);
+
+  return {
+    rationale: [`${passed}/${checks.length} tool-call constraints met.`, ...lines].join("\n"),
+    score: passed / checks.length,
+  };
 };
 
 export const scoreEvalLLM = async (

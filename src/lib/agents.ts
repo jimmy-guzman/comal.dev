@@ -2,7 +2,7 @@ import { and, desc, eq, getTableColumns, inArray, notInArray } from "drizzle-orm
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
 
-import type { Scorer } from "@/lib/eval-input-schema";
+import type { Scorer, ToolCallAssertion } from "@/lib/eval-input-schema";
 
 import { agent, agentSubagent, agentTool, agentVersion } from "@/db/schemas/agent-schema";
 import { user } from "@/db/schemas/auth-schema";
@@ -23,6 +23,7 @@ interface AgentSubAgentInput {
 }
 
 interface AgentEvalInput {
+  assertion?: ToolCallAssertion;
   expected?: string;
   id?: string;
   input: string;
@@ -104,6 +105,7 @@ export const getAgentForUser = (agentId: string, userId: string) => {
         runQuery(() => {
           return db
             .select({
+              assertion: agentEval.assertion,
               expected: agentEval.expected,
               id: agentEval.id,
               input: agentEval.input,
@@ -155,8 +157,9 @@ const buildVersionSubAgents = (subAgents: AgentSubAgentInput[]) => {
 };
 
 const buildVersionEvals = (evals: AgentEvalInput[]) => {
-  return evals.map(({ expected, id, input, name, scorer, trials }) => {
+  return evals.map(({ assertion, expected, id, input, name, scorer, trials }) => {
     return {
+      ...(assertion === undefined ? {} : { assertion }),
       ...(expected === undefined ? {} : { expected }),
       ...(id === undefined ? {} : { id }),
       input,
@@ -220,6 +223,7 @@ export const createAgent = (userId: string, input: AgentInput) => {
             input.evals.map((evalEntry) => {
               return {
                 agentId: id,
+                assertion: evalEntry.assertion ?? null,
                 expected: evalEntry.expected ?? null,
                 id: nanoid(),
                 input: evalEntry.input,
@@ -280,6 +284,7 @@ export const updateAgent = (agentId: string, userId: string, patch: AgentPatch) 
 
         const evals = await tx
           .select({
+            assertion: agentEval.assertion,
             expected: agentEval.expected,
             id: agentEval.id,
             input: agentEval.input,
@@ -296,6 +301,7 @@ export const updateAgent = (agentId: string, userId: string, patch: AgentPatch) 
           evals: evals.map((evalRow) => {
             return {
               ...evalRow,
+              assertion: evalRow.assertion ?? undefined,
               expected: evalRow.expected ?? undefined,
               scorer: evalRow.scorer as Scorer,
             };
@@ -396,6 +402,7 @@ export const updateAgent = (agentId: string, userId: string, patch: AgentPatch) 
           await (existingId === undefined
             ? tx.insert(agentEval).values({
                 agentId,
+                assertion: evalEntry.assertion ?? null,
                 expected: evalEntry.expected ?? null,
                 id: evalEntry.id ?? nanoid(),
                 input: evalEntry.input,
@@ -406,6 +413,7 @@ export const updateAgent = (agentId: string, userId: string, patch: AgentPatch) 
             : tx
                 .update(agentEval)
                 .set({
+                  assertion: evalEntry.assertion ?? null,
                   expected: evalEntry.expected ?? null,
                   input: evalEntry.input,
                   name: evalEntry.name,

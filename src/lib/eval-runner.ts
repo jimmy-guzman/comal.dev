@@ -11,8 +11,10 @@ import { appRuntime } from "@/db/service";
 import { getAgentForUser } from "@/lib/agents";
 import { createConversationWithFirstUserMessage } from "@/lib/chat";
 import { persistChatStream } from "@/lib/chat/persist-stream";
+import { getConversationToolCalls } from "@/lib/chat/store";
 import { LLMError, NotFoundError, ValidationError } from "@/lib/errors";
-import { isStringScorer, scoreEval, scoreEvalLLM } from "@/lib/eval-scorer";
+import { toolCallAssertionSchema } from "@/lib/eval-input-schema";
+import { isStringScorer, scoreEval, scoreEvalLLM, scoreToolCall } from "@/lib/eval-scorer";
 import { createEvalRun, createEvalRuns, getEvalWithOwnership } from "@/lib/evals";
 import { openrouter } from "@/lib/openrouter";
 
@@ -34,7 +36,7 @@ const SUITE_CONCURRENCY = 3;
 export const runEval = (evalId: string, userId: string, suiteRunId: null | string = null) => {
   return Effect.gen(function* () {
     const evalRow = yield* getEvalWithOwnership(evalId, userId);
-    const agentConfig = yield* loadAgent(evalRow.agentId, userId);
+    const agentConfig = yield* loadAgent(evalRow.agentId, userId, { sandbox: true });
 
     const runTrial = () => {
       return Effect.gen(function* () {
@@ -131,6 +133,39 @@ export const runEval = (evalId: string, userId: string, suiteRunId: null | strin
         output: trial.output,
         rationale: judgment.rationale,
         score: judgment.score,
+      };
+    }
+
+    if (evalRow.scorer === "tool-call") {
+      const parsedAssertion = toolCallAssertionSchema.safeParse(evalRow.assertion);
+
+      if (!parsedAssertion.success) {
+        return yield* Effect.fail(
+          new ValidationError({
+            message: `Eval "${evalRow.name}" has an invalid tool-call assertion.`,
+          }),
+        );
+      }
+
+      const trial = yield* runTrial();
+      const calls = yield* getConversationToolCalls(trial.conversationId);
+      const { rationale, score } = scoreToolCall(parsedAssertion.data, calls);
+
+      yield* createEvalRun({
+        agentVersionId: agentConfig.versionId,
+        conversationId: trial.conversationId,
+        evalId,
+        output: trial.output,
+        rationale,
+        score,
+        suiteRunId,
+      });
+
+      return {
+        conversationId: trial.conversationId,
+        output: trial.output,
+        rationale,
+        score,
       };
     }
 

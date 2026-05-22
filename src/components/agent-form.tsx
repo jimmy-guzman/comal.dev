@@ -8,8 +8,9 @@ import { useState } from "react";
 import { z } from "zod";
 
 import type { OwnedAgent } from "@/components/agent-subagent-picker";
+import type { FormAssertion } from "@/components/tool-call-assertion-form";
 import type { ModelId } from "@/config/models";
-import type { Scorer } from "@/lib/eval-input-schema";
+import type { Scorer, ToolCallAssertion } from "@/lib/eval-input-schema";
 import type { EvalRunSummary } from "@/lib/evals";
 
 import { createAgentAction } from "@/actions/create-agent";
@@ -17,6 +18,12 @@ import { updateAgentAction } from "@/actions/update-agent";
 import { AgentEvalPicker } from "@/components/agent-eval-picker";
 import { AgentSubagentPicker } from "@/components/agent-subagent-picker";
 import { AgentToolPicker } from "@/components/agent-tool-picker";
+import {
+  formAssertionSchema,
+  toFormAssertion,
+  toServerAssertion,
+  validateAssertionForm,
+} from "@/components/tool-call-assertion-form";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -41,6 +48,7 @@ const formSchema = z.object({
   evals: z.array(
     z
       .object({
+        assertion: formAssertionSchema,
         expected: z.string().trim().min(1).max(10_000).optional(),
         id: z.string().optional(),
         input: z.string().trim().min(1).max(10_000),
@@ -55,6 +63,12 @@ const formSchema = z.object({
             message: "Expected output is required for this scorer.",
             path: ["expected"],
           });
+        }
+
+        if (value.scorer === "tool-call") {
+          for (const message of validateAssertionForm(value.assertion)) {
+            ctx.addIssue({ code: "custom", message, path: ["assertion"] });
+          }
         }
       }),
   ),
@@ -119,6 +133,7 @@ interface InitialAgent {
   defaultModelId: string;
   description: null | string;
   evals: {
+    assertion?: ToolCallAssertion;
     expected?: string;
     id: string;
     input: string;
@@ -245,6 +260,7 @@ export const AgentForm = ({
           (
             e,
           ): {
+            assertion: FormAssertion;
             expected?: string;
             id?: string;
             input: string;
@@ -253,6 +269,7 @@ export const AgentForm = ({
             trials: number;
           } => {
             return {
+              assertion: toFormAssertion(e.assertion),
               expected: e.expected,
               id: e.id,
               input: e.input,
@@ -284,6 +301,7 @@ export const AgentForm = ({
         description: value.description.trim() || undefined,
         evals: value.evals.map((e) => {
           return {
+            assertion: e.scorer === "tool-call" ? toServerAssertion(e.assertion) : undefined,
             expected: e.expected?.trim() ? e.expected.trim() : undefined,
             id: e.id,
             input: e.input.trim(),
@@ -316,6 +334,7 @@ export const AgentForm = ({
   });
 
   const submissionAttempts = useStore(form.store, (s) => s.submissionAttempts);
+  const subAgentDrafts = useStore(form.store, (s) => s.values.subAgents);
   const hasAttempted = submissionAttempts > 0;
 
   const tabHasError = (tab: TabKey): boolean => {
@@ -582,6 +601,7 @@ export const AgentForm = ({
                     onChange={(next) => {
                       field.handleChange(next);
                     }}
+                    subAgents={subAgentDrafts}
                     value={field.state.value}
                   />
                 </Field>

@@ -7,7 +7,7 @@ import type { Scorer } from "@/lib/eval-input-schema";
 
 import { appRuntime } from "@/db/service";
 import { updateAgent } from "@/lib/agents";
-import { evalEntrySchema, SCORER_OPTIONS } from "@/lib/eval-input-schema";
+import { evalEntrySchema, OUTPUT_SCORER_OPTIONS } from "@/lib/eval-input-schema";
 import { getEvalWithOwnership } from "@/lib/evals";
 
 import type { ToolContext } from "../types";
@@ -37,6 +37,10 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
 
       const existing = existingExit.value;
       const { agentId } = existing;
+
+      if (existing.scorer === "tool-call") {
+        return { error: "Tool-call evals can only be edited from the agent's evals settings." };
+      }
 
       const parsed = evalEntrySchema.safeParse({
         expected: expected ?? existing.expected ?? undefined,
@@ -108,7 +112,7 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
       expected: z.string().min(1).max(10_000).optional().describe("New expected output."),
       input: z.string().min(1).max(10_000).optional().describe("New input prompt."),
       name: z.string().min(1).max(200).optional().describe("New eval name."),
-      scorer: z.enum(SCORER_OPTIONS).optional().describe("New scorer type."),
+      scorer: z.enum(OUTPUT_SCORER_OPTIONS).optional().describe("New scorer type."),
       trials: z.number().int().min(1).max(10).optional().describe("New trial count (1-10)."),
     }),
   });
