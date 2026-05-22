@@ -10,6 +10,7 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -74,13 +75,15 @@ const ToolChipField = ({
           <SelectValue placeholder="add a tool" />
         </SelectTrigger>
         <SelectContent>
-          {available.map((option) => {
-            return (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            );
-          })}
+          <SelectGroup>
+            {available.map((option) => {
+              return (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              );
+            })}
+          </SelectGroup>
         </SelectContent>
       </Select>
     </Field>
