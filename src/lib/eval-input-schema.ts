@@ -77,6 +77,14 @@ export const toolCallAssertionSchema = z
           path: ["mustCallWithArgs", index, "tool"],
         });
       }
+
+      if (mustNotCall.includes(entry.tool)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Tool "${entry.tool}" cannot be both required in mustCallWithArgs and forbidden in mustNotCall.`,
+          path: ["mustCallWithArgs", index, "tool"],
+        });
+      }
     }
   });
 

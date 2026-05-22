@@ -16,6 +16,15 @@ describe("toolCallAssertionSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("should reject a tool in both mustCallWithArgs and mustNotCall", () => {
+    const result = toolCallAssertionSchema.safeParse({
+      mustCallWithArgs: [{ argsMatch: { q: 1 }, tool: "web-search" }],
+      mustNotCall: ["web-search"],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it("should reject an unknown tool id", () => {
     expect(toolCallAssertionSchema.safeParse({ mustCall: ["not-a-real-tool"] }).success).toBe(
       false,

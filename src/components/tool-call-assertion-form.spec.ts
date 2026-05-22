@@ -65,6 +65,16 @@ describe("validateAssertionForm", () => {
     expect(issues.length).toBeGreaterThan(0);
   });
 
+  it("should report a JSON value that is not an array", () => {
+    const issues = validateAssertionForm({
+      mustCall: [],
+      mustCallWithArgsJson: '{"not": "an array"}',
+      mustNotCall: [],
+    });
+
+    expect(issues.length).toBeGreaterThan(0);
+  });
+
   it("should report a form with no constraints", () => {
     const issues = validateAssertionForm({
       mustCall: [],

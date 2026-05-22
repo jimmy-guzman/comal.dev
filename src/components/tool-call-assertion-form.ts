@@ -31,6 +31,10 @@ export const toServerAssertion = (form: FormAssertion): ToolCallAssertion => {
   const trimmed = form.mustCallWithArgsJson.trim();
   const mustCallWithArgs: unknown = trimmed ? JSON.parse(trimmed) : [];
 
+  if (trimmed && !Array.isArray(mustCallWithArgs)) {
+    throw new TypeError("Tool args must be a JSON array.");
+  }
+
   return toolCallAssertionSchema.parse({
     ...(form.mustCall.length > 0 ? { mustCall: form.mustCall } : {}),
     ...(Array.isArray(mustCallWithArgs) && mustCallWithArgs.length > 0 ? { mustCallWithArgs } : {}),
