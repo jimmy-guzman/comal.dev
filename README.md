@@ -24,7 +24,7 @@ flowchart TB
   User --> Client
   Client <--> Server
   Server --> LLM[OpenRouter<br/>LLM provider]
-  Server --> Tools[Tool APIs<br/>Tavily, GitHub, TMDB, web]
+  Server --> Tools[Tool APIs<br/>Tavily, GitHub, TMDB, Wikidata, web]
   Server --> Postgres[(Neon Postgres<br/>app data + auth)]
   Server --> Redis[(Upstash Redis<br/>rate limit + spend budget)]
 ```
@@ -71,13 +71,13 @@ flowchart TB
   Parts --> ToolStep[Resolve tool ids via registry<br/>buildTool]
   Parts --> SubStep[Wrap sub-agent edges as tools]
 
-  ToolStep --> Builtin[Builtin tools<br/>agents / core / evals / github<br/>tmdb / traces / web]
+  ToolStep --> Builtin[Builtin tools<br/>agents / core / evals / github<br/>tmdb / traces / web / wikidata]
   SubStep --> SubAgent[Sub-agent tool<br/>runs via ToolLoopAgent]
   SubAgent -.->|recurse, MAX_DEPTH 1| loadAgent
 
   Builtin --> Config[AgentConfig<br/>model + system prompt + ToolSet]
   SubAgent --> Config
-  Builtin -.->|at call time| Ext[OpenRouter + Tavily + GitHub + TMDB]
+  Builtin -.->|at call time| Ext[OpenRouter + Tavily + GitHub + TMDB + Wikidata]
 ```
 
 Tool ids are resolved against the static registry (`src/agents/tools/registry.ts`). Sub-agent edges become tools that recurse through `loadAgent` once (`MAX_DEPTH = 1`). The result is an `AgentConfig` the chat route hands to `streamText`.
@@ -188,6 +188,12 @@ Built-in tools you can attach to an agent, grouped as they appear in the registr
 
 - **Web search**: searches the web via Tavily and returns titles, URLs, and snippets.
 - **Web fetch**: fetches the contents of a URL as markdown, text, or HTML.
+
+### Wikidata
+
+- **Wikidata search**: searches Wikidata for entities by label and aliases, returning their Q-ids.
+- **Wikidata item**: fetches a Wikidata item's labels, descriptions, statements, and sitelinks by Q-id.
+- **Wikidata resolve ids**: resolves a batch of Q-ids and P-ids to labels and descriptions, so an agent can read a statements payload.
 
 Agents can also call other agents you own as sub-agent tools, configured per-agent in the agent form. New users start with Comal, a system agent that creates, configures, and iterates on agents through conversation, including running their evals and inspecting conversation traces to improve them.
 
