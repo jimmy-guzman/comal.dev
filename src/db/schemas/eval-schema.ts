@@ -36,6 +36,10 @@ export const agentEval = pgTable(
         "agent_eval_trials_valid",
         sql`(${table.scorer} IN ('llm-judge', 'tool-call') AND ${table.trials} = 1) OR (${table.scorer} NOT IN ('llm-judge', 'tool-call') AND ${table.trials} >= 1 AND ${table.trials} <= 10)`,
       ),
+      check(
+        "agent_eval_assertion_scorer_consistency",
+        sql`(${table.scorer} = 'tool-call' AND ${table.assertion} IS NOT NULL) OR (${table.scorer} <> 'tool-call' AND ${table.assertion} IS NULL)`,
+      ),
     ];
   },
 );
