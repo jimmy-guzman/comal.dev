@@ -9,6 +9,7 @@ export const groups = {
   tmdb: { id: "tmdb", label: "TMDB" },
   traces: { id: "traces", label: "Traces" },
   web: { id: "web", label: "Web" },
+  wikidata: { id: "wikidata", label: "Wikidata" },
 } as const satisfies Record<string, { id: string; label: string }>;
 
 type ToolGroupId = keyof typeof groups;

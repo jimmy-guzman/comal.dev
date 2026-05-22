@@ -33,6 +33,9 @@ import { tracesGetMeta } from "./traces/get.meta";
 import { tracesListForAgentMeta } from "./traces/list-for-agent.meta";
 import { webFetchMeta } from "./web/fetch.meta";
 import { webSearchMeta } from "./web/search.meta";
+import { wikidataGetItemMeta } from "./wikidata/get-item.meta";
+import { wikidataResolveIdsMeta } from "./wikidata/resolve-ids.meta";
+import { wikidataSearchMeta } from "./wikidata/search.meta";
 
 const metadata = Object.freeze([
   Object.freeze(agentsCreateMeta),
@@ -67,6 +70,9 @@ const metadata = Object.freeze([
   Object.freeze(tracesListForAgentMeta),
   Object.freeze(webFetchMeta),
   Object.freeze(webSearchMeta),
+  Object.freeze(wikidataGetItemMeta),
+  Object.freeze(wikidataResolveIdsMeta),
+  Object.freeze(wikidataSearchMeta),
 ] satisfies readonly ToolMetadata[]);
 
 const byId = new Map(metadata.map((m) => [m.id, m]));

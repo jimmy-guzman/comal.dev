@@ -34,6 +34,9 @@ import { buildTracesGet } from "./traces/get";
 import { buildTracesListForAgent } from "./traces/list-for-agent";
 import { buildWebFetch } from "./web/fetch";
 import { buildWebSearch } from "./web/search";
+import { buildWikidataGetItem } from "./wikidata/get-item";
+import { buildWikidataResolveIds } from "./wikidata/resolve-ids";
+import { buildWikidataSearch } from "./wikidata/search";
 
 const BUILDERS = {
   "agents-create": buildAgentsCreate,
@@ -68,6 +71,9 @@ const BUILDERS = {
   "traces-list-for-agent": buildTracesListForAgent,
   "web-fetch": buildWebFetch,
   "web-search": buildWebSearch,
+  "wikidata-get-item": buildWikidataGetItem,
+  "wikidata-resolve-ids": buildWikidataResolveIds,
+  "wikidata-search": buildWikidataSearch,
 } satisfies Record<string, (config: unknown, context: ToolContext) => Tool>;
 
 const builders = new Map(Object.entries(BUILDERS));
