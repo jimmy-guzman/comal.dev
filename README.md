@@ -124,6 +124,7 @@ erDiagram
 - Conversation history with per-conversation model switching
 - Sub-agents: let an agent call other agents you own as tools, with full inner traces persisted and viewable on reload
 - Version history: every config change snapshots the agent, with a diff viewer and revert to any point
+- Export agent config: download an agent's current configuration as a self-contained JSON file (model, system prompt, tools, sub-agents inlined recursively, evals)
 - Evals: attach input/expected pairs to an agent, pick a scorer (contains, exact, Levenshtein, or an LLM judge), and run them one at a time or as a full suite to track how well the agent performs. Save an assistant reply as a new eval directly from the chat.
 - Execution traces: every conversation has a step-by-step trace view with tool inputs and outputs, timing, token usage, cost, and nested sub-agent steps
 - Cost dashboard: a per-agent view of spend by model, by conversation, and over time, plus average cost per turn and cost per eval suite run, with a 30/90/all-time range toggle
