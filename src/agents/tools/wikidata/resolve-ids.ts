@@ -1,5 +1,5 @@
 import { tool } from "ai";
-import { Semaphore } from "es-toolkit";
+import { partition, Semaphore } from "es-toolkit";
 import { z } from "zod";
 
 import { getItem, getProperty } from "@/clients/wikidata";
@@ -52,6 +52,8 @@ const resolveOne = async (id: string, language: string): Promise<ResolvedEntity>
   };
 };
 
+const isResolved = (entity: ResolvedEntity) => entity.label !== null;
+
 export const resolveWikidataIds = async ({
   ids,
   language,
@@ -75,12 +77,12 @@ export const resolveWikidataIds = async ({
     }),
   );
 
+  const [resolved, failed] = partition(outcomes, isResolved);
+
   return {
     language,
-    resolved: outcomes.filter((entity) => entity.label !== null),
-    unresolved: outcomes.filter((entity) => entity.label === null).map((entity) => {
-      return entity.id;
-    }),
+    resolved,
+    unresolved: failed.map((entity) => entity.id),
   };
 };
 
