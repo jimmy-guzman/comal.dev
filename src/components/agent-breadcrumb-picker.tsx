@@ -33,10 +33,10 @@ export const AgentBreadcrumbPicker = ({ agents, currentAgentId, currentAgentName
       <DropdownMenuTrigger asChild>
         <Button
           aria-label="switch agent"
-          className="h-auto gap-1 px-1 py-0 text-sm font-medium"
+          className="h-auto min-w-0 gap-1 px-1 py-0 text-sm font-medium"
           variant="ghost"
         >
-          {currentAgentName}
+          <span className="truncate">{currentAgentName}</span>
           <ChevronDownIcon className="shrink-0 opacity-60" data-icon="inline-end" />
         </Button>
       </DropdownMenuTrigger>

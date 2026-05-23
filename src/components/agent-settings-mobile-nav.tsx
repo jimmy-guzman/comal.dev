@@ -42,7 +42,7 @@ export const AgentSettingsMobileNav = ({ agentId }: Props) => {
   return (
     <Drawer onOpenChange={setOpen} open={open}>
       <DrawerTrigger asChild>
-        <Button className="gap-1 sm:hidden" size="sm" variant="ghost">
+        <Button className="shrink-0 gap-1 sm:hidden" size="sm" variant="ghost">
           {currentLabel}
           <ChevronDownIcon data-icon="inline-end" />
         </Button>

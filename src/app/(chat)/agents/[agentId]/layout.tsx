@@ -38,18 +38,18 @@ export default async function AgentLayout({ children, params }: Props) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex h-12 shrink-0 items-center gap-4 border-b px-4 sm:px-6">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <Link
-            className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+            className="text-muted-foreground hover:text-foreground shrink-0 text-sm transition-colors"
             href="/agents"
           >
             agents
           </Link>
-          <span className="text-muted-foreground text-sm">/</span>
+          <span className="text-muted-foreground shrink-0 text-sm">/</span>
           {agent.isSystem ? (
-            <span className="flex items-center gap-1.5 text-sm font-medium">
-              {agent.name}
-              <Badge className="text-xs" variant="secondary">
+            <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
+              <span className="truncate">{agent.name}</span>
+              <Badge className="shrink-0 text-xs" variant="secondary">
                 system
               </Badge>
             </span>
@@ -60,7 +60,7 @@ export default async function AgentLayout({ children, params }: Props) {
               currentAgentName={agent.name}
             />
           )}
-          <span className="text-muted-foreground text-sm sm:hidden">/</span>
+          <span className="text-muted-foreground shrink-0 text-sm sm:hidden">/</span>
           <AgentSettingsMobileNav agentId={agentId} />
         </div>
 
