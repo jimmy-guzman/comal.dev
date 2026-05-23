@@ -5,9 +5,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { TraceTimeline } from "@/components/trace-timeline";
-import { appRuntime } from "@/db/service";
+import { appRuntime } from "@/db/runtime";
 import { auth } from "@/lib/auth";
-import { getConversationTrace } from "@/lib/chat/store";
+import { ChatStoreService } from "@/lib/chat/store";
 import { projectTrace } from "@/lib/chat/trace";
 import { formatMicrodollars } from "@/lib/format-cost";
 
@@ -23,8 +23,8 @@ export default async function TracePage({ params }: Props) {
   if (!session?.user) notFound();
 
   const trace = await appRuntime.runPromise(
-    getConversationTrace(session.user.id, conversationId).pipe(
-      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+    ChatStoreService.getConversationTrace(session.user.id, conversationId).pipe(
+      Effect.catchTag("ConversationNotFoundError", () => Effect.succeed(null)),
       Effect.catchTag("ForbiddenError", () => Effect.succeed(null)),
     ),
   );

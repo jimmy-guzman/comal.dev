@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 
 import type { Database } from "@/db/service";
-import type { DatabaseError, NotFoundError } from "@/lib/errors";
+import type { AgentNotFoundError, DatabaseError } from "@/lib/errors";
 
-import { getAgentForUser } from "./agents";
+import { AgentService } from "./agents";
 
 interface AgentExportTool {
   config: unknown;
@@ -47,7 +47,7 @@ interface AgentExport {
   schemaVersion: 1;
 }
 
-export type FetchedAgent = Effect.Effect.Success<ReturnType<typeof getAgentForUser>>;
+export type FetchedAgent = Effect.Effect.Success<ReturnType<typeof AgentService.getForUser>>;
 
 export const walkAgentGraph = (
   agentId: string,
@@ -108,7 +108,11 @@ export const walkAgentGraph = (
   };
 };
 
-type PrefetchEffect = Effect.Effect<void, DatabaseError | NotFoundError, Database>;
+type PrefetchEffect = Effect.Effect<
+  void,
+  AgentNotFoundError | DatabaseError,
+  AgentService | Database
+>;
 
 const prefetchReachable = (
   agentId: string,
@@ -118,7 +122,7 @@ const prefetchReachable = (
   return Effect.gen(function* () {
     if (fetched.has(agentId)) return;
 
-    const agent = yield* getAgentForUser(agentId, userId);
+    const agent = yield* AgentService.getForUser(agentId, userId);
 
     fetched.set(agentId, agent);
 

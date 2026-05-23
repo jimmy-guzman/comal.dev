@@ -4,8 +4,8 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { AgentVersionHistory } from "@/components/agent-version-history";
-import { appRuntime } from "@/db/service";
-import { getAgentForUser, listAgentVersions } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 
 async function fetchAgent(agentId: string, userId: string) {
@@ -15,8 +15,8 @@ async function fetchAgent(agentId: string, userId: string) {
   cacheLife("minutes");
 
   return appRuntime.runPromise(
-    getAgentForUser(agentId, userId).pipe(
-      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+    AgentService.getForUser(agentId, userId).pipe(
+      Effect.catchTag("AgentNotFoundError", () => Effect.succeed(null)),
     ),
   );
 }
@@ -27,7 +27,7 @@ async function fetchVersions(agentId: string, userId: string) {
   cacheTag(`agent:${agentId}`);
   cacheLife("minutes");
 
-  return appRuntime.runPromise(listAgentVersions(agentId, userId));
+  return appRuntime.runPromise(AgentService.listVersions(agentId, userId));
 }
 
 interface Props {

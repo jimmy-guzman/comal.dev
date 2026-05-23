@@ -2,7 +2,7 @@ import { tool } from "ai";
 import { Exit } from "effect";
 import { z } from "zod";
 
-import { appRuntime } from "@/db/service";
+import { appRuntime } from "@/db/runtime";
 import { diffAgentVersions } from "@/lib/agent-version-diff";
 
 import type { ToolContext } from "../types";

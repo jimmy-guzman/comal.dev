@@ -1,8 +1,8 @@
 import { tool } from "ai";
 import { z } from "zod";
 
-import { appRuntime } from "@/db/service";
-import { listAgentsForUser } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 
 import type { ToolContext } from "../types";
 
@@ -10,7 +10,7 @@ export const buildAgentsList = (_config: unknown, context: ToolContext) => {
   return tool({
     description: "Lists all agents owned by the current user, ordered by most recently updated.",
     execute: async () => {
-      const agents = await appRuntime.runPromise(listAgentsForUser(context.userId));
+      const agents = await appRuntime.runPromise(AgentService.listForUser(context.userId));
 
       return {
         agents: agents.map((a) => {

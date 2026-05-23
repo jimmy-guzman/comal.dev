@@ -3,11 +3,10 @@ import type { TextStreamPart, ToolSet } from "ai";
 import { eq } from "drizzle-orm";
 import { Effect } from "effect";
 
-import type { DatabaseError } from "@/lib/errors";
-
+import { appRuntime } from "@/db/runtime";
 import { chatEvent } from "@/db/schemas/chat-schema";
 import { modelPricing } from "@/db/schemas/model-pricing-schema";
-import { appRuntime, Database, runMutation, runQuery } from "@/db/service";
+import { Database, runMutation, runQuery } from "@/db/service";
 import { ValidationError } from "@/lib/errors";
 
 import type { MapStreamPartContext } from "./event-mapper";
@@ -24,38 +23,6 @@ interface AppendChatEventArgs {
   parentToolCallId?: null | string;
 }
 
-export const appendChatEvent = (
-  args: AppendChatEventArgs,
-): Effect.Effect<void, DatabaseError | ValidationError, Database> => {
-  return Effect.gen(function* () {
-    const validatedPayload = yield* Effect.try({
-      catch: (cause) => {
-        return new ValidationError({
-          message: cause instanceof Error ? cause.message : String(cause),
-        });
-      },
-      try: () => validateEventPayload(args.event.eventType, args.event.payload),
-    });
-
-    const db = yield* Database;
-
-    yield* runMutation(() => {
-      return db.insert(chatEvent).values({
-        conversationId: args.conversationId,
-        costMicrodollars: args.costMicrodollars ?? null,
-        endedAt: args.event.endedAt,
-        eventType: args.event.eventType,
-        messageId: args.event.messageId,
-        modelId: args.modelId,
-        parentToolCallId: args.parentToolCallId ?? null,
-        payload: validatedPayload,
-        role: args.event.role,
-        startedAt: args.event.startedAt,
-      });
-    });
-  });
-};
-
 interface PricingEntry {
   inputCost: number;
   outputCost: number;
@@ -70,83 +37,116 @@ const PRICING_CACHE_TTL_MS = 10 * 60 * 1000;
 
 const pricingCache = new Map<string, CachedPricing>();
 
-const lookupPricing = async (modelId: string): Promise<null | PricingEntry> => {
-  const cached = pricingCache.get(modelId);
-
-  if (cached && Date.now() - cached.fetchedAt < PRICING_CACHE_TTL_MS) return cached.value;
-
-  try {
-    const rows = await appRuntime.runPromise(
-      Effect.gen(function* () {
-        const db = yield* Database;
-
-        return yield* runQuery(() => {
-          return db
-            .select({ inputCost: modelPricing.inputCost, outputCost: modelPricing.outputCost })
-            .from(modelPricing)
-            .where(eq(modelPricing.modelId, modelId))
-            .limit(1);
-        });
-      }),
-    );
-
-    const row = rows.at(0);
-
-    if (!row) return null;
-
-    const inputCost = Number.parseFloat(row.inputCost);
-    const outputCost = Number.parseFloat(row.outputCost);
-
-    if (
-      !Number.isFinite(inputCost) ||
-      inputCost < 0 ||
-      !Number.isFinite(outputCost) ||
-      outputCost < 0
-    )
-      return null;
-
-    const entry: PricingEntry = { inputCost, outputCost };
-
-    pricingCache.set(modelId, { fetchedAt: Date.now(), value: entry });
-
-    return entry;
-  } catch {
-    return cached?.value ?? null;
-  }
-};
-
 interface TotalUsage {
   inputTokens?: number;
   outputTokens?: number;
 }
 
-const computeCostMicrodollars = async (
-  modelId: null | string,
-  totalUsage: TotalUsage,
-): Promise<null | number> => {
-  if (!modelId) return null;
+export class ChatPersistService extends Effect.Service<ChatPersistService>()("ChatPersistService", {
+  accessors: true,
+  effect: Effect.gen(function* () {
+    const db = yield* Database;
 
-  const inputTokens = Math.max(
-    0,
-    Number.isFinite(totalUsage.inputTokens) ? (totalUsage.inputTokens ?? 0) : 0,
-  );
-  const outputTokens = Math.max(
-    0,
-    Number.isFinite(totalUsage.outputTokens) ? (totalUsage.outputTokens ?? 0) : 0,
-  );
+    const appendChatEvent = Effect.fn("ChatPersistService.appendChatEvent")(function* (
+      args: AppendChatEventArgs,
+    ) {
+      yield* Effect.annotateCurrentSpan("conversationId", args.conversationId);
+      yield* Effect.annotateCurrentSpan("eventType", args.event.eventType);
 
-  if (inputTokens === 0 && outputTokens === 0) return null;
+      const validatedPayload = yield* Effect.try({
+        catch: (cause) => {
+          return new ValidationError({
+            message: cause instanceof Error ? cause.message : String(cause),
+          });
+        },
+        try: () => {
+          return validateEventPayload(args.event.eventType, args.event.payload);
+        },
+      });
 
-  const pricing = await lookupPricing(modelId);
+      yield* runMutation(() => {
+        return db.insert(chatEvent).values({
+          conversationId: args.conversationId,
+          costMicrodollars: args.costMicrodollars ?? null,
+          endedAt: args.event.endedAt,
+          eventType: args.event.eventType,
+          messageId: args.event.messageId,
+          modelId: args.modelId,
+          parentToolCallId: args.parentToolCallId ?? null,
+          payload: validatedPayload,
+          role: args.event.role,
+          startedAt: args.event.startedAt,
+        });
+      });
+    });
 
-  if (!pricing) return null;
+    const lookupPricing = Effect.fn("ChatPersistService.lookupPricing")(function* (
+      modelId: string,
+    ) {
+      yield* Effect.annotateCurrentSpan("modelId", modelId);
 
-  return Math.round(inputTokens * pricing.inputCost + outputTokens * pricing.outputCost);
-};
+      const cached = pricingCache.get(modelId);
 
-const persistChatEvent = (args: AppendChatEventArgs) => {
-  return appRuntime.runPromise(appendChatEvent(args));
-};
+      if (cached && Date.now() - cached.fetchedAt < PRICING_CACHE_TTL_MS) return cached.value;
+
+      const rows = yield* runQuery(() => {
+        return db
+          .select({ inputCost: modelPricing.inputCost, outputCost: modelPricing.outputCost })
+          .from(modelPricing)
+          .where(eq(modelPricing.modelId, modelId))
+          .limit(1);
+      });
+
+      const row = rows.at(0);
+
+      if (!row) return null;
+
+      const inputCost = Number.parseFloat(row.inputCost);
+      const outputCost = Number.parseFloat(row.outputCost);
+
+      if (
+        !Number.isFinite(inputCost) ||
+        inputCost < 0 ||
+        !Number.isFinite(outputCost) ||
+        outputCost < 0
+      )
+        return null;
+
+      const entry: PricingEntry = { inputCost, outputCost };
+
+      pricingCache.set(modelId, { fetchedAt: Date.now(), value: entry });
+
+      return entry;
+    });
+
+    const computeCostMicrodollars = Effect.fn("ChatPersistService.computeCostMicrodollars")(
+      function* (modelId: null | string, totalUsage: TotalUsage) {
+        if (!modelId) return null;
+
+        const inputTokens = Math.max(
+          0,
+          Number.isFinite(totalUsage.inputTokens) ? (totalUsage.inputTokens ?? 0) : 0,
+        );
+        const outputTokens = Math.max(
+          0,
+          Number.isFinite(totalUsage.outputTokens) ? (totalUsage.outputTokens ?? 0) : 0,
+        );
+
+        if (inputTokens === 0 && outputTokens === 0) return null;
+
+        const pricing = yield* lookupPricing(modelId).pipe(
+          Effect.catchAll(() => Effect.succeed(null)),
+        );
+
+        if (!pricing) return null;
+
+        return Math.round(inputTokens * pricing.inputCost + outputTokens * pricing.outputCost);
+      },
+    );
+
+    return { appendChatEvent, computeCostMicrodollars, lookupPricing };
+  }),
+}) {}
 
 interface PersistStreamArgs {
   conversationId: string;
@@ -196,18 +196,22 @@ export const persistChatStream = async (args: PersistStreamArgs): Promise<Persis
       const payload = event.payload as { totalUsage?: TotalUsage };
 
       if (payload.totalUsage) {
-        costMicrodollars = await computeCostMicrodollars(args.modelId, payload.totalUsage);
+        costMicrodollars = await appRuntime.runPromise(
+          ChatPersistService.computeCostMicrodollars(args.modelId, payload.totalUsage),
+        );
       }
     }
 
     try {
-      await persistChatEvent({
-        conversationId: args.conversationId,
-        costMicrodollars,
-        event,
-        modelId: args.modelId,
-        parentToolCallId: args.parentToolCallId,
-      });
+      await appRuntime.runPromise(
+        ChatPersistService.appendChatEvent({
+          conversationId: args.conversationId,
+          costMicrodollars,
+          event,
+          modelId: args.modelId,
+          parentToolCallId: args.parentToolCallId,
+        }),
+      );
 
       if (event.eventType === "assistant-turn-finish" && costMicrodollars !== null) {
         totalCostMicrodollars = costMicrodollars;

@@ -6,11 +6,11 @@ import { notFound, redirect } from "next/navigation";
 import type { AppUIMessage } from "@/lib/app-ui-message";
 
 import { ChatView } from "@/components/chat-view";
-import { appRuntime } from "@/db/service";
-import { getAgentForUser, listAgentsForUser } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 import { projectMessages, projectSubagentTraces } from "@/lib/chat/projector";
-import { getConversationWithEvents } from "@/lib/chat/store";
+import { ChatStoreService } from "@/lib/chat/store";
 
 async function fetchAgents(userId: string) {
   "use cache";
@@ -18,7 +18,7 @@ async function fetchAgents(userId: string) {
   cacheTag(`agents:${userId}`);
   cacheLife("minutes");
 
-  return appRuntime.runPromise(listAgentsForUser(userId));
+  return appRuntime.runPromise(AgentService.listForUser(userId));
 }
 
 async function fetchAgent(agentId: string, userId: string) {
@@ -28,8 +28,8 @@ async function fetchAgent(agentId: string, userId: string) {
   cacheLife("minutes");
 
   return appRuntime.runPromise(
-    getAgentForUser(agentId, userId).pipe(
-      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+    AgentService.getForUser(agentId, userId).pipe(
+      Effect.catchTag("AgentNotFoundError", () => Effect.succeed(null)),
     ),
   );
 }
@@ -46,8 +46,9 @@ export default async function ChatPage({ params }: Props) {
   if (!session?.user) notFound();
 
   const conv = await appRuntime.runPromise(
-    getConversationWithEvents(session.user.id, conversationId).pipe(
-      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+    ChatStoreService.getConversationWithEvents(session.user.id, conversationId).pipe(
+      Effect.catchTag("ConversationNotFoundError", () => Effect.succeed(null)),
+      Effect.catchTag("ForbiddenError", () => Effect.succeed(null)),
     ),
   );
 

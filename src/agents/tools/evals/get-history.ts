@@ -2,9 +2,9 @@ import { tool } from "ai";
 import { Exit } from "effect";
 import { z } from "zod";
 
-import { appRuntime } from "@/db/service";
-import { assertAgentOwnership } from "@/lib/agents";
-import { listEvalRunHistory } from "@/lib/evals";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
+import { EvalService } from "@/lib/evals";
 
 import type { ToolContext } from "../types";
 
@@ -14,14 +14,14 @@ export const buildEvalsGetHistory = (_config: unknown, context: ToolContext) => 
       "List historical eval runs for an agent, newest first and paginated. Optionally filter to one eval by evalId. Returns runs (each with score, output, rationale, the agent version it ran against, and the trace conversationId) plus a nextCursor when more results exist.",
     execute: async ({ agentId, cursor, evalId, limit }) => {
       const ownership = await appRuntime.runPromiseExit(
-        assertAgentOwnership(agentId, context.userId),
+        AgentService.assertOwnership(agentId, context.userId),
       );
 
       if (Exit.isFailure(ownership)) {
         return { error: "Agent not found or not owned by you." };
       }
 
-      return appRuntime.runPromise(listEvalRunHistory(agentId, { cursor, evalId, limit }));
+      return appRuntime.runPromise(EvalService.listRunHistory(agentId, { cursor, evalId, limit }));
     },
     inputSchema: z.object({
       agentId: z.string().min(1).describe("The ID of the agent whose eval runs to list."),

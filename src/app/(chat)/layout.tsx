@@ -5,10 +5,10 @@ import { Suspense } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ConversationsProvider } from "@/components/conversations-provider";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { appRuntime } from "@/db/service";
-import { listAgentsForUser } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
-import { listRecentConversationsForUser } from "@/lib/chat";
+import { ChatService } from "@/lib/chat";
 
 async function fetchSidebarAgents(userId: string) {
   "use cache";
@@ -16,7 +16,7 @@ async function fetchSidebarAgents(userId: string) {
   cacheTag(`agents:${userId}`);
   cacheLife("minutes");
 
-  return appRuntime.runPromise(listAgentsForUser(userId));
+  return appRuntime.runPromise(AgentService.listForUser(userId));
 }
 
 async function fetchSidebarConversations(userId: string) {
@@ -25,7 +25,7 @@ async function fetchSidebarConversations(userId: string) {
   cacheTag(`conversations:${userId}`);
   cacheLife("minutes");
 
-  return appRuntime.runPromise(listRecentConversationsForUser(userId, 20));
+  return appRuntime.runPromise(ChatService.listRecentForUser(userId, 20));
 }
 
 async function SidebarAsync({ children }: { children: React.ReactNode }) {

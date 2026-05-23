@@ -6,10 +6,10 @@ import { notFound, redirect } from "next/navigation";
 import { AgentSpendChart } from "@/components/agent-spend-chart";
 import { Button } from "@/components/ui/button";
 import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
-import { appRuntime } from "@/db/service";
-import { getAgentForUser } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
-import { getAgentCostRollup, getAgentSpendByDay, getEvalSuiteRunCosts } from "@/lib/cost";
+import { CostService } from "@/lib/cost";
 import { formatMicrodollars } from "@/lib/format-cost";
 import { formatRelative } from "@/lib/format-relative";
 
@@ -44,8 +44,8 @@ export default async function AgentCostPage({ params, searchParams }: Props) {
   if (!session?.user) redirect("/sign-in");
 
   const agent = await appRuntime.runPromise(
-    getAgentForUser(agentId, session.user.id).pipe(
-      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+    AgentService.getForUser(agentId, session.user.id).pipe(
+      Effect.catchTag("AgentNotFoundError", () => Effect.succeed(null)),
     ),
   );
 
@@ -55,9 +55,9 @@ export default async function AgentCostPage({ params, searchParams }: Props) {
   const { since, value: rangeValue } = resolveRange(range);
 
   const [rollup, spendByDay, evalCost] = await Promise.all([
-    appRuntime.runPromise(getAgentCostRollup(agentId, userId, { since })),
-    appRuntime.runPromise(getAgentSpendByDay(agentId, userId, { since })),
-    appRuntime.runPromise(getEvalSuiteRunCosts(agentId, userId, { since })),
+    appRuntime.runPromise(CostService.getAgentRollup(agentId, userId, { since })),
+    appRuntime.runPromise(CostService.getAgentSpendByDay(agentId, userId, { since })),
+    appRuntime.runPromise(CostService.getEvalSuiteRunCosts(agentId, userId, { since })),
   ]);
 
   const topConversations = rollup.byConversation.slice(0, TOP_CONVERSATIONS);

@@ -3,9 +3,9 @@ import { Exit } from "effect";
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
-import { appRuntime } from "@/db/service";
-import { updateAgent } from "@/lib/agents";
-import { getEvalWithOwnership } from "@/lib/evals";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
+import { EvalService } from "@/lib/evals";
 
 import type { ToolContext } from "../types";
 
@@ -15,7 +15,7 @@ export const buildEvalsDelete = (_config: unknown, context: ToolContext) => {
       "Delete an eval from an agent. Snapshots a new agent version reflecting the removal.",
     execute: async ({ evalId }) => {
       const existingExit = await appRuntime.runPromiseExit(
-        getEvalWithOwnership(evalId, context.userId),
+        EvalService.getWithOwnership(evalId, context.userId),
       );
 
       if (Exit.isFailure(existingExit)) {
@@ -25,7 +25,7 @@ export const buildEvalsDelete = (_config: unknown, context: ToolContext) => {
       const { agentId } = existingExit.value;
 
       const exit = await appRuntime.runPromiseExit(
-        updateAgent(agentId, context.userId, (current) => {
+        AgentService.update(agentId, context.userId, (current) => {
           return {
             ...current,
             evals: current.evals.filter((e) => e.id !== evalId),
@@ -38,7 +38,7 @@ export const buildEvalsDelete = (_config: unknown, context: ToolContext) => {
 
         if (
           cause._tag === "Fail" &&
-          (cause.error._tag === "NotFoundError" || cause.error._tag === "ForbiddenError")
+          (cause.error._tag === "AgentNotFoundError" || cause.error._tag === "ForbiddenError")
         ) {
           return { error: "Agent not found, not owned by you, or a system agent." };
         }

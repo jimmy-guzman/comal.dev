@@ -2,8 +2,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AgentForm } from "@/components/agent-form";
-import { appRuntime } from "@/db/service";
-import { listAgentsForUser } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 
 export default async function NewAgentPage() {
@@ -11,7 +11,7 @@ export default async function NewAgentPage() {
 
   if (!session?.user) redirect("/sign-in");
 
-  const ownedAgents = await appRuntime.runPromise(listAgentsForUser(session.user.id));
+  const ownedAgents = await appRuntime.runPromise(AgentService.listForUser(session.user.id));
 
   return (
     <div className="pb-safe-or-8 px-safe-or-4 sm:px-safe-or-8 mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-6 overflow-y-auto overscroll-y-contain py-4 sm:py-8">

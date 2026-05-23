@@ -5,7 +5,7 @@ import { Effect } from "effect";
 
 import { agent, agentSubagent, agentTool, agentVersion } from "@/db/schemas/agent-schema";
 import { Database, runQuery } from "@/db/service";
-import { NotFoundError } from "@/lib/errors";
+import { AgentNotFoundError } from "@/lib/errors";
 import { SUBAGENT_PREFIX } from "@/lib/subagent-prefix";
 
 import type { ToolContext } from "./tools/types";
@@ -152,7 +152,7 @@ export const loadAgent = (agentId: string, userId: string, options: LoadAgentOpt
     const row = rows.at(0);
 
     if (!row) {
-      return yield* Effect.fail(new NotFoundError({ resource: "agent" }));
+      return yield* Effect.fail(new AgentNotFoundError({ agentId, message: "Agent not found." }));
     }
 
     const [toolRows, versionRows] = yield* Effect.all(

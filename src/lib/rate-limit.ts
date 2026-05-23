@@ -2,7 +2,7 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { Effect } from "effect";
 
-import { appRuntime } from "@/db/service";
+import { appRuntime } from "@/db/runtime";
 import { env } from "@/env";
 
 const CHAT_AUTHED_LIMIT = 200;

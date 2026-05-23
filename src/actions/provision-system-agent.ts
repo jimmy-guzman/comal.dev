@@ -5,9 +5,9 @@ import { updateTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { appRuntime } from "@/db/service";
+import { appRuntime } from "@/db/runtime";
 import { auth } from "@/lib/auth";
-import { getOrCreateSystemAgent } from "@/lib/system-agent";
+import { SystemAgentService } from "@/lib/system-agent";
 
 export async function provisionSystemAgentAction() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -16,7 +16,7 @@ export async function provisionSystemAgentAction() {
     throw new Error("Not authenticated.");
   }
 
-  const exit = await appRuntime.runPromiseExit(getOrCreateSystemAgent(session.user.id));
+  const exit = await appRuntime.runPromiseExit(SystemAgentService.getOrCreate(session.user.id));
 
   if (Exit.isFailure(exit)) {
     throw new Error("Failed to provision system agent.");

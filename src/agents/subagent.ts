@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import type { ChatStreamContext } from "@/lib/chat/stream-context";
 
-import { appRuntime } from "@/db/service";
+import { appRuntime } from "@/db/runtime";
 import { persistChatStream } from "@/lib/chat/persist-stream";
 import { openrouter } from "@/lib/openrouter";
 

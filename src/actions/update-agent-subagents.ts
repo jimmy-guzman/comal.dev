@@ -5,10 +5,9 @@ import { returnValidationErrors } from "next-safe-action";
 import { updateTag } from "next/cache";
 import { z } from "zod";
 
-import { appRuntime } from "@/db/service";
+import { appRuntime } from "@/db/runtime";
 import { agentInputSchema } from "@/lib/agent-input-schema";
-import { listOwnedAgentIds, updateAgent } from "@/lib/agents";
-import { ForbiddenError, NotFoundError } from "@/lib/errors";
+import { AgentService } from "@/lib/agents";
 import { authClient } from "@/lib/safe-action";
 
 const inputSchema = z.object({
@@ -34,7 +33,9 @@ export const updateAgentSubagentsAction = authClient
         }
       }
 
-      const owned = await appRuntime.runPromise(listOwnedAgentIds(ctx.auth.user.id, childIds));
+      const owned = await appRuntime.runPromise(
+        AgentService.listOwnedAgentIds(ctx.auth.user.id, childIds),
+      );
 
       const ownedIds = new Set(owned.map((row) => row.id));
 
@@ -50,7 +51,7 @@ export const updateAgentSubagentsAction = authClient
     }
 
     const exit = await appRuntime.runPromiseExit(
-      updateAgent(agentId, ctx.auth.user.id, (current) => {
+      AgentService.update(agentId, ctx.auth.user.id, (current) => {
         return { ...current, subAgents };
       }),
     );
@@ -69,9 +70,9 @@ export const updateAgentSubagentsAction = authClient
           });
         }
 
-        if (cause.error._tag === "ForbiddenError") throw new ForbiddenError();
-
-        if (cause.error._tag === "NotFoundError") throw new NotFoundError({ resource: "agent" });
+        if (cause.error._tag === "ForbiddenError" || cause.error._tag === "AgentNotFoundError") {
+          throw cause.error;
+        }
       }
 
       throw new Error("Failed to update agent.");

@@ -2,7 +2,7 @@ import { betterAuth } from "@next-safe-action/adapter-better-auth";
 import { Effect } from "effect";
 import { createSafeActionClient, DEFAULT_SERVER_ERROR_MESSAGE } from "next-safe-action";
 
-import { appRuntime } from "@/db/service";
+import { appRuntime } from "@/db/runtime";
 
 import { auth } from "./auth";
 import { rateLimitMiddleware } from "./middleware/rate-limit-middleware";

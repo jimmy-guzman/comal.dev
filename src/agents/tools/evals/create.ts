@@ -4,8 +4,8 @@ import { nanoid } from "nanoid";
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
-import { appRuntime } from "@/db/service";
-import { updateAgent } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { SCORER_OPTIONS, STRING_SCORERS, toolCallAssertionSchema } from "@/lib/eval-input-schema";
 
 import type { ToolContext } from "../types";
@@ -30,7 +30,7 @@ export const buildEvalsCreate = (_config: unknown, context: ToolContext) => {
       const evalId = nanoid();
 
       const exit = await appRuntime.runPromiseExit(
-        updateAgent(agentId, context.userId, (current) => {
+        AgentService.update(agentId, context.userId, (current) => {
           return {
             ...current,
             evals: [
@@ -54,7 +54,7 @@ export const buildEvalsCreate = (_config: unknown, context: ToolContext) => {
 
         if (
           cause._tag === "Fail" &&
-          (cause.error._tag === "NotFoundError" || cause.error._tag === "ForbiddenError")
+          (cause.error._tag === "AgentNotFoundError" || cause.error._tag === "ForbiddenError")
         ) {
           return { error: "Agent not found, not owned by you, or a system agent." };
         }

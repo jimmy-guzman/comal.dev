@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, ManagedRuntime, Schedule } from "effect";
+import { Context, Effect, Layer, Schedule } from "effect";
 
 import { DatabaseError } from "@/lib/errors";
 
@@ -7,9 +7,7 @@ import { isRetryableDbError } from "./errors";
 
 export class Database extends Context.Tag("Database")<Database, typeof db>() {}
 
-const AppLive = Layer.succeed(Database, db);
-
-export const appRuntime = ManagedRuntime.make(AppLive);
+export const AppLive = Layer.succeed(Database, db);
 
 const retrySchedule = Schedule.exponential("100 millis").pipe(
   Schedule.jittered,

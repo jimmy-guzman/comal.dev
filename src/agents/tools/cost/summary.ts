@@ -2,9 +2,9 @@ import { tool } from "ai";
 import { Exit } from "effect";
 import { z } from "zod";
 
-import { appRuntime } from "@/db/service";
-import { assertAgentOwnership } from "@/lib/agents";
-import { getAgentCostRollup } from "@/lib/cost";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
+import { CostService } from "@/lib/cost";
 import { formatMicrodollars } from "@/lib/format-cost";
 
 import type { ToolContext } from "../types";
@@ -17,7 +17,7 @@ export const buildCostSummary = (_config: unknown, context: ToolContext) => {
       "Summarize an agent's chat spend without writing SQL: total cost, turn count, average cost per turn, a per-model breakdown, and the costliest conversations. Pass `since` as an ISO date to scope to a recent window. Costs are reported both as a USD string and as raw microdollars (USD x 1,000,000).",
     execute: async ({ agentId, since }) => {
       const ownership = await appRuntime.runPromiseExit(
-        assertAgentOwnership(agentId, context.userId),
+        AgentService.assertOwnership(agentId, context.userId),
       );
 
       if (Exit.isFailure(ownership)) {
@@ -25,7 +25,7 @@ export const buildCostSummary = (_config: unknown, context: ToolContext) => {
       }
 
       const rollup = await appRuntime.runPromise(
-        getAgentCostRollup(agentId, context.userId, {
+        CostService.getAgentRollup(agentId, context.userId, {
           since: since ? new Date(since) : undefined,
         }),
       );

@@ -4,9 +4,8 @@ import { Effect, Exit } from "effect";
 import { updateTag } from "next/cache";
 import { z } from "zod";
 
-import { appRuntime } from "@/db/service";
-import { assertConversationAccess, deleteConversation, getConversationAgent } from "@/lib/chat";
-import { ForbiddenError } from "@/lib/errors";
+import { appRuntime } from "@/db/runtime";
+import { ChatService } from "@/lib/chat";
 import { authClient } from "@/lib/safe-action";
 
 export const deleteConversationAction = authClient
@@ -17,11 +16,11 @@ export const deleteConversationAction = authClient
   )
   .action(async ({ ctx, parsedInput }) => {
     const program = Effect.gen(function* () {
-      yield* assertConversationAccess(ctx.auth.user.id, parsedInput.conversationId);
+      yield* ChatService.assertAccess(ctx.auth.user.id, parsedInput.conversationId);
 
-      const { agentId } = yield* getConversationAgent(parsedInput.conversationId);
+      const { agentId } = yield* ChatService.getAgent(parsedInput.conversationId);
 
-      yield* deleteConversation(parsedInput.conversationId);
+      yield* ChatService.delete(parsedInput.conversationId);
 
       return { agentId };
     });
@@ -32,7 +31,7 @@ export const deleteConversationAction = authClient
       const { cause } = exit;
 
       if (cause._tag === "Fail" && cause.error._tag === "ForbiddenError") {
-        throw new ForbiddenError();
+        throw cause.error;
       }
 
       throw new Error("Failed to delete conversation.");

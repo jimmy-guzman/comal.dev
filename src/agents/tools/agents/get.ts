@@ -2,8 +2,8 @@ import { tool } from "ai";
 import { Exit } from "effect";
 import { z } from "zod";
 
-import { appRuntime } from "@/db/service";
-import { getAgentForUser } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 
 import type { ToolContext } from "../types";
 
@@ -12,7 +12,9 @@ export const buildAgentsGet = (_config: unknown, context: ToolContext) => {
     description:
       "Returns the full configuration for a specific agent, including its tools, sub-agents, system prompt, and model.",
     execute: async ({ agentId }) => {
-      const exit = await appRuntime.runPromiseExit(getAgentForUser(agentId, context.userId));
+      const exit = await appRuntime.runPromiseExit(
+        AgentService.getForUser(agentId, context.userId),
+      );
 
       if (Exit.isFailure(exit)) {
         return { error: "Agent not found or not owned by you." };

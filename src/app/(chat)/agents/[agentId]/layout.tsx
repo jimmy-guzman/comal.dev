@@ -8,8 +8,8 @@ import { AgentSettingsMobileNav } from "@/components/agent-settings-mobile-nav";
 import { AgentSettingsNav } from "@/components/agent-settings-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { appRuntime } from "@/db/service";
-import { getAgentForUser, listAgentsForUser } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 
 interface Props {
@@ -26,11 +26,11 @@ export default async function AgentLayout({ children, params }: Props) {
 
   const [agent, agents] = await Promise.all([
     appRuntime.runPromise(
-      getAgentForUser(agentId, session.user.id).pipe(
-        Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+      AgentService.getForUser(agentId, session.user.id).pipe(
+        Effect.catchTag("AgentNotFoundError", () => Effect.succeed(null)),
       ),
     ),
-    appRuntime.runPromise(listAgentsForUser(session.user.id)),
+    appRuntime.runPromise(AgentService.listForUser(session.user.id)),
   ]);
 
   if (!agent) notFound();

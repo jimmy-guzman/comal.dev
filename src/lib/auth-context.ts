@@ -15,11 +15,13 @@ export class Auth extends Context.Tag("Auth")<Auth, AuthContext>() {}
 
 const loadAuth = (requestHeaders: Headers) => {
   return Effect.tryPromise({
-    catch: () => new UnauthorizedError(),
+    catch: () => new UnauthorizedError({ message: "Failed to load session." }),
     try: () => auth.api.getSession({ headers: requestHeaders }),
   }).pipe(
     Effect.flatMap((session) => {
-      if (!session?.user) return Effect.fail(new UnauthorizedError());
+      if (!session?.user) {
+        return Effect.fail(new UnauthorizedError({ message: "Not signed in." }));
+      }
 
       return Effect.succeed({
         session: session.session,
