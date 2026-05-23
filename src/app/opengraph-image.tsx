@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { ImageResponse } from "next/og";
@@ -7,18 +7,15 @@ export const alt = "comal.dev - open-source developer playground for composing A
 export const contentType = "image/png";
 export const size = { height: 630, width: 1200 };
 
-const BACKGROUND = "#18181b";
+const BACKGROUND = "#0a0a0c";
 const FOREGROUND = "#fafafa";
 const MUTED_FOREGROUND = "#a1a1aa";
 
-export default async function OpengraphImage() {
-  const [fontData, mascotSvg] = await Promise.all([
-    readFile(join(process.cwd(), "assets/JetBrainsMono-Bold.ttf")),
-    readFile(join(process.cwd(), "public/mascot.svg")),
-  ]);
+const fontData = readFileSync(join(process.cwd(), "assets/JetBrainsMono-Bold.ttf"));
+const mascotSvg = readFileSync(join(process.cwd(), "public/mascot.svg"));
+const mascotDataUrl = `data:image/svg+xml;base64,${mascotSvg.toString("base64")}`;
 
-  const mascotDataUrl = `data:image/svg+xml;base64,${mascotSvg.toString("base64")}`;
-
+export default function OpengraphImage() {
   return new ImageResponse(
     <div
       style={{
