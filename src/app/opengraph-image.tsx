@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { ImageResponse } from "next/og";
 
-export const alt = "comal.dev - open-source developer playground for composing AI agents";
+export const alt = "comal.dev, an open source playground for composing your own AI agents";
 export const contentType = "image/png";
 export const size = { height: 630, width: 1200 };
 
@@ -53,7 +53,7 @@ export default function OpengraphImage() {
           textAlign: "center",
         }}
       >
-        Open-source developer playground for composing your own AI agents
+        An open source playground for composing your own AI agents from a shared toolbox
       </div>
     </div>,
     {

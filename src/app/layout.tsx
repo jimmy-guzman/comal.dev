@@ -16,7 +16,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 const SITE_URL = "https://comal.dev";
 const SITE_DESCRIPTION =
-  "Open-source developer playground for composing and evaluating your own AI agents from a shared toolbox. Built with Next.js and the Vercel AI SDK.";
+  "Open source playground for composing your own AI agents from a shared toolbox.";
 
 export const metadata: Metadata = {
   applicationName: "comal.dev",
