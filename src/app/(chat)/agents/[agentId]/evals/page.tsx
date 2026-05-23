@@ -65,8 +65,14 @@ export default async function AgentEvalsPage({ params }: Props) {
           agentId={agentId}
           evalRuns={evalRuns}
           initialEvals={agent.evals.map((e) => {
-            return { ...e, expected: e.expected ?? undefined, scorer: e.scorer as Scorer };
+            return {
+              ...e,
+              assertion: e.assertion ?? undefined,
+              expected: e.expected ?? undefined,
+              scorer: e.scorer as Scorer,
+            };
           })}
+          subAgents={agent.subAgents}
         />
       </section>
     </div>

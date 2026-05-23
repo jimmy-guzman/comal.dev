@@ -5,11 +5,18 @@ import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import type { Scorer } from "@/lib/eval-input-schema";
+import type { FormAssertion } from "@/components/tool-call-assertion-form";
+import type { Scorer, ToolCallAssertion } from "@/lib/eval-input-schema";
 import type { EvalRunSummary } from "@/lib/evals";
 
 import { updateAgentEvalsAction } from "@/actions/update-agent-evals";
 import { AgentEvalPicker } from "@/components/agent-eval-picker";
+import {
+  formAssertionSchema,
+  toFormAssertion,
+  toServerAssertion,
+  validateAssertionForm,
+} from "@/components/tool-call-assertion-form";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { SCORER_OPTIONS, STRING_SCORERS } from "@/lib/eval-input-schema";
@@ -18,6 +25,7 @@ const formSchema = z.object({
   evals: z.array(
     z
       .object({
+        assertion: formAssertionSchema,
         expected: z.string().trim().min(1).max(10_000).optional(),
         id: z.string().optional(),
         input: z.string().trim().min(1).max(10_000),
@@ -33,11 +41,18 @@ const formSchema = z.object({
             path: ["expected"],
           });
         }
+
+        if (value.scorer === "tool-call") {
+          for (const message of validateAssertionForm(value.assertion)) {
+            ctx.addIssue({ code: "custom", message, path: ["assertion"] });
+          }
+        }
       }),
   ),
 });
 
 interface InitialEval {
+  assertion?: ToolCallAssertion;
   expected?: string;
   id: string;
   input: string;
@@ -50,9 +65,10 @@ interface Props {
   agentId: string;
   evalRuns: EvalRunSummary[];
   initialEvals: InitialEval[];
+  subAgents: { alias: string }[];
 }
 
-export const AgentEvalsForm = ({ agentId, evalRuns, initialEvals }: Props) => {
+export const AgentEvalsForm = ({ agentId, evalRuns, initialEvals, subAgents }: Props) => {
   const { execute, isPending, result } = useAction(updateAgentEvalsAction, {
     onSuccess: () => {
       toast.success("saved");
@@ -65,6 +81,7 @@ export const AgentEvalsForm = ({ agentId, evalRuns, initialEvals }: Props) => {
         (
           e,
         ): {
+          assertion: FormAssertion;
           expected?: string;
           id?: string;
           input: string;
@@ -73,6 +90,7 @@ export const AgentEvalsForm = ({ agentId, evalRuns, initialEvals }: Props) => {
           trials: number;
         } => {
           return {
+            assertion: toFormAssertion(e.assertion),
             expected: e.expected,
             id: e.id,
             input: e.input,
@@ -88,6 +106,7 @@ export const AgentEvalsForm = ({ agentId, evalRuns, initialEvals }: Props) => {
         agentId,
         evals: value.evals.map((e) => {
           return {
+            assertion: e.scorer === "tool-call" ? toServerAssertion(e.assertion) : undefined,
             expected: e.expected?.trim() ? e.expected.trim() : undefined,
             id: e.id,
             input: e.input.trim(),
@@ -126,6 +145,7 @@ export const AgentEvalsForm = ({ agentId, evalRuns, initialEvals }: Props) => {
                 onChange={(next) => {
                   field.handleChange(next);
                 }}
+                subAgents={subAgents}
                 value={field.state.value}
               />
             </Field>

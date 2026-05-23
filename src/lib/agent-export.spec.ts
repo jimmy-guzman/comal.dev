@@ -32,6 +32,7 @@ describe("walkAgentGraph", () => {
           description: "test agent",
           evals: [
             {
+              assertion: null,
               expected: "yes",
               id: "eval-1",
               input: "say yes",
@@ -75,6 +76,7 @@ describe("walkAgentGraph", () => {
         makeFetched({
           evals: [
             {
+              assertion: null,
               expected: null,
               id: "eval-1",
               input: "what is 2+2",

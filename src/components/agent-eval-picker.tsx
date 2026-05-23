@@ -6,11 +6,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import type { FormAssertion } from "@/components/tool-call-assertion-form";
 import type { Scorer } from "@/lib/eval-input-schema";
 import type { EvalRunAggregate, EvalRunSummary } from "@/lib/evals";
 
 import { runEvalAction } from "@/actions/run-eval";
 import { runEvalSuiteAction } from "@/actions/run-eval-suite";
+import { ToolCallAssertionEditor } from "@/components/tool-call-assertion-editor";
+import { emptyFormAssertion } from "@/components/tool-call-assertion-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -24,13 +27,14 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { SCORER_OPTIONS } from "@/lib/eval-input-schema";
+import { SCORER_OPTIONS, STRING_SCORERS } from "@/lib/eval-input-schema";
 
 const isScorer = (value: string): value is Scorer => {
   return (SCORER_OPTIONS as readonly string[]).includes(value);
 };
 
 interface EvalSelection {
+  assertion: FormAssertion;
   expected?: string;
   id?: string;
   input: string;
@@ -52,6 +56,7 @@ interface Props {
   initialRuns?: EvalRunSummary[];
   isEdit: boolean;
   onChange: (next: EvalSelection[]) => void;
+  subAgents: { alias: string }[];
   value: EvalSelection[];
 }
 
@@ -137,6 +142,7 @@ const EvalRow = ({
   isEdit,
   onChange,
   onRemove,
+  subAgents,
 }: {
   batchResult: EvalRunResult | null;
   entry: EvalSelection;
@@ -144,6 +150,7 @@ const EvalRow = ({
   isEdit: boolean;
   onChange: (next: EvalSelection) => void;
   onRemove: () => void;
+  subAgents: { alias: string }[];
 }) => {
   const [runResult, setRunResult] = useState<EvalRunResult | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -176,6 +183,9 @@ const EvalRow = ({
   const rationale = result ? getRationale(result) : null;
   const aggregate = result ? getAggregate(result) : null;
   const isJudge = entry.scorer === "llm-judge";
+  const isToolCall = entry.scorer === "tool-call";
+  const showExpected = STRING_SCORERS.includes(entry.scorer);
+  const showTrials = !isJudge && !isToolCall;
 
   return (
     <div className="rounded-md border p-3">
@@ -247,7 +257,7 @@ const EvalRow = ({
             value={entry.input}
           />
         </Field>
-        {isJudge ? null : (
+        {showExpected ? (
           <Field>
             <FieldLabel className="text-xs">expected</FieldLabel>
             <Textarea
@@ -260,7 +270,19 @@ const EvalRow = ({
               value={entry.expected ?? ""}
             />
           </Field>
-        )}
+        ) : null}
+        {isToolCall ? (
+          <Field>
+            <FieldLabel className="text-xs">tool-call assertion</FieldLabel>
+            <ToolCallAssertionEditor
+              onChange={(assertion) => {
+                onChange({ ...entry, assertion });
+              }}
+              subAgents={subAgents}
+              value={entry.assertion}
+            />
+          </Field>
+        ) : null}
         <Field>
           <FieldLabel className="text-xs">scorer</FieldLabel>
           <Select
@@ -283,7 +305,7 @@ const EvalRow = ({
             </SelectContent>
           </Select>
         </Field>
-        {isJudge ? null : (
+        {showTrials ? (
           <Field>
             <FieldLabel className="text-xs">trials</FieldLabel>
             <Input
@@ -302,7 +324,7 @@ const EvalRow = ({
               value={entry.trials}
             />
           </Field>
-        )}
+        ) : null}
       </div>
       {result && isExpanded ? (
         <>
@@ -368,6 +390,7 @@ export const AgentEvalPicker = ({
   initialRuns = DEFAULT_INITIAL_RUNS,
   isEdit,
   onChange,
+  subAgents,
   value,
 }: Props) => {
   const [batchResults, setBatchResults] = useState<Map<string, EvalRunResult>>(() => {
@@ -406,7 +429,10 @@ export const AgentEvalPicker = ({
   });
 
   const handleAdd = () => {
-    onChange([...value, { input: "", name: "", scorer: "contains", trials: 1 }]);
+    onChange([
+      ...value,
+      { assertion: emptyFormAssertion(), input: "", name: "", scorer: "contains", trials: 1 },
+    ]);
   };
 
   const handleChange = (index: number, next: EvalSelection) => {
@@ -442,6 +468,7 @@ export const AgentEvalPicker = ({
             onRemove={() => {
               handleRemove(index);
             }}
+            subAgents={subAgents}
           />
         );
       })}

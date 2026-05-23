@@ -1,5 +1,6 @@
-import { and, count, eq, sql } from "drizzle-orm";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { Effect } from "effect";
+import { z } from "zod";
 
 import type { DatabaseError } from "@/lib/errors";
 
@@ -273,5 +274,49 @@ export const countAssistantTurns = (
     });
 
     return rows[0]?.count ?? 0;
+  });
+};
+
+const TOOL_CALL_EVENT_TYPES = ["tool-input-complete", "tool-approval-requested"];
+
+const toolCallPayloadSchema = z.object({
+  input: z.unknown(),
+  toolCallId: z.string(),
+  toolName: z.string(),
+});
+
+export const getConversationToolCalls = (
+  conversationId: string,
+): Effect.Effect<{ input: unknown; toolName: string }[], DatabaseError, Database> => {
+  return Effect.gen(function* () {
+    const db = yield* Database;
+
+    const rows = yield* runQuery(() => {
+      return db
+        .select({ payload: chatEvent.payload })
+        .from(chatEvent)
+        .where(
+          and(
+            eq(chatEvent.conversationId, conversationId),
+            inArray(chatEvent.eventType, TOOL_CALL_EVENT_TYPES),
+          ),
+        )
+        .orderBy(chatEvent.sequence);
+    });
+
+    const byCallId = new Map<string, { input: unknown; toolName: string }>();
+
+    for (const row of rows) {
+      const parsed = toolCallPayloadSchema.safeParse(row.payload);
+
+      if (!parsed.success || byCallId.has(parsed.data.toolCallId)) continue;
+
+      byCallId.set(parsed.data.toolCallId, {
+        input: parsed.data.input,
+        toolName: parsed.data.toolName,
+      });
+    }
+
+    return [...byCallId.values()];
   });
 };

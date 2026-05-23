@@ -29,10 +29,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { SCORER_OPTIONS, STRING_SCORERS } from "@/lib/eval-input-schema";
+import { OUTPUT_SCORER_OPTIONS, STRING_SCORERS } from "@/lib/eval-input-schema";
 
 const isScorer = (value: string): value is Scorer => {
-  return (SCORER_OPTIONS as readonly string[]).includes(value);
+  return (OUTPUT_SCORER_OPTIONS as readonly string[]).includes(value);
 };
 
 const formSchema = z
@@ -40,7 +40,7 @@ const formSchema = z
     expected: z.string().trim().max(10_000),
     input: z.string().trim().min(1).max(10_000),
     name: z.string().trim().min(1).max(200),
-    scorer: z.enum(SCORER_OPTIONS),
+    scorer: z.enum(OUTPUT_SCORER_OPTIONS),
   })
   .superRefine((value, ctx) => {
     if (STRING_SCORERS.includes(value.scorer) && !value.expected) {
@@ -204,7 +204,7 @@ const SaveAsEvalForm = ({ agentId, defaultExpected, defaultInput, onSaved }: For
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {SCORER_OPTIONS.map((option) => {
+                      {OUTPUT_SCORER_OPTIONS.map((option) => {
                         return (
                           <SelectItem key={option} value={option}>
                             {option}

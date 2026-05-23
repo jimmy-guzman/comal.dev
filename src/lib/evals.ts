@@ -97,6 +97,7 @@ export const getEvalWithOwnership = (evalId: string, userId: string) => {
       return db
         .select({
           agentId: agentEval.agentId,
+          assertion: agentEval.assertion,
           expected: agentEval.expected,
           id: agentEval.id,
           input: agentEval.input,

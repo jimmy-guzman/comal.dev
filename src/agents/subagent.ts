@@ -23,6 +23,7 @@ interface BuildSubagentToolArgs {
   childName: string;
   link: SubagentLink;
   ownerId: string;
+  sandbox: boolean;
 }
 
 const outputSchema = z.object({
@@ -71,6 +72,7 @@ export const buildSubagentTool = ({
   childName,
   link,
   ownerId,
+  sandbox,
 }: BuildSubagentToolArgs): Tool => {
   return tool({
     description: buildDescription({
@@ -82,7 +84,9 @@ export const buildSubagentTool = ({
       const runId = nanoid();
       const streamCtx = experimental_context as ChatStreamContext | undefined;
 
-      const child = await appRuntime.runPromise(loadAgent(link.childAgentId, ownerId, 1));
+      const child = await appRuntime.runPromise(
+        loadAgent(link.childAgentId, ownerId, { depth: 1, sandbox }),
+      );
 
       const agent = new ToolLoopAgent({
         instructions: child.systemPrompt,

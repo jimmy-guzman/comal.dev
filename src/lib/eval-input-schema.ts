@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-export const SCORER_OPTIONS = ["contains", "exact", "levenshtein", "llm-judge"] as const;
+import { tools } from "@/agents/tools/registry";
+import { SUBAGENT_PREFIX } from "@/lib/subagent-prefix";
+
+export const OUTPUT_SCORER_OPTIONS = ["contains", "exact", "levenshtein", "llm-judge"] as const;
+
+export const SCORER_OPTIONS = [...OUTPUT_SCORER_OPTIONS, "tool-call"] as const;
 
 export type Scorer = (typeof SCORER_OPTIONS)[number];
 
@@ -8,8 +13,86 @@ export const STRING_SCORERS: readonly Scorer[] = ["contains", "exact", "levensht
 
 export const JUDGE_MODEL_ID = "anthropic/claude-haiku-4.5";
 
+const isKnownToolName = (toolName: string) => {
+  return tools.get(toolName) !== undefined || toolName.startsWith(SUBAGENT_PREFIX);
+};
+
+export const toolCallAssertionSchema = z
+  .object({
+    mustCall: z.array(z.string().min(1)).optional(),
+    mustCallWithArgs: z
+      .array(
+        z.object({
+          argsMatch: z.record(z.string(), z.unknown()),
+          tool: z.string().min(1),
+        }),
+      )
+      .optional(),
+    mustNotCall: z.array(z.string().min(1)).optional(),
+  })
+  .superRefine((value, ctx) => {
+    const mustCall = value.mustCall ?? [];
+    const mustNotCall = value.mustNotCall ?? [];
+    const mustCallWithArgs = value.mustCallWithArgs ?? [];
+
+    if (mustCall.length === 0 && mustNotCall.length === 0 && mustCallWithArgs.length === 0) {
+      ctx.addIssue({ code: "custom", message: "Add at least one tool-call constraint." });
+    }
+
+    for (const tool of mustCall) {
+      if (mustNotCall.includes(tool)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `"${tool}" is in both mustCall and mustNotCall.`,
+          path: ["mustNotCall"],
+        });
+      }
+    }
+
+    for (const [index, tool] of mustCall.entries()) {
+      if (!isKnownToolName(tool)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Unknown tool "${tool}".`,
+          path: ["mustCall", index],
+        });
+      }
+    }
+
+    for (const [index, tool] of mustNotCall.entries()) {
+      if (!isKnownToolName(tool)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Unknown tool "${tool}".`,
+          path: ["mustNotCall", index],
+        });
+      }
+    }
+
+    for (const [index, entry] of mustCallWithArgs.entries()) {
+      if (!isKnownToolName(entry.tool)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Unknown tool "${entry.tool}".`,
+          path: ["mustCallWithArgs", index, "tool"],
+        });
+      }
+
+      if (mustNotCall.includes(entry.tool)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Tool "${entry.tool}" cannot be both required in mustCallWithArgs and forbidden in mustNotCall.`,
+          path: ["mustCallWithArgs", index, "tool"],
+        });
+      }
+    }
+  });
+
+export type ToolCallAssertion = z.infer<typeof toolCallAssertionSchema>;
+
 export const evalEntrySchema = z
   .object({
+    assertion: toolCallAssertionSchema.optional(),
     expected: z.string().trim().min(1).max(10_000).optional(),
     id: z.string().min(1).optional(),
     input: z.string().trim().min(1).max(10_000),
@@ -25,7 +108,23 @@ export const evalEntrySchema = z
         path: ["expected"],
       });
     }
+
+    if (value.scorer === "tool-call" && !value.assertion) {
+      ctx.addIssue({
+        code: "custom",
+        message: "A tool-call assertion is required for this scorer.",
+        path: ["assertion"],
+      });
+    }
   })
   .transform((value) => {
-    return value.scorer === "llm-judge" ? { ...value, trials: 1 } : value;
+    if (value.scorer === "tool-call") {
+      return { ...value, expected: undefined, trials: 1 };
+    }
+
+    return {
+      ...value,
+      assertion: undefined,
+      trials: value.scorer === "llm-judge" ? 1 : value.trials,
+    };
   });

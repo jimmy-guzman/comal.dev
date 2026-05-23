@@ -12,6 +12,8 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+import type { ToolCallAssertion } from "@/lib/eval-input-schema";
+
 import { user } from "./auth-schema";
 
 export const agent = pgTable(
@@ -91,6 +93,7 @@ export const agentVersion = pgTable(
     evals: jsonb("evals")
       .$type<
         {
+          assertion?: ToolCallAssertion;
           expected?: string;
           id?: string;
           input: string;

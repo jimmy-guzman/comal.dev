@@ -11,6 +11,7 @@ import { SUBAGENT_PREFIX } from "@/lib/subagent-prefix";
 import type { ToolContext } from "./tools/types";
 import type { AgentConfig } from "./types";
 
+import { sandboxToolSet } from "./sandbox";
 import { buildSubagentTool } from "./subagent";
 import { buildTool } from "./tools/build";
 import { tools as toolRegistry } from "./tools/registry";
@@ -74,7 +75,7 @@ const buildToolsRecord = (
   });
 };
 
-const loadSubagentTools = (parentId: string, ownerId: string) => {
+const loadSubagentTools = (parentId: string, ownerId: string, sandbox: boolean) => {
   return Effect.gen(function* () {
     const db = yield* Database;
 
@@ -104,6 +105,7 @@ const loadSubagentTools = (parentId: string, ownerId: string) => {
           descriptionOverride: row.descriptionOverride,
         },
         ownerId,
+        sandbox,
       });
     }
 
@@ -111,7 +113,15 @@ const loadSubagentTools = (parentId: string, ownerId: string) => {
   });
 };
 
-export const loadAgent = (agentId: string, userId: string, depth = 0) => {
+interface LoadAgentOptions {
+  depth?: number;
+  sandbox?: boolean;
+}
+
+export const loadAgent = (agentId: string, userId: string, options: LoadAgentOptions = {}) => {
+  const depth = options.depth ?? 0;
+  const sandbox = options.sandbox ?? false;
+
   return Effect.gen(function* () {
     if (depth > MAX_DEPTH) {
       return yield* Effect.die(`loadAgent depth ${depth} exceeds max ${MAX_DEPTH}`);
@@ -163,7 +173,9 @@ export const loadAgent = (agentId: string, userId: string, depth = 0) => {
     const toolsRecord = yield* buildToolsRecord(toolRows, depth, toolContext);
 
     const subagentTools =
-      depth === 0 ? yield* loadSubagentTools(agentId, userId) : ({} satisfies ToolSet);
+      depth === 0 ? yield* loadSubagentTools(agentId, userId, sandbox) : ({} satisfies ToolSet);
+
+    const tools = { ...toolsRecord, ...subagentTools };
 
     return {
       defaultModelId: row.defaultModelId,
@@ -171,8 +183,11 @@ export const loadAgent = (agentId: string, userId: string, depth = 0) => {
       id: row.id,
       name: row.name,
       systemPrompt: row.systemPrompt,
-      tools: { ...toolsRecord, ...subagentTools },
+      tools: sandbox ? sandboxToolSet(tools) : tools,
       versionId: versionRows.at(0)?.id ?? null,
     } satisfies AgentConfig;
-  }).pipe(Effect.withLogSpan("loadAgent"), Effect.annotateLogs({ agentId, depth, userId }));
+  }).pipe(
+    Effect.withLogSpan("loadAgent"),
+    Effect.annotateLogs({ agentId, depth, sandbox, userId }),
+  );
 };
