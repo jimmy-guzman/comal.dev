@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ConversationList } from "@/components/conversation-list";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
 import { getModelCostLabel } from "@/config/models";
 import { appRuntime } from "@/db/service";
@@ -67,12 +68,19 @@ export default async function AgentOverviewPage({ params }: Props) {
 
   return (
     <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
-      <div className="flex flex-col gap-1">
-        <h2 className="flex items-center gap-2 text-xl font-semibold">
-          {agent.name}
-          {agent.isSystem && <Badge variant="secondary">system</Badge>}
-        </h2>
-        <p className="text-muted-foreground text-sm">{agent.description ?? "no description"}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h2 className="flex items-center gap-2 text-xl font-semibold">
+            {agent.name}
+            {agent.isSystem && <Badge variant="secondary">system</Badge>}
+          </h2>
+          <p className="text-muted-foreground text-sm">{agent.description ?? "no description"}</p>
+        </div>
+        <Button asChild size="sm" variant="outline">
+          <a download href={`/api/agents/${agentId}/export`}>
+            export
+          </a>
+        </Button>
       </div>
 
       <ItemGroup className="grid grid-cols-2 gap-4 sm:grid-cols-3">
