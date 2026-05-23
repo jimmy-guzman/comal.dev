@@ -7,7 +7,7 @@ import type { Scorer } from "@/lib/eval-input-schema";
 
 import { appRuntime } from "@/db/service";
 import { updateAgent } from "@/lib/agents";
-import { evalEntrySchema, OUTPUT_SCORER_OPTIONS } from "@/lib/eval-input-schema";
+import { evalEntrySchema, SCORER_OPTIONS, toolCallAssertionSchema } from "@/lib/eval-input-schema";
 import { getEvalWithOwnership } from "@/lib/evals";
 
 import type { ToolContext } from "../types";
@@ -15,9 +15,10 @@ import type { ToolContext } from "../types";
 export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
   return tool({
     description:
-      "Update one or more fields on an existing eval. Only the provided fields change. Snapshots a new agent version.",
-    execute: async ({ evalId, expected, input, name, scorer, trials }) => {
+      "Update one or more fields on an existing eval. Only the provided fields change. For text scorers, provide expected; for the tool-call scorer, provide assertion ({ mustCall?, mustNotCall?, mustCallWithArgs? }). Snapshots a new agent version.",
+    execute: async ({ assertion, evalId, expected, input, name, scorer, trials }) => {
       if (
+        assertion === undefined &&
         expected === undefined &&
         input === undefined &&
         name === undefined &&
@@ -38,11 +39,8 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
       const existing = existingExit.value;
       const { agentId } = existing;
 
-      if (existing.scorer === "tool-call") {
-        return { error: "Tool-call evals can only be edited from the agent's evals settings." };
-      }
-
       const parsed = evalEntrySchema.safeParse({
+        assertion: assertion ?? existing.assertion ?? undefined,
         expected: expected ?? existing.expected ?? undefined,
         id: evalId,
         input: input ?? existing.input,
@@ -56,6 +54,7 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
       }
 
       const overrides = {
+        ...(assertion === undefined ? {} : { assertion }),
         ...(expected === undefined ? {} : { expected }),
         ...(input === undefined ? {} : { input }),
         ...(name === undefined ? {} : { name }),
@@ -76,7 +75,10 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
           }
 
           const merged = { ...target, ...overrides };
-          const nextEval = merged.scorer === "llm-judge" ? { ...merged, trials: 1 } : merged;
+          const nextEval =
+            merged.scorer === "llm-judge" || merged.scorer === "tool-call"
+              ? { ...merged, trials: 1 }
+              : merged;
 
           return {
             ...current,
@@ -108,11 +110,14 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
       return { agentId, evalId };
     },
     inputSchema: z.object({
+      assertion: toolCallAssertionSchema
+        .optional()
+        .describe("New tool-call assertion. Set only when the eval's scorer is tool-call."),
       evalId: z.string().min(1).describe("The ID of the eval to update."),
       expected: z.string().min(1).max(10_000).optional().describe("New expected output."),
       input: z.string().min(1).max(10_000).optional().describe("New input prompt."),
       name: z.string().min(1).max(200).optional().describe("New eval name."),
-      scorer: z.enum(OUTPUT_SCORER_OPTIONS).optional().describe("New scorer type."),
+      scorer: z.enum(SCORER_OPTIONS).optional().describe("New scorer type."),
       trials: z.number().int().min(1).max(10).optional().describe("New trial count (1-10)."),
     }),
   });
