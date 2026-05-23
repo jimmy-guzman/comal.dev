@@ -1,47 +1,74 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { ImageResponse } from "next/og";
 
 export const alt = "comal.dev - open-source developer playground for composing AI agents";
 export const contentType = "image/png";
 export const size = { height: 630, width: 1200 };
 
-export default function OpengraphImage() {
+const BACKGROUND = "#18181b";
+const FOREGROUND = "#fafafa";
+const MUTED_FOREGROUND = "#a1a1aa";
+
+export default async function OpengraphImage() {
+  const [fontData, mascotSvg] = await Promise.all([
+    readFile(join(process.cwd(), "assets/JetBrainsMono-Bold.ttf")),
+    readFile(join(process.cwd(), "public/mascot.svg")),
+  ]);
+
+  const mascotDataUrl = `data:image/svg+xml;base64,${mascotSvg.toString("base64")}`;
+
   return new ImageResponse(
     <div
       style={{
         alignItems: "center",
-        background: "#0a0a0a",
-        color: "#fafafa",
+        background: BACKGROUND,
+        color: FOREGROUND,
         display: "flex",
         flexDirection: "column",
-        gap: 32,
+        fontFamily: "JetBrains Mono",
+        gap: 48,
         height: "100%",
         justifyContent: "center",
         padding: "80px",
         width: "100%",
       }}
     >
+      <img alt="" height={240} src={mascotDataUrl} width={240} />
       <div
         style={{
-          color: "#C1622F",
           fontSize: 120,
           fontWeight: 700,
           letterSpacing: "-0.04em",
+          lineHeight: 1,
         }}
       >
         comal.dev
       </div>
       <div
         style={{
-          color: "#a3a3a3",
-          fontSize: 40,
+          color: MUTED_FOREGROUND,
+          fontSize: 36,
+          fontWeight: 700,
           lineHeight: 1.3,
           maxWidth: 900,
           textAlign: "center",
         }}
       >
-        Open-source developer playground for composing and evaluating your own AI agents
+        Open-source developer playground for composing your own AI agents
       </div>
     </div>,
-    size,
+    {
+      ...size,
+      fonts: [
+        {
+          data: fontData,
+          name: "JetBrains Mono",
+          style: "normal",
+          weight: 700,
+        },
+      ],
+    },
   );
 }
