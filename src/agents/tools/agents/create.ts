@@ -4,9 +4,9 @@ import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { MODEL_IDS } from "@/config/models";
-import { appRuntime } from "@/db/service";
+import { appRuntime } from "@/db/runtime";
 import { detectSubAgentCycle } from "@/lib/agent-graph";
-import { createAgent, listOwnedAgentIds, listOwnerSubAgentEdges } from "@/lib/agents";
+import { AgentService } from "@/lib/agents";
 
 import type { ToolContext } from "../types";
 
@@ -73,13 +73,18 @@ export const buildAgentsCreate = (_config: unknown, context: ToolContext) => {
       if (resolvedSubAgents.length > 0) {
         const childIds = resolvedSubAgents.map((s) => s.childAgentId);
 
-        const validation = await appRuntime.runPromise(
+        const validationExit = await appRuntime.runPromiseExit(
           Effect.all({
-            edges: listOwnerSubAgentEdges(context.userId),
-            owned: listOwnedAgentIds(context.userId, childIds),
+            edges: AgentService.listOwnerSubAgentEdges(context.userId),
+            owned: AgentService.listOwnedAgentIds(context.userId, childIds),
           }),
         );
 
+        if (Exit.isFailure(validationExit)) {
+          return { error: "Failed to validate sub-agents." };
+        }
+
+        const validation = validationExit.value;
         const ownedIds = new Set(validation.owned.map((row) => row.id));
 
         for (const sub of resolvedSubAgents) {
@@ -96,7 +101,7 @@ export const buildAgentsCreate = (_config: unknown, context: ToolContext) => {
       }
 
       const exit = await appRuntime.runPromiseExit(
-        createAgent(context.userId, {
+        AgentService.create(context.userId, {
           defaultModelId: modelId,
           description,
           evals: [],

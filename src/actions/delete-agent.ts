@@ -4,26 +4,26 @@ import { Effect, Exit } from "effect";
 import { updateTag } from "next/cache";
 import { z } from "zod";
 
-import { appRuntime } from "@/db/service";
-import { assertAgentOwnership, deleteAgent, getAgentForUser } from "@/lib/agents";
-import { ForbiddenError, NotFoundError } from "@/lib/errors";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
+import { ForbiddenError } from "@/lib/errors";
 import { authClient } from "@/lib/safe-action";
 
 export const deleteAgentAction = authClient
   .inputSchema(z.object({ agentId: z.string().min(1) }))
   .action(async ({ ctx, parsedInput }) => {
     const program = Effect.gen(function* () {
-      yield* assertAgentOwnership(parsedInput.agentId, ctx.auth.user.id);
+      yield* AgentService.assertOwnership(parsedInput.agentId, ctx.auth.user.id);
 
-      const agentRow = yield* getAgentForUser(parsedInput.agentId, ctx.auth.user.id);
+      const agentRow = yield* AgentService.getForUser(parsedInput.agentId, ctx.auth.user.id);
 
       if (agentRow.isSystem) {
-        yield* Effect.fail(new ForbiddenError());
+        yield* Effect.fail(new ForbiddenError({ message: "Cannot delete the system agent." }));
 
         return;
       }
 
-      yield* deleteAgent(parsedInput.agentId);
+      yield* AgentService.delete(parsedInput.agentId);
     });
 
     const exit = await appRuntime.runPromiseExit(program);
@@ -31,12 +31,11 @@ export const deleteAgentAction = authClient
     if (Exit.isFailure(exit)) {
       const { cause } = exit;
 
-      if (cause._tag === "Fail") {
-        if (cause.error._tag === "ForbiddenError") throw new ForbiddenError();
-
-        if (cause.error._tag === "NotFoundError") {
-          throw new NotFoundError({ resource: "agent" });
-        }
+      if (
+        cause._tag === "Fail" &&
+        (cause.error._tag === "ForbiddenError" || cause.error._tag === "AgentNotFoundError")
+      ) {
+        throw cause.error;
       }
 
       throw new Error("Failed to delete agent.");

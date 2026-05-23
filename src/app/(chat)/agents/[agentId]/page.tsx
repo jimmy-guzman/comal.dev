@@ -9,10 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
 import { getModelCostLabel } from "@/config/models";
-import { appRuntime } from "@/db/service";
-import { getAgentForUser, listAgentVersions } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
-import { listConversationsForAgent } from "@/lib/chat";
+import { ChatService } from "@/lib/chat";
 
 async function fetchAgentDetail(agentId: string, userId: string) {
   "use cache";
@@ -21,8 +21,8 @@ async function fetchAgentDetail(agentId: string, userId: string) {
   cacheLife("minutes");
 
   return appRuntime.runPromise(
-    getAgentForUser(agentId, userId).pipe(
-      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+    AgentService.getForUser(agentId, userId).pipe(
+      Effect.catchTag("AgentNotFoundError", () => Effect.succeed(null)),
     ),
   );
 }
@@ -33,7 +33,7 @@ async function fetchVersionCount(agentId: string, userId: string) {
   cacheTag(`agent:${agentId}`);
   cacheLife("minutes");
 
-  const versions = await appRuntime.runPromise(listAgentVersions(agentId, userId));
+  const versions = await appRuntime.runPromise(AgentService.listVersions(agentId, userId));
 
   return versions.length;
 }
@@ -44,7 +44,7 @@ async function fetchRecentChats(agentId: string, userId: string) {
   cacheTag(`conversations:${userId}`);
   cacheLife("minutes");
 
-  return appRuntime.runPromise(listConversationsForAgent(userId, agentId));
+  return appRuntime.runPromise(ChatService.listForAgent(userId, agentId));
 }
 
 interface Props {

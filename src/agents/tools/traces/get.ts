@@ -2,8 +2,8 @@ import { tool } from "ai";
 import { Exit } from "effect";
 import { z } from "zod";
 
-import { appRuntime } from "@/db/service";
-import { getConversationTrace } from "@/lib/chat/store";
+import { appRuntime } from "@/db/runtime";
+import { ChatStoreService } from "@/lib/chat/store";
 import { projectTrace } from "@/lib/chat/trace";
 
 import type { ToolContext } from "../types";
@@ -14,7 +14,7 @@ export const buildTracesGet = (_config: unknown, context: ToolContext) => {
       "Get the projected execution trace for a conversation: ordered, timed steps with tool calls, inputs/outputs, errors, and token usage. Sub-agent steps are nested under their parent tool call. Works for both chats and eval runs; for an eval run, pass the conversationId returned by evals-run.",
     execute: async ({ conversationId }) => {
       const exit = await appRuntime.runPromiseExit(
-        getConversationTrace(context.userId, conversationId),
+        ChatStoreService.getConversationTrace(context.userId, conversationId),
       );
 
       if (Exit.isFailure(exit)) {

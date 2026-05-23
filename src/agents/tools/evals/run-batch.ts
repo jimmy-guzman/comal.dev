@@ -1,7 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 
-import { NotFoundError } from "@/lib/errors";
+import { AgentNotFoundError } from "@/lib/errors";
 import { runEvalSuite } from "@/lib/eval-runner";
 
 import type { ToolContext } from "../types";
@@ -14,7 +14,7 @@ export const buildEvalsRunBatch = (_config: unknown, context: ToolContext) => {
       try {
         return await runEvalSuite(agentId, context.userId);
       } catch (error) {
-        if (error instanceof NotFoundError) {
+        if (error instanceof AgentNotFoundError) {
           return { error: "Agent not found or not owned by you." };
         }
 

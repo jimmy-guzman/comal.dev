@@ -6,9 +6,8 @@ import { z } from "zod";
 
 import type { Scorer } from "@/lib/eval-input-schema";
 
-import { appRuntime } from "@/db/service";
-import { getAgentVersion, listOwnedAgentIds, updateAgent } from "@/lib/agents";
-import { ForbiddenError, NotFoundError } from "@/lib/errors";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { authClient } from "@/lib/safe-action";
 
 const inputSchema = z.object({
@@ -22,13 +21,15 @@ export const revertAgentVersionAction = authClient
     const { agentId, versionId } = parsedInput;
 
     const version = await appRuntime.runPromise(
-      getAgentVersion(versionId, agentId, ctx.auth.user.id),
+      AgentService.getVersion(versionId, agentId, ctx.auth.user.id),
     );
 
     if (version.subAgents.length > 0) {
       const childIds = version.subAgents.map((s) => s.childAgentId);
 
-      const owned = await appRuntime.runPromise(listOwnedAgentIds(ctx.auth.user.id, childIds));
+      const owned = await appRuntime.runPromise(
+        AgentService.listOwnedAgentIds(ctx.auth.user.id, childIds),
+      );
 
       const ownedIds = new Set(owned.map((row) => row.id));
 
@@ -40,7 +41,7 @@ export const revertAgentVersionAction = authClient
     }
 
     const exit = await appRuntime.runPromiseExit(
-      updateAgent(agentId, ctx.auth.user.id, (current) => {
+      AgentService.update(agentId, ctx.auth.user.id, (current) => {
         return {
           ...current,
           defaultModelId: version.modelId,
@@ -73,9 +74,9 @@ export const revertAgentVersionAction = authClient
           throw new Error(`revert would create a cycle: ${cause.error.cycle.join(" -> ")}.`);
         }
 
-        if (cause.error._tag === "ForbiddenError") throw new ForbiddenError();
-
-        if (cause.error._tag === "NotFoundError") throw new NotFoundError({ resource: "agent" });
+        if (cause.error._tag === "ForbiddenError" || cause.error._tag === "AgentNotFoundError") {
+          throw cause.error;
+        }
       }
 
       throw new Error("Failed to revert agent.");

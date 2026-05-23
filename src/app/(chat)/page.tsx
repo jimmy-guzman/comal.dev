@@ -5,15 +5,15 @@ import Link from "next/link";
 import { provisionSystemAgentAction } from "@/actions/provision-system-agent";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { appRuntime } from "@/db/service";
-import { listAgentsForUser } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 
 export default async function HomePage() {
   const session = await auth.api.getSession({ headers: await headers() });
 
   const agents = session?.user
-    ? await appRuntime.runPromise(listAgentsForUser(session.user.id))
+    ? await appRuntime.runPromise(AgentService.listForUser(session.user.id))
     : [];
 
   const mostRecent = agents.at(0);

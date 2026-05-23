@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/item";
-import { appRuntime } from "@/db/service";
-import { listAgentsForUser } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 
 export default async function AgentsPage() {
@@ -14,7 +14,7 @@ export default async function AgentsPage() {
 
   if (!session?.user) redirect("/sign-in");
 
-  const agents = await appRuntime.runPromise(listAgentsForUser(session.user.id));
+  const agents = await appRuntime.runPromise(AgentService.listForUser(session.user.id));
 
   return (
     <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">

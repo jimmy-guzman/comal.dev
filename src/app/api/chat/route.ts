@@ -10,7 +10,7 @@ import {
   stepCountIs,
   streamText,
 } from "ai";
-import { Data, Effect, Logger } from "effect";
+import { Effect, Logger, Schema } from "effect";
 import { nanoid } from "nanoid";
 import { revalidateTag } from "next/cache";
 import { headers } from "next/headers";
@@ -21,20 +21,27 @@ import type { Database } from "@/db/service";
 import type { AppUIMessage } from "@/lib/app-ui-message";
 import type { ChatEventRow } from "@/lib/chat/projector";
 import type { ChatStreamContext } from "@/lib/chat/stream-context";
-import type { DatabaseError, ForbiddenError, NotFoundError, UnauthorizedError } from "@/lib/errors";
+import type {
+  AgentNotFoundError,
+  ConversationNotFoundError,
+  DatabaseError,
+  ForbiddenError,
+  UnauthorizedError,
+} from "@/lib/errors";
 
 import { loadAgent } from "@/agents";
-import { appRuntime } from "@/db/service";
+import { appRuntime } from "@/db/runtime";
 import { Auth, AuthLive } from "@/lib/auth-context";
-import {
-  createConversationWithFirstUserMessage,
-  setConversationAgentVersion,
-  updateConversationTitle,
-} from "@/lib/chat";
+import { ChatService } from "@/lib/chat";
 import { chatErrorCopyFor, classifyChatError } from "@/lib/chat/errors";
-import { appendChatEvent, persistChatStream } from "@/lib/chat/persist-stream";
-import { countAssistantTurns, getConversationWithEvents } from "@/lib/chat/store";
-import { LLMError, MessageConversionError, ValidationError } from "@/lib/errors";
+import { ChatPersistService, persistChatStream } from "@/lib/chat/persist-stream";
+import { ChatStoreService } from "@/lib/chat/store";
+import {
+  LLMError,
+  MessageConversionError,
+  RateLimitCheckError,
+  ValidationError,
+} from "@/lib/errors";
 import { openrouter } from "@/lib/openrouter";
 import {
   chatLimiter,
@@ -45,15 +52,19 @@ import {
   recordSpend,
 } from "@/lib/rate-limit";
 
-class RateLimitError extends Data.TaggedError("RateLimitError")<{
-  limit: number;
-  reset: number;
-}> {}
+// eslint-disable-next-line unicorn/throw-new-error -- false positive: Schema.TaggedError is a class factory
+class RateLimitError extends Schema.TaggedError<RateLimitError>()("RateLimitError", {
+  limit: Schema.Number,
+  message: Schema.String,
+  reset: Schema.Number,
+}) {}
 
-class BudgetExceededError extends Data.TaggedError("BudgetExceededError")<{
-  budgetMicrodollars: number;
-  spentMicrodollars: number;
-}> {}
+// eslint-disable-next-line unicorn/throw-new-error -- false positive: Schema.TaggedError is a class factory
+class BudgetExceededError extends Schema.TaggedError<BudgetExceededError>()("BudgetExceededError", {
+  budgetMicrodollars: Schema.Number,
+  message: Schema.String,
+  spentMicrodollars: Schema.Number,
+}) {}
 
 const postBodySchema = z.object({
   agentId: z.string().min(1).optional(),
@@ -86,11 +97,13 @@ const logError = (message: string, error: unknown): void => {
 
 const errorToResponse = (
   error:
+    | AgentNotFoundError
     | BudgetExceededError
+    | ConversationNotFoundError
     | DatabaseError
     | ForbiddenError
     | MessageConversionError
-    | NotFoundError
+    | RateLimitCheckError
     | RateLimitError
     | UnauthorizedError
     | ValidationError,
@@ -111,8 +124,12 @@ const errorToResponse = (
     return Response.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  if (error._tag === "NotFoundError") {
-    return Response.json({ error: `${error.resource} not found.` }, { status: 404 });
+  if (error._tag === "AgentNotFoundError") {
+    return Response.json({ error: "Agent not found." }, { status: 404 });
+  }
+
+  if (error._tag === "ConversationNotFoundError") {
+    return Response.json({ error: "Conversation not found." }, { status: 404 });
   }
 
   if (error._tag === "RateLimitError") {
@@ -144,6 +161,10 @@ const errorToResponse = (
       },
       { headers: { "Retry-After": "3600" }, status: 429 },
     );
+  }
+
+  if (error._tag === "RateLimitCheckError") {
+    return Response.json({ error: "Rate limit check failed." }, { status: 500 });
   }
 
   return Response.json({ error: "Internal server error." }, { status: 500 });
@@ -192,12 +213,12 @@ const generateTitleEffect = (
   modelId: string,
   userText: string,
   userId: string,
-): Effect.Effect<string, DatabaseError | LLMError, Database> => {
+): Effect.Effect<string, DatabaseError | LLMError, ChatService | Database> => {
   return Effect.gen(function* () {
     const { text: title } = yield* Effect.tryPromise({
       catch: (cause) => {
         return new LLMError({
-          cause,
+          cause: cause instanceof Error ? cause.message : String(cause),
           message: cause instanceof Error ? cause.message : String(cause),
         });
       },
@@ -211,7 +232,7 @@ const generateTitleEffect = (
 
     const trimmed = title.trim();
 
-    yield* updateConversationTitle(conversationId, trimmed);
+    yield* ChatService.updateTitle(conversationId, trimmed);
 
     revalidateTag(`conversations:${userId}`, "max");
 
@@ -262,11 +283,13 @@ export async function POST(req: Request) {
   const requestHeaders = await headers();
 
   type ChatError =
+    | AgentNotFoundError
     | BudgetExceededError
+    | ConversationNotFoundError
     | DatabaseError
     | ForbiddenError
     | MessageConversionError
-    | NotFoundError
+    | RateLimitCheckError
     | RateLimitError
     | UnauthorizedError
     | ValidationError;
@@ -276,22 +299,37 @@ export async function POST(req: Request) {
 
     const limiter = pickLimiter({ anon: chatLimiterAnon, authed: chatLimiter }, user);
 
-    const { limit, reset, success } = yield* Effect.promise(() => {
-      return checkLimit(limiter, user.id);
+    const { limit, reset, success } = yield* Effect.tryPromise({
+      catch: (cause) => {
+        return new RateLimitCheckError({
+          cause: cause instanceof Error ? cause.message : String(cause),
+          message: "Failed to check rate limit.",
+        });
+      },
+      try: () => checkLimit(limiter, user.id),
     });
 
     if (!success) {
-      return yield* Effect.fail(new RateLimitError({ limit, reset }));
+      return yield* Effect.fail(
+        new RateLimitError({ limit, message: "Rate limit exceeded.", reset }),
+      );
     }
 
-    const budget = yield* Effect.promise(() => {
-      return checkBudget(user.id, user.isAnonymous === true);
+    const budget = yield* Effect.tryPromise({
+      catch: (cause) => {
+        return new RateLimitCheckError({
+          cause: cause instanceof Error ? cause.message : String(cause),
+          message: "Failed to check budget.",
+        });
+      },
+      try: () => checkBudget(user.id, user.isAnonymous === true),
     });
 
     if (!budget.success) {
       return yield* Effect.fail(
         new BudgetExceededError({
           budgetMicrodollars: budget.budgetMicrodollars,
+          message: "Budget exceeded.",
           spentMicrodollars: budget.spentMicrodollars,
         }),
       );
@@ -305,13 +343,6 @@ export async function POST(req: Request) {
       return !Array.isArray(parts) || parts.length > 0;
     });
 
-    // Resolve the agent (and, for existing conversations, the conversation
-    // row) before message validation. Then validate, and only after
-    // validation passes do we insert a new conversation row. This ordering
-    // ensures a malformed request never leaves a phantom row. Neon HTTP
-    // has no multi-statement transactions, so creation and the first event
-    // are not strictly atomic; the validation gate is the practical
-    // guarantee.
     let conversationId: string;
     let convModelId: string;
     let existingEvents: ChatEventRow[] = [];
@@ -322,22 +353,24 @@ export async function POST(req: Request) {
       resolvedAgentId = conversationSource.agentId;
       convModelId = conversationSource.modelId;
     } else {
-      const conv = yield* getConversationWithEvents(user.id, conversationSource.conversationId);
+      const conv = yield* ChatStoreService.getConversationWithEvents(
+        user.id,
+        conversationSource.conversationId,
+      );
 
       resolvedAgentId = conv.agentId;
       convModelId = conv.modelId;
       existingEvents = conv.events;
     }
 
-    // loadAgent enforces ownership (filters by userId) and resolves the
-    // tool implementations from the registry. Loading it before validation
-    // keeps the agent-ownership gate ahead of any conversation row insert
-    // for the create flow.
     const agent = yield* loadAgent(resolvedAgentId, user.id);
 
     const validation = yield* Effect.tryPromise({
       catch: (cause) => {
-        return new ValidationError({ cause, message: "Failed to validate messages." });
+        return new ValidationError({
+          cause: cause instanceof Error ? cause.message : String(cause),
+          message: "Failed to validate messages.",
+        });
       },
       try: () => {
         return safeValidateUIMessages<AppUIMessage>({
@@ -356,14 +389,6 @@ export async function POST(req: Request) {
     });
 
     if (conversationSource.kind === "create") {
-      // A brand-new conversation must have a real user turn in this request.
-      // Without it we have nothing to send to the model and would leave a
-      // phantom row, defeating the purpose of validating before persistence.
-      // Existing conversations are allowed to send approval-only payloads
-      // where the last message is an assistant turn carrying responses.
-      // The "real" check requires at least one part with substantive content:
-      // a non-whitespace text part, or any non-text part (e.g. file upload).
-      // Without this, a whitespace-only first turn would still create a row.
       const hasSubstantiveContent =
         userMessage?.parts.some((part) => {
           return part.type === "text" ? part.text.trim().length > 0 : true;
@@ -377,7 +402,7 @@ export async function POST(req: Request) {
         );
       }
 
-      const created = yield* createConversationWithFirstUserMessage({
+      const created = yield* ChatService.createWithFirstUserMessage({
         agentId: conversationSource.agentId,
         agentVersionId: agent.versionId,
         modelId: conversationSource.modelId,
@@ -394,7 +419,7 @@ export async function POST(req: Request) {
       conversationId = conversationSource.conversationId;
 
       if (agent.versionId !== null) {
-        yield* setConversationAgentVersion(conversationId, agent.versionId);
+        yield* ChatService.setAgentVersion(conversationId, agent.versionId);
       }
     }
 
@@ -406,9 +431,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // The first user message of a brand-new conversation was already
-    // persisted atomically with the conversation row above; track it here so
-    // the generic append-loop below skips it.
     if (isNewConversation && userMessage) {
       persistedUserMessageIds.add(userMessage.id);
     }
@@ -427,10 +449,11 @@ export async function POST(req: Request) {
       }
     }
 
-    const isFirstTurn = isNewConversation || (yield* countAssistantTurns(conversationId)) === 0;
+    const isFirstTurn =
+      isNewConversation || (yield* ChatStoreService.countAssistantTurns(conversationId)) === 0;
 
     if (userMessage && !persistedUserMessageIds.has(userMessage.id)) {
-      yield* appendChatEvent({
+      yield* ChatPersistService.appendChatEvent({
         conversationId,
         event: {
           eventType: "user-message",
@@ -447,7 +470,7 @@ export async function POST(req: Request) {
     });
 
     for (const approval of approvalResponses) {
-      yield* appendChatEvent({
+      yield* ChatPersistService.appendChatEvent({
         conversationId,
         event: {
           eventType: "tool-approval-responded",
@@ -465,7 +488,12 @@ export async function POST(req: Request) {
     }
 
     const modelMessages = yield* Effect.tryPromise({
-      catch: (cause) => new MessageConversionError({ cause }),
+      catch: (cause) => {
+        return new MessageConversionError({
+          cause: cause instanceof Error ? cause.message : String(cause),
+          message: "Failed to convert messages.",
+        });
+      },
       try: () => {
         return convertToModelMessages(validation.data, { ignoreIncompleteToolCalls: true });
       },
@@ -595,7 +623,11 @@ export async function POST(req: Request) {
     });
 
     return createUIMessageStreamResponse({ stream: uiStream });
-  }) satisfies Effect.Effect<Response, ChatError, Auth | Database>;
+  }) satisfies Effect.Effect<
+    Response,
+    ChatError,
+    Auth | ChatPersistService | ChatService | ChatStoreService | Database
+  >;
 
   return await appRuntime.runPromise(
     program.pipe(

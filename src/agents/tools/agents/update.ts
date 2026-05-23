@@ -4,8 +4,8 @@ import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { MODEL_IDS } from "@/config/models";
-import { appRuntime } from "@/db/service";
-import { listOwnedAgentIds, updateAgent } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 
 import type { ToolContext } from "../types";
 
@@ -81,9 +81,15 @@ export const buildAgentsUpdate = (_config: unknown, context: ToolContext) => {
 
         const childIds = resolvedSubAgents.map((s) => s.childAgentId);
 
-        const owned = await appRuntime.runPromise(listOwnedAgentIds(context.userId, childIds));
+        const ownedExit = await appRuntime.runPromiseExit(
+          AgentService.listOwnedAgentIds(context.userId, childIds),
+        );
 
-        const ownedIds = new Set(owned.map((row) => row.id));
+        if (Exit.isFailure(ownedExit)) {
+          return { error: "Failed to validate sub-agents." };
+        }
+
+        const ownedIds = new Set(ownedExit.value.map((row) => row.id));
 
         for (const sub of resolvedSubAgents) {
           if (!ownedIds.has(sub.childAgentId)) {
@@ -93,7 +99,7 @@ export const buildAgentsUpdate = (_config: unknown, context: ToolContext) => {
       }
 
       const exit = await appRuntime.runPromiseExit(
-        updateAgent(agentId, context.userId, (current) => {
+        AgentService.update(agentId, context.userId, (current) => {
           return {
             ...current,
             defaultModelId,
@@ -116,7 +122,7 @@ export const buildAgentsUpdate = (_config: unknown, context: ToolContext) => {
             };
           }
 
-          if (cause.error._tag === "NotFoundError" || cause.error._tag === "ForbiddenError") {
+          if (cause.error._tag === "AgentNotFoundError" || cause.error._tag === "ForbiddenError") {
             return { error: "Agent not found, not owned by you, or a system agent." };
           }
         }

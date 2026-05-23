@@ -3,8 +3,8 @@ import { Exit } from "effect";
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
-import { appRuntime } from "@/db/service";
-import { assertAgentOwnership, deleteAgent, getAgentForUser } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 
 import type { ToolContext } from "../types";
 
@@ -14,14 +14,16 @@ export const buildAgentsDelete = (_config: unknown, context: ToolContext) => {
       "Deletes an agent owned by the current user. System agents cannot be deleted. This action is irreversible.",
     execute: async ({ agentId }) => {
       const ownershipExit = await appRuntime.runPromiseExit(
-        assertAgentOwnership(agentId, context.userId),
+        AgentService.assertOwnership(agentId, context.userId),
       );
 
       if (Exit.isFailure(ownershipExit)) {
         return { error: "Agent not found or not owned by you." };
       }
 
-      const agentExit = await appRuntime.runPromiseExit(getAgentForUser(agentId, context.userId));
+      const agentExit = await appRuntime.runPromiseExit(
+        AgentService.getForUser(agentId, context.userId),
+      );
 
       if (Exit.isFailure(agentExit)) {
         return { error: "Agent not found." };
@@ -31,7 +33,7 @@ export const buildAgentsDelete = (_config: unknown, context: ToolContext) => {
         return { error: "System agents cannot be deleted." };
       }
 
-      const deleteExit = await appRuntime.runPromiseExit(deleteAgent(agentId));
+      const deleteExit = await appRuntime.runPromiseExit(AgentService.delete(agentId));
 
       if (Exit.isFailure(deleteExit)) {
         return { error: "Failed to delete agent." };

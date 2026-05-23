@@ -7,10 +7,10 @@ import type { Scorer } from "@/lib/eval-input-schema";
 
 import { AgentEvalsForm } from "@/components/agent-evals-form";
 import { EvalTrendChart } from "@/components/eval-trend-chart";
-import { appRuntime } from "@/db/service";
-import { getAgentForUser } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
-import { getEvalScoreTrend, listEvalRunsForAgent } from "@/lib/evals";
+import { EvalService } from "@/lib/evals";
 
 async function fetchAgent(agentId: string, userId: string) {
   "use cache";
@@ -19,8 +19,8 @@ async function fetchAgent(agentId: string, userId: string) {
   cacheLife("minutes");
 
   return appRuntime.runPromise(
-    getAgentForUser(agentId, userId).pipe(
-      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+    AgentService.getForUser(agentId, userId).pipe(
+      Effect.catchTag("AgentNotFoundError", () => Effect.succeed(null)),
     ),
   );
 }
@@ -43,8 +43,8 @@ export default async function AgentEvalsPage({ params }: Props) {
   if (agent.isSystem) redirect(`/agents/${agentId}`);
 
   const [evalRuns, trend] = await Promise.all([
-    appRuntime.runPromise(listEvalRunsForAgent(agentId)),
-    appRuntime.runPromise(getEvalScoreTrend(agentId)),
+    appRuntime.runPromise(EvalService.listRunsForAgent(agentId)),
+    appRuntime.runPromise(EvalService.getScoreTrend(agentId)),
   ]);
 
   return (

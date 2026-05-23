@@ -4,10 +4,10 @@ import { Cause, Effect, Exit } from "effect";
 import { returnValidationErrors } from "next-safe-action";
 import { updateTag } from "next/cache";
 
-import { appRuntime } from "@/db/service";
+import { appRuntime } from "@/db/runtime";
 import { detectSubAgentCycle } from "@/lib/agent-graph";
 import { agentInputSchema } from "@/lib/agent-input-schema";
-import { createAgent, listOwnedAgentIds, listOwnerSubAgentEdges } from "@/lib/agents";
+import { AgentService } from "@/lib/agents";
 import { authClient } from "@/lib/safe-action";
 
 const PROPOSED_PARENT_ID = "__proposed__";
@@ -20,8 +20,8 @@ export const createAgentAction = authClient
 
       const validation = await appRuntime.runPromise(
         Effect.all({
-          edges: listOwnerSubAgentEdges(ctx.auth.user.id),
-          owned: listOwnedAgentIds(ctx.auth.user.id, childIds),
+          edges: AgentService.listOwnerSubAgentEdges(ctx.auth.user.id),
+          owned: AgentService.listOwnedAgentIds(ctx.auth.user.id, childIds),
         }),
       );
 
@@ -48,7 +48,9 @@ export const createAgentAction = authClient
       }
     }
 
-    const exit = await appRuntime.runPromiseExit(createAgent(ctx.auth.user.id, parsedInput));
+    const exit = await appRuntime.runPromiseExit(
+      AgentService.create(ctx.auth.user.id, parsedInput),
+    );
 
     if (Exit.isFailure(exit)) {
       throw new Error("Failed to create agent.", { cause: Cause.squash(exit.cause) });

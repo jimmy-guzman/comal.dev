@@ -9,10 +9,10 @@ import { chatSearchParamsCache } from "@/app/(chat)/chats/search-params";
 import { ChatsFilter } from "@/components/chats-filter";
 import { ConversationList } from "@/components/conversation-list";
 import { Button } from "@/components/ui/button";
-import { appRuntime } from "@/db/service";
-import { listAgentsForUser } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
-import { listRecentConversationsForUser } from "@/lib/chat";
+import { ChatService } from "@/lib/chat";
 
 async function fetchConversations(userId: string) {
   "use cache";
@@ -20,7 +20,7 @@ async function fetchConversations(userId: string) {
   cacheTag(`conversations:${userId}`);
   cacheLife("minutes");
 
-  return appRuntime.runPromise(listRecentConversationsForUser(userId, 100));
+  return appRuntime.runPromise(ChatService.listRecentForUser(userId, 100));
 }
 
 async function fetchAgents(userId: string) {
@@ -29,7 +29,7 @@ async function fetchAgents(userId: string) {
   cacheTag(`agents:${userId}`);
   cacheLife("minutes");
 
-  return appRuntime.runPromise(listAgentsForUser(userId));
+  return appRuntime.runPromise(AgentService.listForUser(userId));
 }
 
 interface Props {

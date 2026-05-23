@@ -4,10 +4,9 @@ import { Effect, Exit } from "effect";
 import { updateTag } from "next/cache";
 import { z } from "zod";
 
-import { appRuntime } from "@/db/service";
-import { assertAgentOwnership } from "@/lib/agents";
-import { assertConversationAccess, updateConversationAgent } from "@/lib/chat";
-import { ForbiddenError } from "@/lib/errors";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
+import { ChatService } from "@/lib/chat";
 import { authClient } from "@/lib/safe-action";
 
 export const updateConversationAgentAction = authClient
@@ -19,9 +18,9 @@ export const updateConversationAgentAction = authClient
   )
   .action(async ({ ctx, parsedInput }) => {
     const program = Effect.gen(function* () {
-      yield* assertConversationAccess(ctx.auth.user.id, parsedInput.conversationId);
-      yield* assertAgentOwnership(parsedInput.agentId, ctx.auth.user.id);
-      yield* updateConversationAgent(parsedInput.conversationId, parsedInput.agentId);
+      yield* ChatService.assertAccess(ctx.auth.user.id, parsedInput.conversationId);
+      yield* AgentService.assertOwnership(parsedInput.agentId, ctx.auth.user.id);
+      yield* ChatService.updateAgent(parsedInput.conversationId, parsedInput.agentId);
     });
 
     const exit = await appRuntime.runPromiseExit(program);
@@ -29,8 +28,13 @@ export const updateConversationAgentAction = authClient
     if (Exit.isFailure(exit)) {
       const { cause } = exit;
 
-      if (cause._tag === "Fail" && cause.error._tag === "ForbiddenError") {
-        throw new ForbiddenError();
+      if (
+        cause._tag === "Fail" &&
+        (cause.error._tag === "ForbiddenError" ||
+          cause.error._tag === "ConversationNotFoundError" ||
+          cause.error._tag === "AgentNotFoundError")
+      ) {
+        throw cause.error;
       }
 
       throw new Error("Failed to update conversation agent.");

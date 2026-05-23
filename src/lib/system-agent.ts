@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 
 import { agent, agentTool } from "@/db/schemas/agent-schema";
 import { Database, runQuery } from "@/db/service";
+import { SystemAgentProvisioningError, UnknownToolError } from "@/lib/errors";
 
 import { tools as toolRegistry } from "../agents/tools/registry";
 
@@ -46,62 +47,80 @@ After you create an agent, confirm it succeeded and reference the new agent with
 
 Always confirm before destructive actions such as deleting or reverting. Use sensible defaults, and research with the web tools when it helps. Do not invent tool ids; list the available tools first if you are unsure.`;
 
-const validateToolIds = () => {
+const validateToolIds = Effect.fn("SystemAgentService.validateToolIds")(function* () {
   for (const toolId of SYSTEM_AGENT_TOOLS) {
     if (!toolRegistry.get(toolId)) {
-      throw new Error(
-        `System agent references unknown tool "${toolId}". Update SYSTEM_AGENT_TOOLS.`,
+      return yield* Effect.fail(
+        new UnknownToolError({
+          message: `System agent references unknown tool. Update SYSTEM_AGENT_TOOLS.`,
+          toolId,
+        }),
       );
     }
   }
-};
 
-export const getOrCreateSystemAgent = (userId: string) => {
-  return Effect.gen(function* () {
-    validateToolIds();
+  return undefined;
+});
 
+export class SystemAgentService extends Effect.Service<SystemAgentService>()("SystemAgentService", {
+  accessors: true,
+  effect: Effect.gen(function* () {
     const db = yield* Database;
-    const id = nanoid();
 
-    yield* runQuery(() => {
-      return db
-        .insert(agent)
-        .values({
-          defaultModelId: SYSTEM_AGENT_MODEL,
-          id,
-          isSystem: true,
-          name: SYSTEM_AGENT_NAME,
-          systemPrompt: SYSTEM_AGENT_PROMPT,
-          userId,
-        })
-        .onConflictDoNothing({ target: [agent.userId], where: eq(agent.isSystem, true) });
-    });
+    const getOrCreate = Effect.fn("SystemAgentService.getOrCreate")(function* (userId: string) {
+      yield* Effect.annotateCurrentSpan("userId", userId);
 
-    const rows = yield* runQuery(() => {
-      return db
-        .select({ id: agent.id })
-        .from(agent)
-        .where(and(eq(agent.userId, userId), eq(agent.isSystem, true)))
-        .limit(1);
-    });
+      yield* validateToolIds();
 
-    const row = rows.at(0);
+      const id = nanoid();
 
-    if (!row) {
-      return yield* Effect.die("System agent insert and select both failed.");
-    }
+      yield* runQuery(() => {
+        return db
+          .insert(agent)
+          .values({
+            defaultModelId: SYSTEM_AGENT_MODEL,
+            id,
+            isSystem: true,
+            name: SYSTEM_AGENT_NAME,
+            systemPrompt: SYSTEM_AGENT_PROMPT,
+            userId,
+          })
+          .onConflictDoNothing({ target: [agent.userId], where: eq(agent.isSystem, true) });
+      });
 
-    yield* runQuery(() => {
-      return db
-        .insert(agentTool)
-        .values(
-          SYSTEM_AGENT_TOOLS.map((toolId) => {
-            return { agentId: row.id, config: {}, toolId };
+      const rows = yield* runQuery(() => {
+        return db
+          .select({ id: agent.id })
+          .from(agent)
+          .where(and(eq(agent.userId, userId), eq(agent.isSystem, true)))
+          .limit(1);
+      });
+
+      const row = rows.at(0);
+
+      if (!row) {
+        return yield* Effect.fail(
+          new SystemAgentProvisioningError({
+            message: "System agent insert and select both failed.",
+            userId,
           }),
-        )
-        .onConflictDoNothing();
+        );
+      }
+
+      yield* runQuery(() => {
+        return db
+          .insert(agentTool)
+          .values(
+            SYSTEM_AGENT_TOOLS.map((toolId) => {
+              return { agentId: row.id, config: {}, toolId };
+            }),
+          )
+          .onConflictDoNothing();
+      });
+
+      return row.id;
     });
 
-    return row.id;
-  });
-};
+    return { getOrCreate };
+  }),
+}) {}

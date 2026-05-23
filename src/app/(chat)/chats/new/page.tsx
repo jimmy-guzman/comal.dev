@@ -7,8 +7,8 @@ import { redirect } from "next/navigation";
 
 import { chatSearchParamsCache } from "@/app/(chat)/chats/search-params";
 import { ChatView } from "@/components/chat-view";
-import { appRuntime } from "@/db/service";
-import { getAgentForUser, listAgentsForUser } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 
 async function fetchAgents(userId: string) {
@@ -17,7 +17,7 @@ async function fetchAgents(userId: string) {
   cacheTag(`agents:${userId}`);
   cacheLife("minutes");
 
-  return appRuntime.runPromise(listAgentsForUser(userId));
+  return appRuntime.runPromise(AgentService.listForUser(userId));
 }
 
 async function fetchAgent(agentId: string, userId: string) {
@@ -27,8 +27,8 @@ async function fetchAgent(agentId: string, userId: string) {
   cacheLife("minutes");
 
   return appRuntime.runPromise(
-    getAgentForUser(agentId, userId).pipe(
-      Effect.catchTag("NotFoundError", () => Effect.succeed(null)),
+    AgentService.getForUser(agentId, userId).pipe(
+      Effect.catchTag("AgentNotFoundError", () => Effect.succeed(null)),
     ),
   );
 }

@@ -3,9 +3,9 @@ import { isEqual } from "es-toolkit";
 
 import type { agentSubagent, agentTool, agentVersion } from "@/db/schemas/agent-schema";
 import type { Database } from "@/db/service";
-import type { DatabaseError, NotFoundError } from "@/lib/errors";
+import type { AgentVersionNotFoundError, DatabaseError } from "@/lib/errors";
 
-import { getAgentVersion } from "@/lib/agents";
+import { AgentService } from "@/lib/agents";
 
 type EvalEntry = VersionRow["evals"][number];
 type IdentifiedEvalEntry = EvalEntry & { id: string };
@@ -155,10 +155,17 @@ export const diffAgentVersions = (
   versionAId: string,
   versionBId: string,
   userId: string,
-): Effect.Effect<AgentVersionDiff, DatabaseError | NotFoundError, Database> => {
+): Effect.Effect<
+  AgentVersionDiff,
+  AgentVersionNotFoundError | DatabaseError,
+  AgentService | Database
+> => {
   return Effect.gen(function* () {
     const [a, b] = yield* Effect.all(
-      [getAgentVersion(versionAId, agentId, userId), getAgentVersion(versionBId, agentId, userId)],
+      [
+        AgentService.getVersion(versionAId, agentId, userId),
+        AgentService.getVersion(versionBId, agentId, userId),
+      ],
       { concurrency: "unbounded" },
     );
 

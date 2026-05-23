@@ -5,10 +5,10 @@ import { z } from "zod";
 
 import type { Scorer } from "@/lib/eval-input-schema";
 
-import { appRuntime } from "@/db/service";
-import { updateAgent } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { evalEntrySchema, SCORER_OPTIONS, toolCallAssertionSchema } from "@/lib/eval-input-schema";
-import { getEvalWithOwnership } from "@/lib/evals";
+import { EvalService } from "@/lib/evals";
 
 import type { ToolContext } from "../types";
 
@@ -29,7 +29,7 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
       }
 
       const existingExit = await appRuntime.runPromiseExit(
-        getEvalWithOwnership(evalId, context.userId),
+        EvalService.getWithOwnership(evalId, context.userId),
       );
 
       if (Exit.isFailure(existingExit)) {
@@ -65,7 +65,7 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
       const patchOutcome = { evalMissing: false };
 
       const exit = await appRuntime.runPromiseExit(
-        updateAgent(agentId, context.userId, (current) => {
+        AgentService.update(agentId, context.userId, (current) => {
           const target = current.evals.find((e) => e.id === evalId);
 
           if (!target) {
@@ -95,7 +95,7 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
 
         if (
           cause._tag === "Fail" &&
-          (cause.error._tag === "NotFoundError" || cause.error._tag === "ForbiddenError")
+          (cause.error._tag === "AgentNotFoundError" || cause.error._tag === "ForbiddenError")
         ) {
           return { error: "Agent not found, not owned by you, or a system agent." };
         }

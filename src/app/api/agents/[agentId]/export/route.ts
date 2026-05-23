@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { kebabCase } from "es-toolkit";
 import { headers } from "next/headers";
 
-import { appRuntime } from "@/db/service";
+import { appRuntime } from "@/db/runtime";
 import { buildAgentExport } from "@/lib/agent-export";
 import { auth } from "@/lib/auth";
 
@@ -23,8 +23,8 @@ export async function GET(_req: Request, { params }: Params) {
     buildAgentExport(agentId, session.user.id).pipe(
       Effect.match({
         onFailure: (error) => {
-          if (error._tag === "NotFoundError") {
-            return Response.json({ error: `${error.resource} not found.` }, { status: 404 });
+          if (error._tag === "AgentNotFoundError") {
+            return Response.json({ error: "Agent not found." }, { status: 404 });
           }
 
           return Response.json({ error: "Internal server error." }, { status: 500 });

@@ -5,8 +5,8 @@ import { z } from "zod";
 
 import type { Scorer } from "@/lib/eval-input-schema";
 
-import { appRuntime } from "@/db/service";
-import { getAgentVersion, listOwnedAgentIds, updateAgent } from "@/lib/agents";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 
 import type { ToolContext } from "../types";
 
@@ -16,7 +16,7 @@ export const buildAgentsRevertToVersion = (_config: unknown, context: ToolContex
       "Revert an agent's configuration to a previous version snapshot. Creates a new version reflecting the reverted state. Confirm with the user before reverting.",
     execute: async ({ agentId, versionId }) => {
       const versionExit = await appRuntime.runPromiseExit(
-        getAgentVersion(versionId, agentId, context.userId),
+        AgentService.getVersion(versionId, agentId, context.userId),
       );
 
       if (Exit.isFailure(versionExit)) {
@@ -28,9 +28,15 @@ export const buildAgentsRevertToVersion = (_config: unknown, context: ToolContex
       if (version.subAgents.length > 0) {
         const childIds = version.subAgents.map((s) => s.childAgentId);
 
-        const owned = await appRuntime.runPromise(listOwnedAgentIds(context.userId, childIds));
+        const ownedExit = await appRuntime.runPromiseExit(
+          AgentService.listOwnedAgentIds(context.userId, childIds),
+        );
 
-        const ownedIds = new Set(owned.map((row) => row.id));
+        if (Exit.isFailure(ownedExit)) {
+          return { error: "Failed to validate sub-agents from the target version." };
+        }
+
+        const ownedIds = new Set(ownedExit.value.map((row) => row.id));
 
         for (const sub of version.subAgents) {
           if (!ownedIds.has(sub.childAgentId)) {
@@ -42,7 +48,7 @@ export const buildAgentsRevertToVersion = (_config: unknown, context: ToolContex
       }
 
       const exit = await appRuntime.runPromiseExit(
-        updateAgent(agentId, context.userId, (current) => {
+        AgentService.update(agentId, context.userId, (current) => {
           return {
             ...current,
             defaultModelId: version.modelId,
@@ -77,7 +83,7 @@ export const buildAgentsRevertToVersion = (_config: unknown, context: ToolContex
             };
           }
 
-          if (cause.error._tag === "NotFoundError" || cause.error._tag === "ForbiddenError") {
+          if (cause.error._tag === "AgentNotFoundError" || cause.error._tag === "ForbiddenError") {
             return { error: "Agent not found, not owned by you, or a system agent." };
           }
         }

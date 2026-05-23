@@ -5,9 +5,8 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 
 import { MODEL_IDS } from "@/config/models";
-import { appRuntime } from "@/db/service";
-import { updateAgent } from "@/lib/agents";
-import { ForbiddenError, NotFoundError } from "@/lib/errors";
+import { appRuntime } from "@/db/runtime";
+import { AgentService } from "@/lib/agents";
 import { authClient } from "@/lib/safe-action";
 
 const inputSchema = z.object({
@@ -23,7 +22,7 @@ export const updateAgentBasicsAction = authClient
     const { agentId, defaultModelId, description, name } = parsedInput;
 
     const exit = await appRuntime.runPromiseExit(
-      updateAgent(agentId, ctx.auth.user.id, (current) => {
+      AgentService.update(agentId, ctx.auth.user.id, (current) => {
         return { ...current, defaultModelId, description, name };
       }),
     );
@@ -31,10 +30,11 @@ export const updateAgentBasicsAction = authClient
     if (Exit.isFailure(exit)) {
       const { cause } = exit;
 
-      if (cause._tag === "Fail") {
-        if (cause.error._tag === "ForbiddenError") throw new ForbiddenError();
-
-        if (cause.error._tag === "NotFoundError") throw new NotFoundError({ resource: "agent" });
+      if (
+        cause._tag === "Fail" &&
+        (cause.error._tag === "ForbiddenError" || cause.error._tag === "AgentNotFoundError")
+      ) {
+        throw cause.error;
       }
 
       throw new Error("Failed to update agent.");
