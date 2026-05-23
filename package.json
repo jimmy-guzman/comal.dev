@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--no-async-context-frame' next dev",
-    "build": "next build",
+    "dev": "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) NODE_OPTIONS='--no-async-context-frame' next dev",
+    "build": "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) next build",
     "start": "next start",
     "lint": "eslint",
     "knip": "knip",

@@ -19,6 +19,18 @@ const dayWithYearFormatter = new Intl.DateTimeFormat("en-US", {
  * time or zone, and a local parse of its midnight would shift the day. Returns
  * an empty string for input that does not parse.
  */
+/**
+ * Formats an ISO timestamp as "Month Day, Year", e.g. `May 23, 2026`.
+ * Always includes the year. Returns an empty string for input that does not parse.
+ */
+export const formatBuildDate = (isoTimestamp: string): string => {
+  const time = Date.parse(isoTimestamp);
+
+  if (Number.isNaN(time)) return "";
+
+  return dayWithYearFormatter.format(new Date(time));
+};
+
 export const formatDayLabel = (isoDay: string): string => {
   const time = Date.parse(isoDay);
 
