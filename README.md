@@ -1,10 +1,10 @@
 # comal.dev
 
-Create AI agents that are yours. Pick a model, write a system prompt, attach some tools, and start chatting.
+An open source playground for composing your own AI agents from a shared toolbox. Pick a model, write a system prompt, attach some tools, and start chatting.
 
 ## About
 
-A web app for building private, runtime-defined AI agents. The system prompt, model choice, and tool selection are all per-agent and stored under your account. You can start chatting anonymously and sign in with GitHub if you want to keep the history.
+An open source web app for building private, runtime-defined AI agents. The system prompt, model choice, and tool selection are all per-agent and stored under your account. You can start chatting anonymously and sign in with GitHub if you want to keep the history.
 
 ## Architecture
 
