@@ -43,16 +43,16 @@ Before substantial work:
 
 `.agents/skills/` ships skill packs for the libraries and patterns used here. The bullets above cover discovery via `intent`; this list pins the high-leverage skills to the topic they cover so an agent doing typical work can skip the discovery step:
 
-- `effect-best-practices` — Effect-TS patterns: services, layers, error channel, observability, anti-patterns. Load before changes touching `Effect.gen`, `appRuntime.runPromise`, `Effect.tryPromise`, or anything under `src/lib/` that yields effects.
-- `safe-action-*` — server action authoring. Sub-skills: `client`, `forms`, `hooks`, `middleware`, `validation-errors`, `testing`, `better-auth`, `tanstack-query`, `advanced`. Load the matching one before touching `src/actions/` or any form wired through `useAction`.
-- `better-auth-best-practices`, `better-auth-security-best-practices` — auth flows, session, anonymous users. Load when touching `src/lib/auth.ts`, `src/lib/auth-context.ts`, `src/proxy.ts`, or auth middleware.
-- `ai-sdk` — Vercel AI SDK patterns: `streamText`, `generateText`, tools, message conversion. Load when touching `src/app/api/chat/route.ts`, `src/agents/`, or tool definitions.
-- `openrouter-typescript-sdk`, `openrouter-models` — provider client and model selection. Load when changing `src/lib/openrouter.ts` or model configuration.
-- `upstash-redis-js`, `upstash-ratelimit-js` — Redis and rate-limit patterns. Load before changes to `src/lib/rate-limit.ts`.
-- `ai-elements` — chat UI components. Load before changes under `src/components/ai-elements/`.
-- `shadcn` — component library conventions. Load before adding new shadcn primitives.
-- `streamdown` — markdown/code-block rendering inside chat. Load when touching `src/components/ai-elements/message.tsx` or `code-block.tsx`.
-- `humanizer` — prose cleanup. Already referenced in the Writing section; load before editing docs or user-facing copy.
+- `effect-best-practices`: Effect-TS patterns, services, layers, error channel, observability, anti-patterns. Load before changes touching `Effect.gen`, `appRuntime.runPromise`, `Effect.tryPromise`, or anything under `src/lib/` that yields effects.
+- `safe-action-*`: server action authoring. Sub-skills: `client`, `forms`, `hooks`, `middleware`, `validation-errors`, `testing`, `better-auth`, `tanstack-query`, `advanced`. Load the matching one before touching `src/actions/` or any form wired through `useAction`.
+- `better-auth-best-practices`, `better-auth-security-best-practices`: auth flows, session, anonymous users. Load when touching `src/lib/auth.ts`, `src/lib/auth-context.ts`, `src/proxy.ts`, or auth middleware.
+- `ai-sdk`: Vercel AI SDK patterns, `streamText`, `generateText`, tools, message conversion. Load when touching `src/app/api/chat/route.ts`, `src/agents/`, or tool definitions.
+- `openrouter-typescript-sdk`, `openrouter-models`: provider client and model selection. Load when changing `src/lib/openrouter.ts` or model configuration.
+- `upstash-redis-js`, `upstash-ratelimit-js`: Redis and rate-limit patterns. Load before changes to `src/lib/rate-limit.ts`.
+- `ai-elements`: chat UI components. Load before changes under `src/components/ai-elements/`.
+- `shadcn`: component library conventions. Load before adding new shadcn primitives.
+- `streamdown`: markdown/code-block rendering inside chat. Load when touching `src/components/ai-elements/message.tsx` or `code-block.tsx`.
+- `humanizer`: prose cleanup. Already referenced in the Writing section; load before editing docs or user-facing copy.
 
 ## Conventions
 
