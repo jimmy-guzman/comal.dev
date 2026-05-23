@@ -251,6 +251,23 @@ const projectStepsFromEvents = (events: TraceEventRow[], conversationStart: Date
   return steps;
 };
 
+const attachChildrenRecursively = (
+  steps: TraceStep[],
+  childGroups: Map<string, TraceEventRow[]>,
+  conversationStart: Date,
+) => {
+  for (const step of steps) {
+    if (step.tool === null) continue;
+
+    const children = childGroups.get(step.tool.toolCallId);
+
+    if (!children) continue;
+
+    step.children = projectStepsFromEvents(children, conversationStart);
+    attachChildrenRecursively(step.children, childGroups, conversationStart);
+  }
+};
+
 export const projectTrace = (events: TraceEventRow[], conversationStart: Date): TraceStep[] => {
   const topLevel = events.filter((e) => e.parentToolCallId === null);
   const childGroups = new Map<string, TraceEventRow[]>();
@@ -269,15 +286,7 @@ export const projectTrace = (events: TraceEventRow[], conversationStart: Date): 
 
   const steps = projectStepsFromEvents(topLevel, conversationStart);
 
-  for (const step of steps) {
-    if (step.tool === null) continue;
-
-    const children = childGroups.get(step.tool.toolCallId);
-
-    if (children) {
-      step.children = projectStepsFromEvents(children, conversationStart);
-    }
-  }
+  attachChildrenRecursively(steps, childGroups, conversationStart);
 
   return steps;
 };

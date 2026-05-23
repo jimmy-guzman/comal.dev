@@ -23,8 +23,15 @@ interface BuildSubagentToolArgs {
   childName: string;
   link: SubagentLink;
   ownerId: string;
+  parentDepth: number;
   sandbox: boolean;
 }
+
+const subagentStepCap = (childDepth: number) => {
+  if (childDepth >= 2) return stepCountIs(2);
+
+  return stepCountIs(4);
+};
 
 const outputSchema = z.object({
   runId: z.string(),
@@ -72,8 +79,11 @@ export const buildSubagentTool = ({
   childName,
   link,
   ownerId,
+  parentDepth,
   sandbox,
 }: BuildSubagentToolArgs): Tool => {
+  const childDepth = parentDepth + 1;
+
   return tool({
     description: buildDescription({
       childDescription,
@@ -85,13 +95,13 @@ export const buildSubagentTool = ({
       const streamCtx = experimental_context as ChatStreamContext | undefined;
 
       const child = await appRuntime.runPromise(
-        loadAgent(link.childAgentId, ownerId, { depth: 1, sandbox }),
+        loadAgent(link.childAgentId, ownerId, { depth: childDepth, sandbox }),
       );
 
       const agent = new ToolLoopAgent({
         instructions: child.systemPrompt,
         model: openrouter(child.defaultModelId),
-        stopWhen: stepCountIs(8),
+        stopWhen: subagentStepCap(childDepth),
         tools: child.tools,
       });
 

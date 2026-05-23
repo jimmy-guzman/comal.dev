@@ -73,14 +73,14 @@ flowchart TB
 
   ToolStep --> Builtin[Builtin tools<br/>agents / core / evals / github<br/>tmdb / traces / web / wikidata]
   SubStep --> SubAgent[Sub-agent tool<br/>runs via ToolLoopAgent]
-  SubAgent -.->|recurse, MAX_DEPTH 1| loadAgent
+  SubAgent -.->|recurse, MAX_DEPTH 2| loadAgent
 
   Builtin --> Config[AgentConfig<br/>model + system prompt + ToolSet]
   SubAgent --> Config
   Builtin -.->|at call time| Ext[OpenRouter + Tavily + GitHub + TMDB + Wikidata]
 ```
 
-Tool ids are resolved against the static registry (`src/agents/tools/registry.ts`). Sub-agent edges become tools that recurse through `loadAgent` once (`MAX_DEPTH = 1`). The result is an `AgentConfig` the chat route hands to `streamText`.
+Tool ids are resolved against the static registry (`src/agents/tools/registry.ts`). Sub-agent edges become tools that recurse through `loadAgent` up to `MAX_DEPTH = 2`, so a child can have its own sub-agents (root, child, grandchild). The result is an `AgentConfig` the chat route hands to `streamText`.
 
 ### Event-sourced persistence
 

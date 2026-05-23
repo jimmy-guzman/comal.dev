@@ -7,6 +7,7 @@ const subagentTool = buildSubagentTool({
   childName: "nba-news-getter",
   link: { alias: "nba-news-getter", childAgentId: "child-agent", descriptionOverride: null },
   ownerId: "owner",
+  parentDepth: 0,
   sandbox: false,
 });
 
