@@ -16,7 +16,7 @@ import { buildSubagentTool } from "./subagent";
 import { buildTool } from "./tools/build";
 import { tools as toolRegistry } from "./tools/registry";
 
-const MAX_DEPTH = 1;
+const MAX_DEPTH = 2;
 
 const stripApprovalConfig = (config: unknown): unknown => {
   if (typeof config === "object" && config !== null && "needsApproval" in config) {
@@ -75,7 +75,12 @@ const buildToolsRecord = (
   });
 };
 
-const loadSubagentTools = (parentId: string, ownerId: string, sandbox: boolean) => {
+const loadSubagentTools = (
+  parentId: string,
+  ownerId: string,
+  parentDepth: number,
+  sandbox: boolean,
+) => {
   return Effect.gen(function* () {
     const db = yield* Database;
 
@@ -105,6 +110,7 @@ const loadSubagentTools = (parentId: string, ownerId: string, sandbox: boolean) 
           descriptionOverride: row.descriptionOverride,
         },
         ownerId,
+        parentDepth,
         sandbox,
       });
     }
@@ -173,7 +179,9 @@ export const loadAgent = (agentId: string, userId: string, options: LoadAgentOpt
     const toolsRecord = yield* buildToolsRecord(toolRows, depth, toolContext);
 
     const subagentTools =
-      depth === 0 ? yield* loadSubagentTools(agentId, userId, sandbox) : ({} satisfies ToolSet);
+      depth < MAX_DEPTH
+        ? yield* loadSubagentTools(agentId, userId, depth, sandbox)
+        : ({} satisfies ToolSet);
 
     const tools = { ...toolsRecord, ...subagentTools };
 
