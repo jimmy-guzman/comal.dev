@@ -79,6 +79,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@effect/language-service": "0.86.2",
     "@hey-api/openapi-ts": "0.97.2",
     "@jimmy.codes/eslint-config": "7.7.0",
     "@tailwindcss/postcss": "4.3.0",
