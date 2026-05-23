@@ -81,11 +81,15 @@ export const buildAgentsUpdate = (_config: unknown, context: ToolContext) => {
 
         const childIds = resolvedSubAgents.map((s) => s.childAgentId);
 
-        const owned = await appRuntime.runPromise(
+        const ownedExit = await appRuntime.runPromiseExit(
           AgentService.listOwnedAgentIds(context.userId, childIds),
         );
 
-        const ownedIds = new Set(owned.map((row) => row.id));
+        if (Exit.isFailure(ownedExit)) {
+          return { error: "Failed to validate sub-agents." };
+        }
+
+        const ownedIds = new Set(ownedExit.value.map((row) => row.id));
 
         for (const sub of resolvedSubAgents) {
           if (!ownedIds.has(sub.childAgentId)) {

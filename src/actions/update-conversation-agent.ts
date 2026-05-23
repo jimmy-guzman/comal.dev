@@ -28,7 +28,12 @@ export const updateConversationAgentAction = authClient
     if (Exit.isFailure(exit)) {
       const { cause } = exit;
 
-      if (cause._tag === "Fail" && cause.error._tag === "ForbiddenError") {
+      if (
+        cause._tag === "Fail" &&
+        (cause.error._tag === "ForbiddenError" ||
+          cause.error._tag === "ConversationNotFoundError" ||
+          cause.error._tag === "AgentNotFoundError")
+      ) {
         throw cause.error;
       }
 

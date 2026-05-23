@@ -145,12 +145,21 @@ export class ChatService extends Effect.Service<ChatService>()("ChatService", {
           .limit(1);
       });
 
-      yield* Effect.when(
-        Effect.fail(
+      const row = rows.at(0);
+
+      if (row === undefined) {
+        return yield* Effect.fail(
+          new ConversationNotFoundError({ conversationId, message: "Conversation not found." }),
+        );
+      }
+
+      if (row.userId !== userId) {
+        return yield* Effect.fail(
           new ForbiddenError({ message: "You do not have access to this conversation." }),
-        ),
-        () => rows[0]?.userId !== userId,
-      );
+        );
+      }
+
+      return undefined;
     });
 
     const getAgent = Effect.fn("ChatService.getAgent")(function* (conversationId: string) {

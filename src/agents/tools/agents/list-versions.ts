@@ -20,9 +20,15 @@ export const buildAgentsListVersions = (_config: unknown, context: ToolContext) 
         return { error: "Agent not found or not owned by you." };
       }
 
-      const versions = await appRuntime.runPromise(
+      const exit = await appRuntime.runPromiseExit(
         AgentService.listVersions(agentId, context.userId),
       );
+
+      if (Exit.isFailure(exit)) {
+        return { error: "Failed to list versions." };
+      }
+
+      const versions = exit.value;
 
       return { count: versions.length, versions };
     },

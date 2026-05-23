@@ -27,7 +27,10 @@ export const updateConversationModelAction = authClient
     if (Exit.isFailure(exit)) {
       const { cause } = exit;
 
-      if (cause._tag === "Fail" && cause.error._tag === "ForbiddenError") {
+      if (
+        cause._tag === "Fail" &&
+        (cause.error._tag === "ForbiddenError" || cause.error._tag === "ConversationNotFoundError")
+      ) {
         throw cause.error;
       }
 

@@ -301,8 +301,12 @@ export const runEvalSuite = async (
   if (Exit.isFailure(loaded)) {
     const failure = Cause.failureOption(loaded.cause);
 
-    if (Option.isSome(failure) && failure.value._tag === "AgentNotFoundError") {
-      throw new AgentNotFoundError({ agentId, message: "Agent not found for eval suite." });
+    if (Option.isSome(failure)) {
+      if (failure.value._tag === "AgentNotFoundError") {
+        throw new AgentNotFoundError({ agentId, message: "Agent not found for eval suite." });
+      }
+
+      throw failure.value;
     }
 
     throw new Error("Failed to load the agent for the eval suite.");

@@ -28,11 +28,15 @@ export const buildAgentsRevertToVersion = (_config: unknown, context: ToolContex
       if (version.subAgents.length > 0) {
         const childIds = version.subAgents.map((s) => s.childAgentId);
 
-        const owned = await appRuntime.runPromise(
+        const ownedExit = await appRuntime.runPromiseExit(
           AgentService.listOwnedAgentIds(context.userId, childIds),
         );
 
-        const ownedIds = new Set(owned.map((row) => row.id));
+        if (Exit.isFailure(ownedExit)) {
+          return { error: "Failed to validate sub-agents from the target version." };
+        }
+
+        const ownedIds = new Set(ownedExit.value.map((row) => row.id));
 
         for (const sub of version.subAgents) {
           if (!ownedIds.has(sub.childAgentId)) {

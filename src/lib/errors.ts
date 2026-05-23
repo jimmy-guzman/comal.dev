@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/throw-new-error -- false positive: Schema.TaggedError is a class factory, not a thrown error */
 import { Schema } from "effect";
 
 export class UnauthorizedError extends Schema.TaggedError<UnauthorizedError>()(
@@ -66,4 +65,8 @@ export class RateLimitCheckError extends Schema.TaggedError<RateLimitCheckError>
   "RateLimitCheckError",
   { cause: Schema.optional(Schema.String), message: Schema.String },
 ) {}
-/* eslint-enable unicorn/throw-new-error -- re-enable after Schema.TaggedError declarations */
+
+export class SystemAgentProvisioningError extends Schema.TaggedError<SystemAgentProvisioningError>()(
+  "SystemAgentProvisioningError",
+  { message: Schema.String, userId: Schema.String },
+) {}

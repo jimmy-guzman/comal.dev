@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 
 import { agent, agentTool } from "@/db/schemas/agent-schema";
 import { Database, runQuery } from "@/db/service";
-import { UnknownToolError } from "@/lib/errors";
+import { SystemAgentProvisioningError, UnknownToolError } from "@/lib/errors";
 
 import { tools as toolRegistry } from "../agents/tools/registry";
 
@@ -99,7 +99,12 @@ export class SystemAgentService extends Effect.Service<SystemAgentService>()("Sy
       const row = rows.at(0);
 
       if (!row) {
-        return yield* Effect.die("System agent insert and select both failed.");
+        return yield* Effect.fail(
+          new SystemAgentProvisioningError({
+            message: "System agent insert and select both failed.",
+            userId,
+          }),
+        );
       }
 
       yield* runQuery(() => {

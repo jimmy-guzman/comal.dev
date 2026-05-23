@@ -151,7 +151,7 @@ export class EvalService extends Effect.Service<EvalService>()("EvalService", {
           output: agentEvalRun.output,
           rationale: agentEvalRun.rationale,
           rowNum:
-            sql<number>`row_number() over (partition by ${agentEvalRun.evalId} order by ${agentEvalRun.createdAt} desc)`.as(
+            sql<number>`row_number() over (partition by ${agentEvalRun.evalId} order by ${agentEvalRun.createdAt} desc, ${agentEvalRun.id} desc)`.as(
               "row_num",
             ),
           runGroupId: agentEvalRun.runGroupId,
