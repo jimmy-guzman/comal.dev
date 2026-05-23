@@ -1,6 +1,8 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { Effect } from "effect";
 
+import { appRuntime } from "@/db/service";
 import { env } from "@/env";
 
 const CHAT_AUTHED_LIMIT = 200;
@@ -85,8 +87,9 @@ export const checkLimit = async (
 
     return { limit, remaining, reset, success };
   } catch (error) {
-    // eslint-disable-next-line no-console -- fail-open warning when Upstash is unreachable
-    console.warn("[rate-limit] Upstash error, failing open", error);
+    void appRuntime.runPromise(
+      Effect.logWarning("[rate-limit] Upstash error, failing open", error),
+    );
 
     return { limit: 0, remaining: 0, reset: 0, success: true };
   }
@@ -109,8 +112,9 @@ export const recordSpend = async (userId: string, costMicrodollars: number): Pro
     pipeline.expire(key, BUDGET_TTL_SECONDS);
     await pipeline.exec();
   } catch (error) {
-    // eslint-disable-next-line no-console -- fail-open warning when Upstash is unreachable
-    console.warn("[rate-limit] Failed to record spend, failing open", error);
+    void appRuntime.runPromise(
+      Effect.logWarning("[rate-limit] Failed to record spend, failing open", error),
+    );
   }
 };
 
@@ -137,8 +141,9 @@ export const checkBudget = async (
       success: spent < budget,
     };
   } catch (error) {
-    // eslint-disable-next-line no-console -- fail-open warning when Upstash is unreachable
-    console.warn("[rate-limit] Budget check failed, failing open", error);
+    void appRuntime.runPromise(
+      Effect.logWarning("[rate-limit] Budget check failed, failing open", error),
+    );
 
     return {
       budgetMicrodollars: budget,

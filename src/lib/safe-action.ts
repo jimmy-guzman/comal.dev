@@ -1,6 +1,8 @@
 import { betterAuth } from "@next-safe-action/adapter-better-auth";
-import { Effect, Logger } from "effect";
+import { Effect } from "effect";
 import { createSafeActionClient, DEFAULT_SERVER_ERROR_MESSAGE } from "next-safe-action";
+
+import { appRuntime } from "@/db/service";
 
 import { auth } from "./auth";
 import { rateLimitMiddleware } from "./middleware/rate-limit-middleware";
@@ -10,9 +12,7 @@ const actionClient = createSafeActionClient({
   handleServerError: (error) => {
     if (error instanceof RateLimitError) return error.message;
 
-    Effect.runSync(
-      Effect.logError("Server action error", error).pipe(Effect.provide(Logger.pretty)),
-    );
+    void appRuntime.runPromise(Effect.logError("Server action error", error));
 
     return DEFAULT_SERVER_ERROR_MESSAGE;
   },

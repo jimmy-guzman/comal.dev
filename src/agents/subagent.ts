@@ -1,6 +1,7 @@
 import type { Tool, UIMessage } from "ai";
 
 import { readUIMessageStream, stepCountIs, tool, ToolLoopAgent } from "ai";
+import { Effect } from "effect";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 
@@ -119,8 +120,9 @@ export const buildSubagentTool = ({
             messageId: childMessageId,
             modelId: child.defaultModelId,
             onEventError: (error) => {
-              // eslint-disable-next-line no-console -- fire-and-forget logging from non-Effect context
-              console.error("subagent persistChatStream event error", error);
+              void appRuntime.runPromise(
+                Effect.logError("subagent persistChatStream event error", error),
+              );
             },
             parentToolCallId: toolCallId,
           })
