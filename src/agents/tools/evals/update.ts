@@ -75,10 +75,13 @@ export const buildEvalsUpdate = (_config: unknown, context: ToolContext) => {
           }
 
           const merged = { ...target, ...overrides };
-          const nextEval =
-            merged.scorer === "llm-judge" || merged.scorer === "tool-call"
-              ? { ...merged, trials: 1 }
-              : merged;
+          const isToolCall = merged.scorer === "tool-call";
+          const nextEval = {
+            ...merged,
+            assertion: isToolCall ? merged.assertion : undefined,
+            expected: isToolCall ? undefined : merged.expected,
+            trials: merged.scorer === "llm-judge" || isToolCall ? 1 : merged.trials,
+          };
 
           return {
             ...current,
