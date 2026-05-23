@@ -27,6 +27,10 @@ export async function GET(_req: Request, { params }: Params) {
             return Response.json({ error: "Trace not found." }, { status: 404 });
           }
 
+          if (error._tag === "ForbiddenError") {
+            return Response.json({ error: "Forbidden." }, { status: 403 });
+          }
+
           return Response.json({ error: "Internal server error." }, { status: 500 });
         },
         onSuccess: (payload) => {
