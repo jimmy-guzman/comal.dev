@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { TraceTimeline } from "@/components/trace-timeline";
+import { Button } from "@/components/ui/button";
 import { appRuntime } from "@/db/runtime";
 import { auth } from "@/lib/auth";
 import { ChatStoreService } from "@/lib/chat/store";
@@ -50,11 +51,18 @@ export default async function TracePage({ params }: Props) {
             <ArrowLeftIcon className="size-3" />
             {trace.title}
           </Link>
-          <div className="text-muted-foreground ml-auto flex items-center gap-3 text-xs">
-            {totalCostMicrodollars > 0 && (
-              <span className="font-mono">{formatMicrodollars(totalCostMicrodollars)}</span>
-            )}
-            <span>{trace.events.length} events</span>
+          <div className="ml-auto flex items-center gap-3">
+            <div className="text-muted-foreground flex items-center gap-3 text-xs">
+              {totalCostMicrodollars > 0 && (
+                <span className="font-mono">{formatMicrodollars(totalCostMicrodollars)}</span>
+              )}
+              <span>{trace.events.length} events</span>
+            </div>
+            <Button asChild size="sm" variant="outline">
+              <a download href={`/api/traces/${conversationId}/export`}>
+                export
+              </a>
+            </Button>
           </div>
         </div>
         <TraceTimeline steps={steps} />
