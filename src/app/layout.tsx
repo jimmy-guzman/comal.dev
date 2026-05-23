@@ -14,16 +14,61 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
+const SITE_URL = "https://comal.dev";
+const SITE_DESCRIPTION =
+  "Open-source developer playground for composing and evaluating your own AI agents from a shared toolbox. Built with Next.js and the Vercel AI SDK.";
+
 export const metadata: Metadata = {
-  description: "AI chat and agent starter.",
+  applicationName: "comal.dev",
+  authors: [{ name: "Jimmy Guzman", url: "https://jimmy.codes" }],
+  category: "technology",
+  creator: "Jimmy Guzman",
+  description: SITE_DESCRIPTION,
   icons: { icon: "/mascot.svg" },
+  keywords: [
+    "open source",
+    "developer tools",
+    "ai agents",
+    "ai sdk",
+    "next.js",
+    "playground",
+    "comal.dev",
+  ],
+  metadataBase: new URL(SITE_URL),
+  openGraph: {
+    description: SITE_DESCRIPTION,
+    locale: "en_US",
+    siteName: "comal.dev",
+    title: "comal.dev",
+    type: "website",
+    url: SITE_URL,
+  },
+  publisher: "Jimmy Guzman",
   title: "comal.dev",
+  twitter: {
+    card: "summary_large_image",
+    description: SITE_DESCRIPTION,
+    title: "comal.dev",
+  },
 };
 
 export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   width: "device-width",
+};
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  applicationCategory: "DeveloperApplication",
+  author: { "@type": "Person", name: "Jimmy Guzman", url: "https://jimmy.codes" },
+  description: SITE_DESCRIPTION,
+  isAccessibleForFree: true,
+  name: "comal.dev",
+  offers: { "@type": "Offer", price: 0, priceCurrency: "USD" },
+  operatingSystem: "Web",
+  url: SITE_URL,
 };
 
 export default function RootLayout({
@@ -37,6 +82,7 @@ export default function RootLayout({
       lang="en"
     >
       <body className="flex h-full min-h-0 flex-col">
+        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
         <NuqsAdapter>
           <TooltipProvider>
             <div className="flex min-h-0 flex-1 flex-col">{children}</div>
