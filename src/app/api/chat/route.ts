@@ -81,8 +81,7 @@ const postBodySchema = z.object({
 });
 
 const logError = (message: string, error: unknown): void => {
-  // eslint-disable-next-line no-console -- fire-and-forget logging from non-Effect callbacks
-  console.error(message, error);
+  void appRuntime.runPromise(Effect.logError(message, error));
 };
 
 const errorToResponse = (

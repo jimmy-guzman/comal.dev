@@ -72,8 +72,7 @@ export const runEval = (evalId: string, userId: string, suiteRunId: null | strin
               messages: [{ content: evalRow.input, role: "user" }],
               model: openrouter(agentConfig.defaultModelId),
               onError: ({ error }) => {
-                // eslint-disable-next-line no-console -- fire-and-forget logging from non-Effect callback
-                console.error("eval streamText error", error);
+                void appRuntime.runPromise(Effect.logError("eval streamText error", error));
               },
               stopWhen: stepCountIs(8),
               system: agentConfig.systemPrompt,
@@ -86,8 +85,9 @@ export const runEval = (evalId: string, userId: string, suiteRunId: null | strin
               messageId: nanoid(),
               modelId: agentConfig.defaultModelId,
               onEventError: (error) => {
-                // eslint-disable-next-line no-console -- fire-and-forget logging from non-Effect callback
-                console.error("eval persistChatStream event error", error);
+                void appRuntime.runPromise(
+                  Effect.logError("eval persistChatStream event error", error),
+                );
               },
             });
 
