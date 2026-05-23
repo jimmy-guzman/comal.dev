@@ -19,5 +19,7 @@
     "webgl",
     "worktree",
     "xyflow"
-  ]
+  ],
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
 }
