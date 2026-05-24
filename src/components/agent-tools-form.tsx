@@ -26,9 +26,10 @@ const formSchema = z.object({
 interface Props {
   agentId: string;
   initialTools: { config: unknown; toolId: string }[];
+  readOnly?: boolean;
 }
 
-export const AgentToolsForm = ({ agentId, initialTools }: Props) => {
+export const AgentToolsForm = ({ agentId, initialTools, readOnly = false }: Props) => {
   const { execute, isPending, result } = useAction(updateAgentToolsAction, {
     onSuccess: () => {
       toast.success("saved");
@@ -71,6 +72,7 @@ export const AgentToolsForm = ({ agentId, initialTools }: Props) => {
                 onChange={(next: ToolSelection[]) => {
                   field.handleChange(next);
                 }}
+                readOnly={readOnly}
                 value={field.state.value}
               />
             </Field>
@@ -80,11 +82,13 @@ export const AgentToolsForm = ({ agentId, initialTools }: Props) => {
 
       {result.serverError ? <p className="text-destructive text-sm">{result.serverError}</p> : null}
 
-      <div className="flex justify-end">
-        <Button disabled={isPending} type="submit">
-          {isPending ? "saving..." : "save"}
-        </Button>
-      </div>
+      {readOnly ? null : (
+        <div className="flex justify-end">
+          <Button disabled={isPending} type="submit">
+            {isPending ? "saving..." : "save"}
+          </Button>
+        </div>
+      )}
     </form>
   );
 };

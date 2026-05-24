@@ -49,11 +49,8 @@ const GROUPS = [
   },
 ] satisfies SectionGroup[];
 
-const SYSTEM_ACCESSIBLE_SEGMENTS = new Set<Segment>(["cost"]);
-
 interface Props {
   agentId: string;
-  isSystem: boolean;
 }
 
 const hrefFor = (agentId: string, segment: Segment) => {
@@ -106,19 +103,10 @@ const SectionRow = ({ agentId, item }: { agentId: string; item: SectionItem }) =
   );
 };
 
-export const AgentSectionDirectory = ({ agentId, isSystem }: Props) => {
-  const groups = isSystem
-    ? GROUPS.map((g) => {
-        return {
-          ...g,
-          items: g.items.filter((i) => SYSTEM_ACCESSIBLE_SEGMENTS.has(i.segment)),
-        };
-      }).filter((g) => g.items.length > 0)
-    : GROUPS;
-
+export const AgentSectionDirectory = ({ agentId }: Props) => {
   return (
     <div className="flex flex-col gap-6">
-      {groups.map((group) => {
+      {GROUPS.map((group) => {
         return (
           <div className="flex flex-col gap-2" key={group.label}>
             <p className="text-muted-foreground text-xs tracking-wide uppercase">{group.label}</p>

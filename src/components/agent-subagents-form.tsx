@@ -71,9 +71,15 @@ interface Props {
   agentId: string;
   initialSubAgents: { alias: string; childAgentId: string; descriptionOverride: null | string }[];
   ownedAgents: OwnedAgent[];
+  readOnly?: boolean;
 }
 
-export const AgentSubagentsForm = ({ agentId, initialSubAgents, ownedAgents }: Props) => {
+export const AgentSubagentsForm = ({
+  agentId,
+  initialSubAgents,
+  ownedAgents,
+  readOnly = false,
+}: Props) => {
   const [subAgentErrors, setSubAgentErrors] = useState<{ message: string }[]>([]);
 
   const { execute, isPending, result } = useAction(updateAgentSubagentsAction, {
@@ -140,6 +146,7 @@ export const AgentSubagentsForm = ({ agentId, initialSubAgents, ownedAgents }: P
                   field.handleChange(next);
                 }}
                 ownedAgents={ownedAgents}
+                readOnly={readOnly}
                 value={field.state.value}
               />
               <FieldError errors={[...subAgentErrors, ...field.state.meta.errors]} />
@@ -150,11 +157,13 @@ export const AgentSubagentsForm = ({ agentId, initialSubAgents, ownedAgents }: P
 
       {result.serverError ? <p className="text-destructive text-sm">{result.serverError}</p> : null}
 
-      <div className="flex justify-end">
-        <Button disabled={isPending} type="submit">
-          {isPending ? "saving..." : "save"}
-        </Button>
-      </div>
+      {readOnly ? null : (
+        <div className="flex justify-end">
+          <Button disabled={isPending} type="submit">
+            {isPending ? "saving..." : "save"}
+          </Button>
+        </div>
+      )}
     </form>
   );
 };

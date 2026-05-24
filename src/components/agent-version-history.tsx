@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   agentId: string;
+  readOnly?: boolean;
   versions: AgentVersionRow[];
 }
 
@@ -60,6 +61,7 @@ interface VersionNodeProps {
   isLast: boolean;
   onToggle: () => void;
   previous: AgentVersionRow | undefined;
+  readOnly: boolean;
   version: AgentVersionRow;
 }
 
@@ -70,6 +72,7 @@ const VersionNode = ({
   isLast,
   onToggle,
   previous,
+  readOnly,
   version,
 }: VersionNodeProps) => {
   const router = useRouter();
@@ -111,17 +114,19 @@ const VersionNode = ({
             </div>
             <span className="text-muted-foreground text-xs">{summary}</span>
           </button>
-          <Button
-            disabled={isPending}
-            onClick={() => {
-              revert({ agentId, versionId: version.id });
-            }}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            {isPending ? "reverting..." : "revert"}
-          </Button>
+          {readOnly ? null : (
+            <Button
+              disabled={isPending}
+              onClick={() => {
+                revert({ agentId, versionId: version.id });
+              }}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              {isPending ? "reverting..." : "revert"}
+            </Button>
+          )}
         </div>
 
         <Collapsible open={isExpanded}>
@@ -184,7 +189,7 @@ const VersionNode = ({
   );
 };
 
-export const AgentVersionHistory = ({ agentId, versions }: Props) => {
+export const AgentVersionHistory = ({ agentId, readOnly = false, versions }: Props) => {
   const [expandedId, setExpandedId] = useState<null | string>(null);
 
   return (
@@ -201,6 +206,7 @@ export const AgentVersionHistory = ({ agentId, versions }: Props) => {
               setExpandedId(expandedId === version.id ? null : version.id);
             }}
             previous={versions[idx + 1]}
+            readOnly={readOnly}
             version={version}
           />
         );

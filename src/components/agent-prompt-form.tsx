@@ -17,9 +17,10 @@ const formSchema = z.object({
 interface Props {
   agentId: string;
   initialSystemPrompt: string;
+  readOnly?: boolean;
 }
 
-export const AgentPromptForm = ({ agentId, initialSystemPrompt }: Props) => {
+export const AgentPromptForm = ({ agentId, initialSystemPrompt, readOnly = false }: Props) => {
   const { execute, isPending, result } = useAction(updateAgentPromptAction, {
     onSuccess: () => {
       toast.success("saved");
@@ -59,6 +60,7 @@ export const AgentPromptForm = ({ agentId, initialSystemPrompt }: Props) => {
               <Textarea
                 aria-invalid={isInvalid || undefined}
                 className="field-sizing-content min-h-64 resize-none font-mono text-xs"
+                disabled={readOnly}
                 id={field.name}
                 maxLength={20_000}
                 name={field.name}
@@ -77,11 +79,13 @@ export const AgentPromptForm = ({ agentId, initialSystemPrompt }: Props) => {
 
       {result.serverError ? <p className="text-destructive text-sm">{result.serverError}</p> : null}
 
-      <div className="flex justify-end">
-        <Button disabled={isPending} type="submit">
-          {isPending ? "saving..." : "save"}
-        </Button>
-      </div>
+      {readOnly ? null : (
+        <div className="flex justify-end">
+          <Button disabled={isPending} type="submit">
+            {isPending ? "saving..." : "save"}
+          </Button>
+        </div>
+      )}
     </form>
   );
 };

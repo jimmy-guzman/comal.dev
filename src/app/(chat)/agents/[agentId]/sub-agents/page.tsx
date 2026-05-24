@@ -48,8 +48,6 @@ export default async function AgentSubAgentsPage({ params }: Props) {
 
   if (!agent) notFound();
 
-  if (agent.isSystem) redirect(`/agents/${agentId}`);
-
   return (
     <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-1">
@@ -62,6 +60,7 @@ export default async function AgentSubAgentsPage({ params }: Props) {
         agentId={agentId}
         initialSubAgents={agent.subAgents}
         ownedAgents={ownedAgents.filter((a) => a.id !== agentId)}
+        readOnly={agent.isSystem}
       />
     </div>
   );

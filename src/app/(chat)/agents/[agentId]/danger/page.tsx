@@ -37,8 +37,6 @@ export default async function AgentDangerPage({ params }: Props) {
 
   if (!agent) notFound();
 
-  if (agent.isSystem) redirect(`/agents/${agentId}`);
-
   return (
     <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-1">
@@ -51,14 +49,22 @@ export default async function AgentDangerPage({ params }: Props) {
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium">delete agent</p>
             <p className="text-muted-foreground text-sm">
-              permanently removes this agent and all of its conversations.
+              {agent.isSystem
+                ? "the system agent cannot be deleted."
+                : "permanently removes this agent and all of its conversations."}
             </p>
           </div>
-          <DeleteAgentButton
-            agentId={agentId}
-            agentName={agent.name}
-            trigger={<Button variant="destructive">delete</Button>}
-          />
+          {agent.isSystem ? (
+            <Button disabled variant="destructive">
+              delete
+            </Button>
+          ) : (
+            <DeleteAgentButton
+              agentId={agentId}
+              agentName={agent.name}
+              trigger={<Button variant="destructive">delete</Button>}
+            />
+          )}
         </div>
       </div>
     </div>

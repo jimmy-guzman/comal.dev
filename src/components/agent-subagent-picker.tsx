@@ -33,6 +33,7 @@ interface Props {
   currentAgentId?: string;
   onChange: (next: SubAgentSelection[]) => void;
   ownedAgents: OwnedAgent[];
+  readOnly?: boolean;
   value: SubAgentSelection[];
 }
 
@@ -100,12 +101,14 @@ const SubAgentRow = ({
   name,
   onChange,
   onRemove,
+  readOnly,
 }: {
   aliasError?: string;
   entry: SubAgentSelection;
   name: string;
   onChange: (next: SubAgentSelection) => void;
   onRemove: () => void;
+  readOnly: boolean;
 }) => {
   const isAliasInvalid = Boolean(aliasError);
 
@@ -113,9 +116,11 @@ const SubAgentRow = ({
     <div className="rounded-md border p-3">
       <div className="mb-3 flex items-center justify-between gap-2">
         <span className="text-sm font-medium">{name}</span>
-        <Button onClick={onRemove} size="sm" type="button" variant="ghost">
-          remove
-        </Button>
+        {readOnly ? null : (
+          <Button onClick={onRemove} size="sm" type="button" variant="ghost">
+            remove
+          </Button>
+        )}
       </div>
       <div className="flex flex-col gap-3">
         <Field data-invalid={isAliasInvalid || undefined}>
@@ -127,6 +132,7 @@ const SubAgentRow = ({
           <Input
             aria-invalid={isAliasInvalid || undefined}
             className="font-mono text-xs"
+            disabled={readOnly}
             maxLength={32}
             onBlur={() => {
               onChange({ ...entry, alias: entry.alias.trim() });
@@ -146,6 +152,7 @@ const SubAgentRow = ({
           </FieldDescription>
           <Input
             className="text-xs"
+            disabled={readOnly}
             maxLength={1024}
             onChange={(event) => {
               onChange({ ...entry, descriptionOverride: event.target.value });
@@ -159,7 +166,13 @@ const SubAgentRow = ({
   );
 };
 
-export const AgentSubagentPicker = ({ currentAgentId, onChange, ownedAgents, value }: Props) => {
+export const AgentSubagentPicker = ({
+  currentAgentId,
+  onChange,
+  ownedAgents,
+  readOnly = false,
+  value,
+}: Props) => {
   const selectedIds = new Set(value.map((e) => e.childAgentId));
 
   const candidateAgents = ownedAgents.filter((a) => a.id !== currentAgentId);
@@ -231,16 +244,19 @@ export const AgentSubagentPicker = ({ currentAgentId, onChange, ownedAgents, val
             onRemove={() => {
               handleRemove(entry.childAgentId);
             }}
+            readOnly={readOnly}
           />
         );
       })}
 
       <div className="flex items-center gap-2">
-        <AddSubagentPopover
-          onAdd={handleAdd}
-          ownedAgents={candidateAgents.filter((a) => !selectedIds.has(a.id))}
-          selectedIds={selectedIds}
-        />
+        {readOnly ? null : (
+          <AddSubagentPopover
+            onAdd={handleAdd}
+            ownedAgents={candidateAgents.filter((a) => !selectedIds.has(a.id))}
+            selectedIds={selectedIds}
+          />
+        )}
         {value.length > 0 ? <Badge variant="secondary">{value.length}</Badge> : null}
       </div>
     </div>
