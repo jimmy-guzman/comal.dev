@@ -4,8 +4,9 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { AgentPicker } from "@/components/agent-picker";
+import { AgentSectionDirectory } from "@/components/agent-section-directory";
 import { ConversationList } from "@/components/conversation-list";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
 import { getModelCostLabel } from "@/config/models";
@@ -47,6 +48,15 @@ async function fetchRecentChats(agentId: string, userId: string) {
   return appRuntime.runPromise(ChatService.listForAgent(userId, agentId));
 }
 
+async function fetchUserAgents(userId: string) {
+  "use cache";
+
+  cacheTag(`agents:${userId}`);
+  cacheLife("minutes");
+
+  return appRuntime.runPromise(AgentService.listForUser(userId));
+}
+
 interface Props {
   params: Promise<{ agentId: string }>;
 }
@@ -58,10 +68,11 @@ export default async function AgentOverviewPage({ params }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const [agent, versionCount, recentChats] = await Promise.all([
+  const [agent, versionCount, recentChats, agents] = await Promise.all([
     fetchAgentDetail(agentId, session.user.id),
     fetchVersionCount(agentId, session.user.id),
     fetchRecentChats(agentId, session.user.id),
+    fetchUserAgents(session.user.id),
   ]);
 
   if (!agent) notFound();
@@ -70,17 +81,26 @@ export default async function AgentOverviewPage({ params }: Props) {
     <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-1">
-          <h2 className="flex items-center gap-2 text-xl font-semibold">
-            {agent.name}
-            {agent.isSystem && <Badge variant="secondary">system</Badge>}
+          <h2 className="text-2xl font-semibold sm:text-3xl">
+            <AgentPicker
+              agentId={agentId}
+              agentName={agent.name}
+              agents={agents.map((a) => ({ id: a.id, name: a.name }))}
+              isSystem={agent.isSystem}
+            />
           </h2>
           <p className="text-muted-foreground text-sm">{agent.description ?? "no description"}</p>
         </div>
-        <Button asChild size="sm" variant="outline">
-          <a download href={`/api/agents/${agentId}/export`}>
-            export
-          </a>
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button asChild size="sm" variant="outline">
+            <a download href={`/api/agents/${agentId}/export`}>
+              export
+            </a>
+          </Button>
+          <Button asChild size="sm">
+            <Link href={`/chats/new?agent=${agentId}`}>new chat</Link>
+          </Button>
+        </div>
       </div>
 
       <ItemGroup className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -128,6 +148,8 @@ export default async function AgentOverviewPage({ params }: Props) {
           </ItemContent>
         </Item>
       </ItemGroup>
+
+      <AgentSectionDirectory agentId={agentId} isSystem={agent.isSystem} />
 
       {recentChats.length > 0 ? (
         <div className="flex flex-col gap-4">
