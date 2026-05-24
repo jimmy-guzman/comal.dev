@@ -95,6 +95,7 @@ export class AgentService extends Effect.Service<AgentService>()("AgentService",
             id: agent.id,
             isSystem: agent.isSystem,
             name: agent.name,
+            suggestions: agent.suggestions,
             updatedAt: agent.updatedAt,
           })
           .from(agent)

@@ -63,7 +63,7 @@ export default async function NewChatPage({ searchParams }: Props) {
       conversationId={null}
       initialMessages={[]}
       modelId={resolvedAgent.defaultModelId}
-      suggestions={agent?.suggestions ?? []}
+      suggestions={resolvedAgent.suggestions}
     />
   );
 }
