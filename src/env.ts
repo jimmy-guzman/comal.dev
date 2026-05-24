@@ -9,7 +9,6 @@ export const env = createEnv({
   server: {
     BETTER_AUTH_SECRET: z.string(),
     BETTER_AUTH_URL: z.url().optional(),
-    BUILD_DATE: z.string(),
     DATABASE_URL: z.url(),
     GITHUB_CLIENT_ID: z.string().min(1),
     GITHUB_CLIENT_SECRET: z.string().min(1),
@@ -19,7 +18,6 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
     UPSTASH_REDIS_REST_URL: z.url(),
     VERCEL_ENV: vercelEnv,
-    VERCEL_GIT_COMMIT_SHA: z.string().optional(),
     VERCEL_PROJECT_PRODUCTION_URL: z.string().min(1).optional(),
     VERCEL_URL: z.string().min(1).optional(),
   },
