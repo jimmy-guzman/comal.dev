@@ -12,6 +12,7 @@ import type { FormAssertion } from "@/components/tool-call-assertion-form";
 import type { ModelId } from "@/config/models";
 import type { Scorer, ToolCallAssertion } from "@/lib/eval-input-schema";
 import type { EvalRunSummary } from "@/lib/evals";
+import type { ModelOutputCosts } from "@/lib/model-pricing";
 
 import { createAgentAction } from "@/actions/create-agent";
 import { updateAgentAction } from "@/actions/update-agent";
@@ -152,7 +153,7 @@ interface InitialAgent {
 interface Props {
   evalRuns?: EvalRunSummary[];
   initialAgent?: InitialAgent;
-  modelOutputCosts: Partial<Record<string, number>>;
+  modelOutputCosts: ModelOutputCosts;
   ownedAgents?: OwnedAgent[];
 }
 

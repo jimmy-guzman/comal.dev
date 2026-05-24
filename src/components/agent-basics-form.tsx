@@ -5,6 +5,8 @@ import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import type { ModelOutputCosts } from "@/lib/model-pricing";
+
 import { updateAgentBasicsAction } from "@/actions/update-agent-basics";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
@@ -33,7 +35,7 @@ interface Props {
   initialDefaultModelId: string;
   initialDescription: null | string;
   initialName: string;
-  modelOutputCosts: Partial<Record<string, number>>;
+  modelOutputCosts: ModelOutputCosts;
   readOnly?: boolean;
 }
 

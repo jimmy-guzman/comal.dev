@@ -12,6 +12,7 @@ import type { ModelId } from "@/config/models";
 import type { AppUIMessage } from "@/lib/app-ui-message";
 import type { ChatErrorInfo, ChatErrorKind } from "@/lib/chat/errors";
 import type { SubagentTraces } from "@/lib/chat/projector";
+import type { ModelOutputCosts } from "@/lib/model-pricing";
 
 import { updateConversationAgentAction } from "@/actions/update-conversation-agent";
 import { updateConversationModelAction } from "@/actions/update-conversation-model";
@@ -131,7 +132,7 @@ interface Props {
   conversationId: null | string;
   initialMessages: AppUIMessage[];
   modelId: string;
-  modelOutputCosts: Partial<Record<string, number>>;
+  modelOutputCosts: ModelOutputCosts;
   subagentTraces?: SubagentTraces;
   suggestions: string[];
 }

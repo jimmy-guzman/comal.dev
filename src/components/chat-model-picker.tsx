@@ -4,6 +4,7 @@ import { ChevronDownIcon } from "lucide-react";
 import { useState } from "react";
 
 import type { ModelId } from "@/config/models";
+import type { ModelOutputCosts } from "@/lib/model-pricing";
 
 import {
   ModelSelector,
@@ -23,7 +24,7 @@ import { getModelById, MODEL_GROUPS } from "@/config/models";
 import { formatModelCost } from "@/lib/format-model-cost";
 
 interface Props {
-  modelOutputCosts: Partial<Record<string, number>>;
+  modelOutputCosts: ModelOutputCosts;
   onValueChange: (id: ModelId) => void;
   value: string;
 }
