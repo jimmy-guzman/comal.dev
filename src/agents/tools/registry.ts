@@ -9,6 +9,7 @@ import { agentsListToolsMeta } from "./agents/list-tools.meta";
 import { agentsListVersionsMeta } from "./agents/list-versions.meta";
 import { agentsListMeta } from "./agents/list.meta";
 import { agentsRevertToVersionMeta } from "./agents/revert-to-version.meta";
+import { agentsUpdateSuggestionsMeta } from "./agents/update-suggestions.meta";
 import { agentsUpdateMeta } from "./agents/update.meta";
 import { coreNowMeta } from "./core/now.meta";
 import { costSummaryMeta } from "./cost/summary.meta";
@@ -48,6 +49,7 @@ const metadata = Object.freeze([
   Object.freeze(agentsListVersionsMeta),
   Object.freeze(agentsRevertToVersionMeta),
   Object.freeze(agentsUpdateMeta),
+  Object.freeze(agentsUpdateSuggestionsMeta),
   Object.freeze(coreNowMeta),
   Object.freeze(costSummaryMeta),
   Object.freeze(evalsCreateMeta),

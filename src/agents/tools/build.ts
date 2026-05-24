@@ -12,6 +12,7 @@ import { buildAgentsListTools } from "./agents/list-tools";
 import { buildAgentsListVersions } from "./agents/list-versions";
 import { buildAgentsRevertToVersion } from "./agents/revert-to-version";
 import { buildAgentsUpdate } from "./agents/update";
+import { buildAgentsUpdateSuggestions } from "./agents/update-suggestions";
 import { buildCoreNow } from "./core/now";
 import { buildCostSummary } from "./cost/summary";
 import { buildEvalsCreate } from "./evals/create";
@@ -49,6 +50,7 @@ const BUILDERS = {
   "agents-list-versions": buildAgentsListVersions,
   "agents-revert-to-version": buildAgentsRevertToVersion,
   "agents-update": buildAgentsUpdate,
+  "agents-update-suggestions": buildAgentsUpdateSuggestions,
   "core-now": buildCoreNow,
   "cost-summary": buildCostSummary,
   "evals-create": buildEvalsCreate,

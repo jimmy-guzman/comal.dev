@@ -25,6 +25,7 @@ export const agent = pgTable(
     id: text("id").primaryKey(),
     isSystem: boolean("is_system").default(false).notNull(),
     name: text("name").notNull(),
+    suggestions: jsonb("suggestions").$type<string[]>().notNull().default([]),
     systemPrompt: text("system_prompt").notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

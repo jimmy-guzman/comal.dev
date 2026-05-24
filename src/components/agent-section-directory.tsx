@@ -10,6 +10,7 @@ type Segment =
   | "evals"
   | "prompt"
   | "sub-agents"
+  | "suggestions"
   | "tools"
   | "versions";
 
@@ -28,6 +29,7 @@ const GROUPS = [
     items: [
       { label: "basics", segment: "basics" },
       { label: "prompt", segment: "prompt" },
+      { label: "suggestions", segment: "suggestions" },
       { label: "tools", segment: "tools" },
       { label: "sub-agents", segment: "sub-agents" },
       { label: "evals", segment: "evals" },
@@ -73,6 +75,9 @@ const hrefFor = (agentId: string, segment: Segment) => {
     }
     case "sub-agents": {
       return `/agents/${agentId}/sub-agents` as const;
+    }
+    case "suggestions": {
+      return `/agents/${agentId}/suggestions` as const;
     }
     case "tools": {
       return `/agents/${agentId}/tools` as const;

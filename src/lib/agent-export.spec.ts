@@ -14,6 +14,7 @@ const makeFetched = (overrides: Partial<FetchedAgent> & Pick<FetchedAgent, "id" 
     evals: [],
     isSystem: false,
     subAgents: [],
+    suggestions: [],
     systemPrompt: "Be helpful.",
     tools: [],
     updatedAt: new Date("2025-01-01T00:00:00Z"),
@@ -56,9 +57,28 @@ describe("walkAgentGraph", () => {
       id: "a",
       name: "Alpha",
       subAgents: [],
+      suggestions: [],
       systemPrompt: "You are Alpha.",
       tools: [{ config: { needsApproval: false }, toolId: "web.fetch" }],
     });
+  });
+
+  it("should include suggestions in the export when present", () => {
+    const fetched = new Map<string, FetchedAgent>([
+      [
+        "a",
+        makeFetched({
+          id: "a",
+          name: "Alpha",
+          suggestions: ["build something", "show me an example"],
+        }),
+      ],
+    ]);
+
+    expect(walkAgentGraph("a", fetched).suggestions).toStrictEqual([
+      "build something",
+      "show me an example",
+    ]);
   });
 
   it("should omit description when the agent has no description", () => {

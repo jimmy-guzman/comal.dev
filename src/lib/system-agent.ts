@@ -11,6 +11,13 @@ import { tools as toolRegistry } from "../agents/tools/registry";
 const SYSTEM_AGENT_NAME = "Comal";
 const SYSTEM_AGENT_MODEL = "google/gemini-2.5-flash";
 
+const SYSTEM_AGENT_SUGGESTIONS = [
+  "help me build my first agent",
+  "what tools can I use in an agent?",
+  "write an eval for one of my agents",
+  "summarize my agent costs",
+];
+
 const SYSTEM_AGENT_TOOLS = [
   "agents-list",
   "agents-get",
@@ -18,6 +25,7 @@ const SYSTEM_AGENT_TOOLS = [
   "agents-list-models",
   "agents-create",
   "agents-update",
+  "agents-update-suggestions",
   "agents-delete",
   "agents-list-versions",
   "agents-diff-versions",
@@ -82,6 +90,7 @@ export class SystemAgentService extends Effect.Service<SystemAgentService>()("Sy
             id,
             isSystem: true,
             name: SYSTEM_AGENT_NAME,
+            suggestions: SYSTEM_AGENT_SUGGESTIONS,
             systemPrompt: SYSTEM_AGENT_PROMPT,
             userId,
           })
