@@ -14,6 +14,7 @@ const makeFetched = (overrides: Partial<FetchedAgent> & Pick<FetchedAgent, "id" 
     evals: [],
     isSystem: false,
     subAgents: [],
+    suggestions: [],
     systemPrompt: "Be helpful.",
     tools: [],
     updatedAt: new Date("2025-01-01T00:00:00Z"),
