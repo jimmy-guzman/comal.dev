@@ -56,6 +56,7 @@ interface Props {
   initialRuns?: EvalRunSummary[];
   isEdit: boolean;
   onChange: (next: EvalSelection[]) => void;
+  readOnly?: boolean;
   subAgents: { alias: string }[];
   value: EvalSelection[];
 }
@@ -142,6 +143,7 @@ const EvalRow = ({
   isEdit,
   onChange,
   onRemove,
+  readOnly,
   subAgents,
 }: {
   batchResult: EvalRunResult | null;
@@ -150,6 +152,7 @@ const EvalRow = ({
   isEdit: boolean;
   onChange: (next: EvalSelection) => void;
   onRemove: () => void;
+  readOnly: boolean;
   subAgents: { alias: string }[];
 }) => {
   const [runResult, setRunResult] = useState<EvalRunResult | null>(null);
@@ -177,7 +180,7 @@ const EvalRow = ({
     },
   });
 
-  const canRun = isEdit && Boolean(entry.id);
+  const canRun = isEdit && !readOnly && Boolean(entry.id);
   const result: EvalRunResult | EvalRunSummary | null = runResult ?? batchResult ?? initialRun;
   const output = result ? getOutput(result) : null;
   const rationale = result ? getRationale(result) : null;
@@ -228,15 +231,18 @@ const EvalRow = ({
               run
             </Button>
           ) : null}
-          <Button onClick={onRemove} size="sm" type="button" variant="ghost">
-            remove
-          </Button>
+          {readOnly ? null : (
+            <Button onClick={onRemove} size="sm" type="button" variant="ghost">
+              remove
+            </Button>
+          )}
         </div>
       </div>
       <div className="flex flex-col gap-3">
         <Field>
           <FieldLabel className="text-xs">name</FieldLabel>
           <Input
+            disabled={readOnly}
             maxLength={200}
             onChange={(event) => {
               onChange({ ...entry, name: event.target.value });
@@ -249,6 +255,7 @@ const EvalRow = ({
           <FieldLabel className="text-xs">input</FieldLabel>
           <Textarea
             className="field-sizing-content min-h-16 resize-none font-mono text-xs"
+            disabled={readOnly}
             maxLength={10_000}
             onChange={(event) => {
               onChange({ ...entry, input: event.target.value });
@@ -262,6 +269,7 @@ const EvalRow = ({
             <FieldLabel className="text-xs">expected</FieldLabel>
             <Textarea
               className="field-sizing-content min-h-16 resize-none font-mono text-xs"
+              disabled={readOnly}
               maxLength={10_000}
               onChange={(event) => {
                 onChange({ ...entry, expected: event.target.value });
@@ -278,6 +286,7 @@ const EvalRow = ({
               onChange={(assertion) => {
                 onChange({ ...entry, assertion });
               }}
+              readOnly={readOnly}
               subAgents={subAgents}
               value={entry.assertion}
             />
@@ -286,6 +295,7 @@ const EvalRow = ({
         <Field>
           <FieldLabel className="text-xs">scorer</FieldLabel>
           <Select
+            disabled={readOnly}
             onValueChange={(v: string) => {
               if (isScorer(v)) onChange({ ...entry, scorer: v });
             }}
@@ -309,6 +319,7 @@ const EvalRow = ({
           <Field>
             <FieldLabel className="text-xs">trials</FieldLabel>
             <Input
+              disabled={readOnly}
               max={10}
               min={1}
               onChange={(event) => {
@@ -390,6 +401,7 @@ export const AgentEvalPicker = ({
   initialRuns = DEFAULT_INITIAL_RUNS,
   isEdit,
   onChange,
+  readOnly = false,
   subAgents,
   value,
 }: Props) => {
@@ -450,7 +462,7 @@ export const AgentEvalPicker = ({
   };
 
   const hasSavedEvals = value.some((e) => e.id !== undefined);
-  const canRunAll = isEdit && Boolean(agentId) && hasSavedEvals;
+  const canRunAll = isEdit && !readOnly && Boolean(agentId) && hasSavedEvals;
 
   return (
     <div className="flex flex-col gap-3">
@@ -468,15 +480,18 @@ export const AgentEvalPicker = ({
             onRemove={() => {
               handleRemove(index);
             }}
+            readOnly={readOnly}
             subAgents={subAgents}
           />
         );
       })}
 
       <div className="flex items-center gap-2">
-        <Button onClick={handleAdd} size="sm" type="button" variant="outline">
-          add eval
-        </Button>
+        {readOnly ? null : (
+          <Button onClick={handleAdd} size="sm" type="button" variant="outline">
+            add eval
+          </Button>
+        )}
         {value.length > 0 ? <Badge variant="secondary">{value.length}</Badge> : null}
         {canRunAll ? (
           <Button

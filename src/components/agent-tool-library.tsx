@@ -29,12 +29,13 @@ import { Switch } from "@/components/ui/switch";
 
 interface Props {
   onChange: (next: ToolSelection[]) => void;
+  readOnly?: boolean;
   value: ToolSelection[];
 }
 
 const ALL_GROUPS = "all";
 
-export const AgentToolLibrary = ({ onChange, value }: Props) => {
+export const AgentToolLibrary = ({ onChange, readOnly = false, value }: Props) => {
   const [activeGroup, setActiveGroup] = useState<string>(ALL_GROUPS);
   const [selectedOnly, setSelectedOnly] = useState(false);
 
@@ -142,9 +143,12 @@ export const AgentToolLibrary = ({ onChange, value }: Props) => {
                   return (
                     <CommandItem
                       data-checked={enabled}
+                      disabled={readOnly}
                       key={tool.id}
                       keywords={[tool.description, group.label]}
                       onSelect={() => {
+                        if (readOnly) return;
+
                         toggle(tool.id, !enabled);
                       }}
                       value={tool.name}
@@ -190,6 +194,7 @@ export const AgentToolLibrary = ({ onChange, value }: Props) => {
                               onChange={(next) => {
                                 updateConfig(tool.id, next);
                               }}
+                              readOnly={readOnly}
                               schema={tool.configSchema}
                               value={selection.config}
                             />

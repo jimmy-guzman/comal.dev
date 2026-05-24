@@ -139,7 +139,7 @@ export default async function AgentOverviewPage({ params }: Props) {
         </Item>
       </ItemGroup>
 
-      <AgentSectionDirectory agentId={agentId} isSystem={agent.isSystem} />
+      <AgentSectionDirectory agentId={agentId} />
 
       {recentChats.length > 0 ? (
         <div className="flex flex-col gap-4">

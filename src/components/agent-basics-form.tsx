@@ -32,6 +32,7 @@ interface Props {
   initialDefaultModelId: string;
   initialDescription: null | string;
   initialName: string;
+  readOnly?: boolean;
 }
 
 export const AgentBasicsForm = ({
@@ -39,6 +40,7 @@ export const AgentBasicsForm = ({
   initialDefaultModelId,
   initialDescription,
   initialName,
+  readOnly = false,
 }: Props) => {
   const { execute, isPending, result } = useAction(updateAgentBasicsAction, {
     onSuccess: () => {
@@ -82,6 +84,7 @@ export const AgentBasicsForm = ({
               <FieldLabel htmlFor={field.name}>name</FieldLabel>
               <Input
                 aria-invalid={isInvalid || undefined}
+                disabled={readOnly}
                 id={field.name}
                 maxLength={100}
                 name={field.name}
@@ -109,6 +112,7 @@ export const AgentBasicsForm = ({
               <Textarea
                 aria-invalid={isInvalid || undefined}
                 className="resize-none"
+                disabled={readOnly}
                 id={field.name}
                 maxLength={500}
                 name={field.name}
@@ -137,6 +141,7 @@ export const AgentBasicsForm = ({
                 the model used when starting a new conversation with this agent.
               </FieldDescription>
               <Select
+                disabled={readOnly}
                 onValueChange={(value) => {
                   field.handleChange(value as (typeof MODEL_IDS)[number]);
                 }}
@@ -175,11 +180,13 @@ export const AgentBasicsForm = ({
 
       {result.serverError ? <p className="text-destructive text-sm">{result.serverError}</p> : null}
 
-      <div className="flex justify-end">
-        <Button disabled={isPending} type="submit">
-          {isPending ? "saving..." : "save"}
-        </Button>
-      </div>
+      {readOnly ? null : (
+        <div className="flex justify-end">
+          <Button disabled={isPending} type="submit">
+            {isPending ? "saving..." : "save"}
+          </Button>
+        </div>
+      )}
     </form>
   );
 };

@@ -65,10 +65,17 @@ interface Props {
   agentId: string;
   evalRuns: EvalRunSummary[];
   initialEvals: InitialEval[];
+  readOnly?: boolean;
   subAgents: { alias: string }[];
 }
 
-export const AgentEvalsForm = ({ agentId, evalRuns, initialEvals, subAgents }: Props) => {
+export const AgentEvalsForm = ({
+  agentId,
+  evalRuns,
+  initialEvals,
+  readOnly = false,
+  subAgents,
+}: Props) => {
   const { execute, isPending, result } = useAction(updateAgentEvalsAction, {
     onSuccess: () => {
       toast.success("saved");
@@ -145,6 +152,7 @@ export const AgentEvalsForm = ({ agentId, evalRuns, initialEvals, subAgents }: P
                 onChange={(next) => {
                   field.handleChange(next);
                 }}
+                readOnly={readOnly}
                 subAgents={subAgents}
                 value={field.state.value}
               />
@@ -155,11 +163,13 @@ export const AgentEvalsForm = ({ agentId, evalRuns, initialEvals, subAgents }: P
 
       {result.serverError ? <p className="text-destructive text-sm">{result.serverError}</p> : null}
 
-      <div className="flex justify-end">
-        <Button disabled={isPending} type="submit">
-          {isPending ? "saving..." : "save"}
-        </Button>
-      </div>
+      {readOnly ? null : (
+        <div className="flex justify-end">
+          <Button disabled={isPending} type="submit">
+            {isPending ? "saving..." : "save"}
+          </Button>
+        </div>
+      )}
     </form>
   );
 };

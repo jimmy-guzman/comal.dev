@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 interface Props {
   idPrefix: string;
   onChange: (next: Record<string, unknown>) => void;
+  readOnly?: boolean;
   schema: z.ZodObject<z.ZodRawShape>;
   value: Record<string, unknown>;
 }
@@ -32,6 +33,7 @@ interface FieldRendererProps {
   fieldId: string;
   label: string;
   onChange: (next: unknown) => void;
+  readOnly: boolean;
   schema: z.ZodType;
   value: unknown;
 }
@@ -41,6 +43,7 @@ const FieldRenderer = ({
   fieldId,
   label,
   onChange,
+  readOnly,
   schema,
   value,
 }: FieldRendererProps) => {
@@ -53,6 +56,7 @@ const FieldRenderer = ({
         </div>
         <Switch
           checked={Boolean(value)}
+          disabled={readOnly}
           id={fieldId}
           onCheckedChange={(checked) => {
             onChange(checked);
@@ -71,6 +75,7 @@ const FieldRenderer = ({
         <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>
         {description ? <FieldDescription>{description}</FieldDescription> : null}
         <Select
+          disabled={readOnly}
           name={fieldId}
           onValueChange={(next) => {
             onChange(next);
@@ -100,6 +105,7 @@ const FieldRenderer = ({
         <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>
         {description ? <FieldDescription>{description}</FieldDescription> : null}
         <Input
+          disabled={readOnly}
           id={fieldId}
           onChange={(event) => {
             const raw = event.target.value;
@@ -127,6 +133,7 @@ const FieldRenderer = ({
         <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>
         {description ? <FieldDescription>{description}</FieldDescription> : null}
         <Input
+          disabled={readOnly}
           id={fieldId}
           onChange={(event) => {
             onChange(event.target.value);
@@ -146,7 +153,13 @@ const FieldRenderer = ({
   );
 };
 
-export const AgentToolConfigEditor = ({ idPrefix, onChange, schema, value }: Props) => {
+export const AgentToolConfigEditor = ({
+  idPrefix,
+  onChange,
+  readOnly = false,
+  schema,
+  value,
+}: Props) => {
   const entries = Object.entries(schema.shape);
 
   if (entries.length === 0) {
@@ -176,6 +189,7 @@ export const AgentToolConfigEditor = ({ idPrefix, onChange, schema, value }: Pro
             onChange={(next) => {
               onChange({ ...value, [key]: next });
             }}
+            readOnly={readOnly}
             schema={resolvedSchema}
             value={resolvedValue}
           />

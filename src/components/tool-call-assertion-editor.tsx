@@ -28,12 +28,14 @@ const ToolChipField = ({
   label,
   onChange,
   options,
+  readOnly,
   selected,
 }: {
   description: string;
   label: string;
   onChange: (next: string[]) => void;
   options: ToolOption[];
+  readOnly: boolean;
   selected: string[];
 }) => {
   const available = options.filter((option) => !selected.includes(option.value));
@@ -51,52 +53,62 @@ const ToolChipField = ({
             return (
               <Badge className="gap-1" key={value} variant="secondary">
                 {labelFor(value)}
-                <button
-                  aria-label={`remove ${value}`}
-                  onClick={() => {
-                    onChange(selected.filter((entry) => entry !== value));
-                  }}
-                  type="button"
-                >
-                  <XIcon className="size-3" />
-                </button>
+                {readOnly ? null : (
+                  <button
+                    aria-label={`remove ${value}`}
+                    onClick={() => {
+                      onChange(selected.filter((entry) => entry !== value));
+                    }}
+                    type="button"
+                  >
+                    <XIcon className="size-3" />
+                  </button>
+                )}
               </Badge>
             );
           })}
         </div>
       ) : null}
-      <Select
-        key={selected.length}
-        onValueChange={(value) => {
-          onChange([...selected, value]);
-        }}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="add a tool" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {available.map((option) => {
-              return (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              );
-            })}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+      {readOnly ? null : (
+        <Select
+          key={selected.length}
+          onValueChange={(value) => {
+            onChange([...selected, value]);
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="add a tool" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {available.map((option) => {
+                return (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                );
+              })}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      )}
     </Field>
   );
 };
 
 interface Props {
   onChange: (next: FormAssertion) => void;
+  readOnly?: boolean;
   subAgents: { alias: string }[];
   value: FormAssertion;
 }
 
-export const ToolCallAssertionEditor = ({ onChange, subAgents, value }: Props) => {
+export const ToolCallAssertionEditor = ({
+  onChange,
+  readOnly = false,
+  subAgents,
+  value,
+}: Props) => {
   const options: ToolOption[] = [
     ...tools.list().map((meta) => ({ label: meta.id, value: meta.id })),
     ...subAgents.map((subAgent) => {
@@ -116,6 +128,7 @@ export const ToolCallAssertionEditor = ({ onChange, subAgents, value }: Props) =
           onChange({ ...value, mustCall });
         }}
         options={options}
+        readOnly={readOnly}
         selected={value.mustCall}
       />
       <ToolChipField
@@ -125,6 +138,7 @@ export const ToolCallAssertionEditor = ({ onChange, subAgents, value }: Props) =
           onChange({ ...value, mustNotCall });
         }}
         options={options}
+        readOnly={readOnly}
         selected={value.mustNotCall}
       />
       <Field>
@@ -134,6 +148,7 @@ export const ToolCallAssertionEditor = ({ onChange, subAgents, value }: Props) =
         </FieldDescription>
         <Textarea
           className="field-sizing-content min-h-16 resize-none font-mono text-xs"
+          disabled={readOnly}
           onChange={(event) => {
             onChange({ ...value, mustCallWithArgsJson: event.target.value });
           }}

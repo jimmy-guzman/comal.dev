@@ -29,9 +29,10 @@ const formSchema = z.object({
 interface Props {
   agentId: string;
   initialSuggestions: string[];
+  readOnly?: boolean;
 }
 
-export const AgentSuggestionsForm = ({ agentId, initialSuggestions }: Props) => {
+export const AgentSuggestionsForm = ({ agentId, initialSuggestions, readOnly = false }: Props) => {
   const { execute, isPending, result } = useAction(updateAgentSuggestionsAction, {
     onSuccess: () => {
       toast.success("saved");
@@ -83,6 +84,7 @@ export const AgentSuggestionsForm = ({ agentId, initialSuggestions }: Props) => 
                         return (
                           <div className="flex gap-2">
                             <Input
+                              disabled={readOnly}
                               maxLength={MAX_LENGTH}
                               onBlur={itemField.handleBlur}
                               onChange={(event) => {
@@ -91,17 +93,19 @@ export const AgentSuggestionsForm = ({ agentId, initialSuggestions }: Props) => 
                               placeholder="what can you do?"
                               value={itemField.state.value}
                             />
-                            <Button
-                              aria-label="remove suggestion"
-                              onClick={() => {
-                                field.removeValue(index);
-                              }}
-                              size="icon"
-                              type="button"
-                              variant="ghost"
-                            >
-                              <XIcon className="size-4" />
-                            </Button>
+                            {readOnly ? null : (
+                              <Button
+                                aria-label="remove suggestion"
+                                onClick={() => {
+                                  field.removeValue(index);
+                                }}
+                                size="icon"
+                                type="button"
+                                variant="ghost"
+                              >
+                                <XIcon className="size-4" />
+                              </Button>
+                            )}
                           </div>
                         );
                       }}
@@ -109,19 +113,21 @@ export const AgentSuggestionsForm = ({ agentId, initialSuggestions }: Props) => 
                   );
                 })}
 
-                <Button
-                  className="self-start"
-                  disabled={!canAdd}
-                  onClick={() => {
-                    field.pushValue({ id: nanoid(), text: "" });
-                  }}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  <PlusIcon className="size-4" />
-                  add suggestion
-                </Button>
+                {readOnly ? null : (
+                  <Button
+                    className="self-start"
+                    disabled={!canAdd}
+                    onClick={() => {
+                      field.pushValue({ id: nanoid(), text: "" });
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <PlusIcon className="size-4" />
+                    add suggestion
+                  </Button>
+                )}
               </div>
 
               {field.state.meta.errors.length > 0 ? (
@@ -134,11 +140,13 @@ export const AgentSuggestionsForm = ({ agentId, initialSuggestions }: Props) => 
 
       {result.serverError ? <p className="text-destructive text-sm">{result.serverError}</p> : null}
 
-      <div className="flex justify-end">
-        <Button disabled={isPending} type="submit">
-          {isPending ? "saving..." : "save"}
-        </Button>
-      </div>
+      {readOnly ? null : (
+        <div className="flex justify-end">
+          <Button disabled={isPending} type="submit">
+            {isPending ? "saving..." : "save"}
+          </Button>
+        </div>
+      )}
     </form>
   );
 };

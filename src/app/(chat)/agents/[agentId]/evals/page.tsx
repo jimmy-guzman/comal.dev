@@ -40,8 +40,6 @@ export default async function AgentEvalsPage({ params }: Props) {
 
   if (!agent) notFound();
 
-  if (agent.isSystem) redirect(`/agents/${agentId}`);
-
   const [evalRuns, trend] = await Promise.all([
     appRuntime.runPromise(EvalService.listRunsForAgent(agentId)),
     appRuntime.runPromise(EvalService.getScoreTrend(agentId)),
@@ -72,6 +70,7 @@ export default async function AgentEvalsPage({ params }: Props) {
               scorer: e.scorer as Scorer,
             };
           })}
+          readOnly={agent.isSystem}
           subAgents={agent.subAgents}
         />
       </section>
