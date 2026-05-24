@@ -34,6 +34,7 @@ export const buildAgentsGet = (_config: unknown, context: ToolContext) => {
             descriptionOverride: s.descriptionOverride,
           };
         }),
+        suggestions: agent.suggestions,
         systemPrompt: agent.systemPrompt,
         tools: agent.tools.map((t) => ({
           config: t.config,

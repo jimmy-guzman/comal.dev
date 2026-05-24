@@ -25,6 +25,7 @@ const SYSTEM_AGENT_TOOLS = [
   "agents-list-models",
   "agents-create",
   "agents-update",
+  "agents-update-suggestions",
   "agents-delete",
   "agents-list-versions",
   "agents-diff-versions",
