@@ -28,8 +28,16 @@ export default async function HomePage() {
             <Badge variant="outline">alpha</Badge>
           </div>
           <p className="text-muted-foreground max-w-sm text-sm">
-            An open source playground for composing your own AI agents from a shared toolbox. Built
-            by{" "}
+            An{" "}
+            <a
+              className="hover:text-foreground underline underline-offset-4 transition-colors"
+              href="https://github.com/jimmy-guzman/comal.dev"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              open source
+            </a>{" "}
+            playground for composing your own AI agents from a shared toolbox. Built by{" "}
             <a
               className="hover:text-foreground underline underline-offset-4 transition-colors"
               href="https://jimmy.codes"
