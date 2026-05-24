@@ -79,9 +79,9 @@ export default async function AgentOverviewPage({ params }: Props) {
 
   return (
     <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-col gap-1">
-          <h2 className="text-2xl font-semibold sm:text-3xl">
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="min-w-0 text-2xl font-semibold sm:text-3xl">
             <AgentPicker
               agentId={agentId}
               agentName={agent.name}
@@ -89,18 +89,18 @@ export default async function AgentOverviewPage({ params }: Props) {
               isSystem={agent.isSystem}
             />
           </h2>
-          <p className="text-muted-foreground text-sm">{agent.description ?? "no description"}</p>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button asChild size="sm" variant="outline">
+              <a download href={`/api/agents/${agentId}/export`}>
+                export
+              </a>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/chats/new?agent=${agentId}`}>new chat</Link>
+            </Button>
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Button asChild size="sm" variant="outline">
-            <a download href={`/api/agents/${agentId}/export`}>
-              export
-            </a>
-          </Button>
-          <Button asChild size="sm">
-            <Link href={`/chats/new?agent=${agentId}`}>new chat</Link>
-          </Button>
-        </div>
+        <p className="text-muted-foreground text-sm">{agent.description ?? "no description"}</p>
       </div>
 
       <ItemGroup className="grid grid-cols-2 gap-4 sm:grid-cols-3">
