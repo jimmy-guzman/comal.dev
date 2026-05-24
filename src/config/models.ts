@@ -28,12 +28,18 @@ export const MODEL_GROUPS = [
     provider: "google",
   },
   {
-    label: "xAI",
+    label: "Qwen",
     models: [
-      { id: "x-ai/grok-4.3", name: "Grok 4.3" },
-      { id: "x-ai/grok-4.20", name: "Grok 4.20" },
+      { id: "qwen/qwen3.6-flash", name: "Qwen3.6 Flash" },
+      { id: "qwen/qwen3.5-plus-20260420", name: "Qwen3.5 Plus" },
+      { id: "qwen/qwen3.7-max", name: "Qwen3.7 Max" },
     ],
-    provider: "xai",
+    provider: "qwen",
+  },
+  {
+    label: "MoonshotAI",
+    models: [{ id: "moonshotai/kimi-k2.6", name: "Kimi K2.6" }],
+    provider: "moonshotai",
   },
   {
     label: "DeepSeek",
