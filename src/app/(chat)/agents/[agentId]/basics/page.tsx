@@ -7,6 +7,7 @@ import { AgentBasicsForm } from "@/components/agent-basics-form";
 import { appRuntime } from "@/db/runtime";
 import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
+import { ModelPricingService } from "@/lib/model-pricing";
 
 async function fetchAgent(agentId: string, userId: string) {
   "use cache";
@@ -21,6 +22,15 @@ async function fetchAgent(agentId: string, userId: string) {
   );
 }
 
+async function fetchModelOutputCosts() {
+  "use cache";
+
+  cacheTag("model-pricing");
+  cacheLife("hours");
+
+  return appRuntime.runPromise(ModelPricingService.listOutputCosts());
+}
+
 interface Props {
   params: Promise<{ agentId: string }>;
 }
@@ -32,7 +42,10 @@ export default async function AgentBasicsPage({ params }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const agent = await fetchAgent(agentId, session.user.id);
+  const [agent, modelOutputCosts] = await Promise.all([
+    fetchAgent(agentId, session.user.id),
+    fetchModelOutputCosts(),
+  ]);
 
   if (!agent) notFound();
 
@@ -47,6 +60,7 @@ export default async function AgentBasicsPage({ params }: Props) {
         initialDefaultModelId={agent.defaultModelId}
         initialDescription={agent.description}
         initialName={agent.name}
+        modelOutputCosts={modelOutputCosts}
         readOnly={agent.isSystem}
       />
     </div>

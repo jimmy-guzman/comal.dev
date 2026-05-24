@@ -38,9 +38,10 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { getModelCostLabel, MODEL_GROUPS, MODEL_IDS } from "@/config/models";
+import { MODEL_GROUPS, MODEL_IDS } from "@/config/models";
 import { initialToolSelections } from "@/lib/agent-tool-selection";
 import { SCORER_OPTIONS, STRING_SCORERS } from "@/lib/eval-input-schema";
+import { formatModelCost } from "@/lib/format-model-cost";
 
 const formSchema = z.object({
   defaultModelId: z.enum(MODEL_IDS),
@@ -151,6 +152,7 @@ interface InitialAgent {
 interface Props {
   evalRuns?: EvalRunSummary[];
   initialAgent?: InitialAgent;
+  modelOutputCosts: Partial<Record<string, number>>;
   ownedAgents?: OwnedAgent[];
 }
 
@@ -222,6 +224,7 @@ const DEFAULT_EVAL_RUNS: EvalRunSummary[] = [];
 export const AgentForm = ({
   evalRuns = DEFAULT_EVAL_RUNS,
   initialAgent,
+  modelOutputCosts,
   ownedAgents = DEFAULT_OWNED_AGENTS,
 }: Props) => {
   const router = useRouter();
@@ -478,13 +481,17 @@ export const AgentForm = ({
                             <SelectGroup key={group.label}>
                               <SelectLabel>{group.label}</SelectLabel>
                               {group.models.map((model) => {
+                                const cost = modelOutputCosts[model.id];
+
                                 return (
                                   <SelectItem key={model.id} value={model.id}>
                                     <span className="flex w-full items-center justify-between gap-2">
                                       <span>{model.name}</span>
-                                      <span className="text-muted-foreground text-xs tracking-tight">
-                                        {getModelCostLabel(model.id)}
-                                      </span>
+                                      {cost === undefined ? null : (
+                                        <span className="text-muted-foreground text-xs tracking-tight">
+                                          {formatModelCost(cost)}
+                                        </span>
+                                      )}
                                     </span>
                                   </SelectItem>
                                 );

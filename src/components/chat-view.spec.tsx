@@ -89,6 +89,7 @@ describe("ChatView", () => {
           conversationId={null}
           initialMessages={[]}
           modelId="gpt-test"
+          modelOutputCosts={{}}
           suggestions={[]}
         />
       </ConversationsProvider>,

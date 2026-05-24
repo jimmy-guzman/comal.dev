@@ -19,7 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { getModelCostLabel, MODEL_GROUPS, MODEL_IDS } from "@/config/models";
+import { MODEL_GROUPS, MODEL_IDS } from "@/config/models";
+import { formatModelCost } from "@/lib/format-model-cost";
 
 const formSchema = z.object({
   defaultModelId: z.enum(MODEL_IDS),
@@ -32,6 +33,7 @@ interface Props {
   initialDefaultModelId: string;
   initialDescription: null | string;
   initialName: string;
+  modelOutputCosts: Partial<Record<string, number>>;
   readOnly?: boolean;
 }
 
@@ -40,6 +42,7 @@ export const AgentBasicsForm = ({
   initialDefaultModelId,
   initialDescription,
   initialName,
+  modelOutputCosts,
   readOnly = false,
 }: Props) => {
   const { execute, isPending, result } = useAction(updateAgentBasicsAction, {
@@ -156,13 +159,17 @@ export const AgentBasicsForm = ({
                       <SelectGroup key={group.label}>
                         <SelectLabel>{group.label}</SelectLabel>
                         {group.models.map((model) => {
+                          const cost = modelOutputCosts[model.id];
+
                           return (
                             <SelectItem key={model.id} value={model.id}>
                               <span className="flex w-full items-center justify-between gap-2">
                                 <span>{model.name}</span>
-                                <span className="text-muted-foreground text-xs tracking-tight">
-                                  {getModelCostLabel(model.id)}
-                                </span>
+                                {cost === undefined ? null : (
+                                  <span className="text-muted-foreground text-xs tracking-tight">
+                                    {formatModelCost(cost)}
+                                  </span>
+                                )}
                               </span>
                             </SelectItem>
                           );

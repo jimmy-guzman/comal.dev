@@ -131,6 +131,7 @@ interface Props {
   conversationId: null | string;
   initialMessages: AppUIMessage[];
   modelId: string;
+  modelOutputCosts: Partial<Record<string, number>>;
   subagentTraces?: SubagentTraces;
   suggestions: string[];
 }
@@ -142,6 +143,7 @@ export const ChatView = ({
   conversationId: initialConversationId,
   initialMessages,
   modelId: initialModelId,
+  modelOutputCosts,
   subagentTraces,
   suggestions,
 }: Props) => {
@@ -428,7 +430,11 @@ export const ChatView = ({
                 onValueChange={handleAgentSelect}
                 value={currentAgentId}
               />
-              <ChatModelPicker onValueChange={handleModelSelect} value={modelId} />
+              <ChatModelPicker
+                modelOutputCosts={modelOutputCosts}
+                onValueChange={handleModelSelect}
+                value={modelId}
+              />
             </PromptInputTools>
             <div className="flex shrink-0 items-center gap-1">
               {conversationId === null ? null : (

@@ -10,6 +10,7 @@ import { ChatView } from "@/components/chat-view";
 import { appRuntime } from "@/db/runtime";
 import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
+import { ModelPricingService } from "@/lib/model-pricing";
 
 async function fetchAgents(userId: string) {
   "use cache";
@@ -33,6 +34,15 @@ async function fetchAgent(agentId: string, userId: string) {
   );
 }
 
+async function fetchModelOutputCosts() {
+  "use cache";
+
+  cacheTag("model-pricing");
+  cacheLife("hours");
+
+  return appRuntime.runPromise(ModelPricingService.listOutputCosts());
+}
+
 interface Props {
   searchParams: Promise<SearchParams>;
 }
@@ -44,7 +54,10 @@ export default async function NewChatPage({ searchParams }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const agents = await fetchAgents(session.user.id);
+  const [agents, modelOutputCosts] = await Promise.all([
+    fetchAgents(session.user.id),
+    fetchModelOutputCosts(),
+  ]);
 
   if (agents.length === 0) redirect("/");
 
@@ -63,6 +76,7 @@ export default async function NewChatPage({ searchParams }: Props) {
       conversationId={null}
       initialMessages={[]}
       modelId={resolvedAgent.defaultModelId}
+      modelOutputCosts={modelOutputCosts}
       suggestions={resolvedAgent.suggestions}
     />
   );

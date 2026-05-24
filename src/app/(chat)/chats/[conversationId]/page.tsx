@@ -11,6 +11,7 @@ import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 import { projectMessages, projectSubagentTraces } from "@/lib/chat/projector";
 import { ChatStoreService } from "@/lib/chat/store";
+import { ModelPricingService } from "@/lib/model-pricing";
 
 async function fetchAgents(userId: string) {
   "use cache";
@@ -32,6 +33,15 @@ async function fetchAgent(agentId: string, userId: string) {
       Effect.catchTag("AgentNotFoundError", () => Effect.succeed(null)),
     ),
   );
+}
+
+async function fetchModelOutputCosts() {
+  "use cache";
+
+  cacheTag("model-pricing");
+  cacheLife("hours");
+
+  return appRuntime.runPromise(ModelPricingService.listOutputCosts());
 }
 
 interface Props {
@@ -56,9 +66,10 @@ export default async function ChatPage({ params }: Props) {
 
   if (conv.kind === "eval") redirect(`/chats/${conversationId}/trace`);
 
-  const [agents, agent] = await Promise.all([
+  const [agents, agent, modelOutputCosts] = await Promise.all([
     fetchAgents(session.user.id),
     fetchAgent(conv.agentId, session.user.id),
+    fetchModelOutputCosts(),
   ]);
 
   const resolvedAgent = agent ?? agents[0];
@@ -77,6 +88,7 @@ export default async function ChatPage({ params }: Props) {
       conversationId={conversationId}
       initialMessages={initialMessages as AppUIMessage[]}
       modelId={conv.modelId}
+      modelOutputCosts={modelOutputCosts}
       subagentTraces={subagentTraces}
       suggestions={resolvedAgent.suggestions}
     />
