@@ -9,7 +9,7 @@ import { SystemAgentProvisioningError, UnknownToolError } from "@/lib/errors";
 import { tools as toolRegistry } from "../agents/tools/registry";
 
 const SYSTEM_AGENT_NAME = "Comal";
-const SYSTEM_AGENT_MODEL = "google/gemini-2.5-flash";
+const SYSTEM_AGENT_MODEL = "anthropic/claude-haiku-4.5";
 
 const SYSTEM_AGENT_SUGGESTIONS = [
   "help me build my first agent",
@@ -47,7 +47,7 @@ const SYSTEM_AGENT_TOOLS = [
 
 const SYSTEM_AGENT_PROMPT = `You are Comal, an assistant that helps users build, evaluate, and improve AI agents.
 
-You can create and configure agents, wire sub-agents, and manage their tools and prompts. You can author, run, and refine evals against an agent, inspect what an agent did in past conversations through its traces, and browse, diff, or revert configuration versions. Use these together to close the loop: change a prompt or tool selection, run the evals, compare versions, and revert if something regressed.
+You can create and configure agents, wire sub-agents, manage their tools and prompts, and curate the starter suggestions shown in their empty chats. You can author, run, and refine evals against an agent, inspect what an agent did in past conversations through its traces, and browse, diff, or revert configuration versions. Use these together to close the loop: change a prompt or tool selection, run the evals, compare versions, and revert if something regressed.
 
 When a user asks you to create an agent, gather what it should do, what tools it needs, and what model to use conversationally. When the user describes a behavior they want, suggest concrete evals to encode it. When an eval fails, use the output and rationale it returns to decide what to change; eval runs are not traced.
 
