@@ -4,9 +4,9 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { AgentPicker } from "@/components/agent-picker";
 import { AgentSectionDirectory } from "@/components/agent-section-directory";
 import { ConversationList } from "@/components/conversation-list";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
 import { getModelCostLabel } from "@/config/models";
@@ -48,15 +48,6 @@ async function fetchRecentChats(agentId: string, userId: string) {
   return appRuntime.runPromise(ChatService.listForAgent(userId, agentId));
 }
 
-async function fetchUserAgents(userId: string) {
-  "use cache";
-
-  cacheTag(`agents:${userId}`);
-  cacheLife("minutes");
-
-  return appRuntime.runPromise(AgentService.listForUser(userId));
-}
-
 interface Props {
   params: Promise<{ agentId: string }>;
 }
@@ -68,11 +59,10 @@ export default async function AgentOverviewPage({ params }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const [agent, versionCount, recentChats, agents] = await Promise.all([
+  const [agent, versionCount, recentChats] = await Promise.all([
     fetchAgentDetail(agentId, session.user.id),
     fetchVersionCount(agentId, session.user.id),
     fetchRecentChats(agentId, session.user.id),
-    fetchUserAgents(session.user.id),
   ]);
 
   if (!agent) notFound();
@@ -81,14 +71,14 @@ export default async function AgentOverviewPage({ params }: Props) {
     <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="min-w-0 text-2xl font-semibold sm:text-3xl">
-            <AgentPicker
-              agentId={agentId}
-              agentName={agent.name}
-              agents={agents.map((a) => ({ id: a.id, name: a.name }))}
-              isSystem={agent.isSystem}
-            />
-          </h2>
+          <h1 className="flex min-w-0 items-center gap-2 text-2xl font-semibold">
+            <span className="truncate">{agent.name}</span>
+            {agent.isSystem ? (
+              <Badge className="shrink-0 text-xs" variant="secondary">
+                system
+              </Badge>
+            ) : null}
+          </h1>
           <div className="flex shrink-0 items-center gap-2">
             <Button asChild size="sm" variant="outline">
               <a download href={`/api/agents/${agentId}/export`}>
