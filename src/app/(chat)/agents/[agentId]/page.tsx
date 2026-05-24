@@ -4,16 +4,27 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import type { ModelId } from "@/config/models";
+import type { ModelOutputCosts } from "@/lib/model-pricing";
+
 import { AgentSectionDirectory } from "@/components/agent-section-directory";
 import { ConversationList } from "@/components/conversation-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
-import { getModelCostLabel } from "@/config/models";
+import { MODEL_IDS } from "@/config/models";
 import { appRuntime } from "@/db/runtime";
 import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 import { ChatService } from "@/lib/chat";
+import { formatModelCost } from "@/lib/format-model-cost";
+import { ModelPricingService } from "@/lib/model-pricing";
+
+const EMPTY_MODEL_OUTPUT_COSTS: ModelOutputCosts = {};
+
+const isModelId = (value: string): value is ModelId => {
+  return (MODEL_IDS as readonly string[]).includes(value);
+};
 
 async function fetchAgentDetail(agentId: string, userId: string) {
   "use cache";
@@ -48,6 +59,22 @@ async function fetchRecentChats(agentId: string, userId: string) {
   return appRuntime.runPromise(ChatService.listForAgent(userId, agentId));
 }
 
+async function fetchModelOutputCosts() {
+  "use cache";
+
+  cacheTag("model-pricing");
+  cacheLife("hours");
+
+  return appRuntime.runPromise(
+    ModelPricingService.listOutputCosts().pipe(
+      Effect.tapError((error) => {
+        return Effect.logError("agent overview page model-pricing lookup failed", error);
+      }),
+      Effect.catchAll(() => Effect.succeed(EMPTY_MODEL_OUTPUT_COSTS)),
+    ),
+  );
+}
+
 interface Props {
   params: Promise<{ agentId: string }>;
 }
@@ -59,13 +86,18 @@ export default async function AgentOverviewPage({ params }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const [agent, versionCount, recentChats] = await Promise.all([
+  const [agent, versionCount, recentChats, modelOutputCosts] = await Promise.all([
     fetchAgentDetail(agentId, session.user.id),
     fetchVersionCount(agentId, session.user.id),
     fetchRecentChats(agentId, session.user.id),
+    fetchModelOutputCosts(),
   ]);
 
   if (!agent) notFound();
+
+  const defaultModelCost = isModelId(agent.defaultModelId)
+    ? modelOutputCosts[agent.defaultModelId]
+    : undefined;
 
   return (
     <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
@@ -101,9 +133,11 @@ export default async function AgentOverviewPage({ params }: Props) {
               <span className="truncate">
                 {agent.defaultModelId.split("/").at(-1) ?? agent.defaultModelId}
               </span>
-              <span className="text-muted-foreground shrink-0 text-xs tracking-tight">
-                {getModelCostLabel(agent.defaultModelId)}
-              </span>
+              {defaultModelCost === undefined ? null : (
+                <span className="text-muted-foreground shrink-0 text-xs tracking-tight">
+                  {formatModelCost(defaultModelCost)}
+                </span>
+              )}
             </p>
           </ItemContent>
         </Item>

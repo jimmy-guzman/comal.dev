@@ -3,10 +3,15 @@ import { cacheLife, cacheTag } from "next/cache";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import type { ModelOutputCosts } from "@/lib/model-pricing";
+
 import { AgentBasicsForm } from "@/components/agent-basics-form";
 import { appRuntime } from "@/db/runtime";
 import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
+import { ModelPricingService } from "@/lib/model-pricing";
+
+const EMPTY_MODEL_OUTPUT_COSTS: ModelOutputCosts = {};
 
 async function fetchAgent(agentId: string, userId: string) {
   "use cache";
@@ -17,6 +22,22 @@ async function fetchAgent(agentId: string, userId: string) {
   return appRuntime.runPromise(
     AgentService.getForUser(agentId, userId).pipe(
       Effect.catchTag("AgentNotFoundError", () => Effect.succeed(null)),
+    ),
+  );
+}
+
+async function fetchModelOutputCosts() {
+  "use cache";
+
+  cacheTag("model-pricing");
+  cacheLife("hours");
+
+  return appRuntime.runPromise(
+    ModelPricingService.listOutputCosts().pipe(
+      Effect.tapError((error) => {
+        return Effect.logError("basics page model-pricing lookup failed", error);
+      }),
+      Effect.catchAll(() => Effect.succeed(EMPTY_MODEL_OUTPUT_COSTS)),
     ),
   );
 }
@@ -32,7 +53,10 @@ export default async function AgentBasicsPage({ params }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const agent = await fetchAgent(agentId, session.user.id);
+  const [agent, modelOutputCosts] = await Promise.all([
+    fetchAgent(agentId, session.user.id),
+    fetchModelOutputCosts(),
+  ]);
 
   if (!agent) notFound();
 
@@ -47,6 +71,7 @@ export default async function AgentBasicsPage({ params }: Props) {
         initialDefaultModelId={agent.defaultModelId}
         initialDescription={agent.description}
         initialName={agent.name}
+        modelOutputCosts={modelOutputCosts}
         readOnly={agent.isSystem}
       />
     </div>

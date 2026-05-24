@@ -5,11 +5,16 @@ import { cacheLife, cacheTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import type { ModelOutputCosts } from "@/lib/model-pricing";
+
 import { chatSearchParamsCache } from "@/app/(chat)/chats/search-params";
 import { ChatView } from "@/components/chat-view";
 import { appRuntime } from "@/db/runtime";
 import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
+import { ModelPricingService } from "@/lib/model-pricing";
+
+const EMPTY_MODEL_OUTPUT_COSTS: ModelOutputCosts = {};
 
 async function fetchAgents(userId: string) {
   "use cache";
@@ -33,6 +38,22 @@ async function fetchAgent(agentId: string, userId: string) {
   );
 }
 
+async function fetchModelOutputCosts() {
+  "use cache";
+
+  cacheTag("model-pricing");
+  cacheLife("hours");
+
+  return appRuntime.runPromise(
+    ModelPricingService.listOutputCosts().pipe(
+      Effect.tapError((error) => {
+        return Effect.logError("new chat page model-pricing lookup failed", error);
+      }),
+      Effect.catchAll(() => Effect.succeed(EMPTY_MODEL_OUTPUT_COSTS)),
+    ),
+  );
+}
+
 interface Props {
   searchParams: Promise<SearchParams>;
 }
@@ -44,7 +65,10 @@ export default async function NewChatPage({ searchParams }: Props) {
 
   if (!session?.user) redirect("/sign-in");
 
-  const agents = await fetchAgents(session.user.id);
+  const [agents, modelOutputCosts] = await Promise.all([
+    fetchAgents(session.user.id),
+    fetchModelOutputCosts(),
+  ]);
 
   if (agents.length === 0) redirect("/");
 
@@ -63,6 +87,7 @@ export default async function NewChatPage({ searchParams }: Props) {
       conversationId={null}
       initialMessages={[]}
       modelId={resolvedAgent.defaultModelId}
+      modelOutputCosts={modelOutputCosts}
       suggestions={resolvedAgent.suggestions}
     />
   );

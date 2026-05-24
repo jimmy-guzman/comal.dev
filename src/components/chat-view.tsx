@@ -12,6 +12,7 @@ import type { ModelId } from "@/config/models";
 import type { AppUIMessage } from "@/lib/app-ui-message";
 import type { ChatErrorInfo, ChatErrorKind } from "@/lib/chat/errors";
 import type { SubagentTraces } from "@/lib/chat/projector";
+import type { ModelOutputCosts } from "@/lib/model-pricing";
 
 import { updateConversationAgentAction } from "@/actions/update-conversation-agent";
 import { updateConversationModelAction } from "@/actions/update-conversation-model";
@@ -131,6 +132,7 @@ interface Props {
   conversationId: null | string;
   initialMessages: AppUIMessage[];
   modelId: string;
+  modelOutputCosts: ModelOutputCosts;
   subagentTraces?: SubagentTraces;
   suggestions: string[];
 }
@@ -142,6 +144,7 @@ export const ChatView = ({
   conversationId: initialConversationId,
   initialMessages,
   modelId: initialModelId,
+  modelOutputCosts,
   subagentTraces,
   suggestions,
 }: Props) => {
@@ -428,7 +431,11 @@ export const ChatView = ({
                 onValueChange={handleAgentSelect}
                 value={currentAgentId}
               />
-              <ChatModelPicker onValueChange={handleModelSelect} value={modelId} />
+              <ChatModelPicker
+                modelOutputCosts={modelOutputCosts}
+                onValueChange={handleModelSelect}
+                value={modelId}
+              />
             </PromptInputTools>
             <div className="flex shrink-0 items-center gap-1">
               {conversationId === null ? null : (

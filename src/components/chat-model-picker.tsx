@@ -4,6 +4,7 @@ import { ChevronDownIcon } from "lucide-react";
 import { useState } from "react";
 
 import type { ModelId } from "@/config/models";
+import type { ModelOutputCosts } from "@/lib/model-pricing";
 
 import {
   ModelSelector,
@@ -19,14 +20,16 @@ import {
   ModelSelectorTrigger,
 } from "@/components/ai-elements/model-selector";
 import { Button } from "@/components/ui/button";
-import { getModelById, getModelCostLabel, MODEL_GROUPS } from "@/config/models";
+import { getModelById, MODEL_GROUPS } from "@/config/models";
+import { formatModelCost } from "@/lib/format-model-cost";
 
 interface Props {
+  modelOutputCosts: ModelOutputCosts;
   onValueChange: (id: ModelId) => void;
   value: string;
 }
 
-export const ChatModelPicker = ({ onValueChange, value }: Props) => {
+export const ChatModelPicker = ({ modelOutputCosts, onValueChange, value }: Props) => {
   const [open, setOpen] = useState(false);
   const resolved = getModelById(value);
   const triggerLabel = resolved?.name ?? value;
@@ -65,6 +68,7 @@ export const ChatModelPicker = ({ onValueChange, value }: Props) => {
               <ModelSelectorGroup heading={group.label} key={group.provider}>
                 {group.models.map((model) => {
                   const isActive = model.id === value;
+                  const cost = modelOutputCosts[model.id];
 
                   return (
                     <ModelSelectorItem
@@ -78,7 +82,9 @@ export const ChatModelPicker = ({ onValueChange, value }: Props) => {
                     >
                       <ModelSelectorLogo provider={group.provider} />
                       <ModelSelectorName>{model.name}</ModelSelectorName>
-                      <ModelSelectorCost>{getModelCostLabel(model.id)}</ModelSelectorCost>
+                      {cost === undefined ? null : (
+                        <ModelSelectorCost>{formatModelCost(cost)}</ModelSelectorCost>
+                      )}
                     </ModelSelectorItem>
                   );
                 })}
