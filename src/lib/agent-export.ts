@@ -37,6 +37,7 @@ export interface AgentExportNode {
   id: string;
   name: string;
   subAgents: AgentExportSubAgent[];
+  suggestions: string[];
   systemPrompt: string;
   tools: AgentExportTool[];
 }
@@ -101,6 +102,7 @@ export const walkAgentGraph = (
     id: agent.id,
     name: agent.name,
     subAgents,
+    suggestions: agent.suggestions,
     systemPrompt: agent.systemPrompt,
     tools: agent.tools.map((tool) => {
       return { config: tool.config, toolId: tool.toolId };
