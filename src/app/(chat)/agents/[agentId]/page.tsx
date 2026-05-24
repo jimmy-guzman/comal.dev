@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import type { ModelId } from "@/config/models";
+import type { ModelOutputCosts } from "@/lib/model-pricing";
 
 import { AgentSectionDirectory } from "@/components/agent-section-directory";
 import { ConversationList } from "@/components/conversation-list";
@@ -18,6 +19,8 @@ import { auth } from "@/lib/auth";
 import { ChatService } from "@/lib/chat";
 import { formatModelCost } from "@/lib/format-model-cost";
 import { ModelPricingService } from "@/lib/model-pricing";
+
+const EMPTY_MODEL_OUTPUT_COSTS: ModelOutputCosts = {};
 
 const isModelId = (value: string): value is ModelId => {
   return (MODEL_IDS as readonly string[]).includes(value);
@@ -62,7 +65,14 @@ async function fetchModelOutputCosts() {
   cacheTag("model-pricing");
   cacheLife("hours");
 
-  return appRuntime.runPromise(ModelPricingService.listOutputCosts());
+  return appRuntime.runPromise(
+    ModelPricingService.listOutputCosts().pipe(
+      Effect.tapError((error) => {
+        return Effect.logError("agent overview page model-pricing lookup failed", error);
+      }),
+      Effect.catchAll(() => Effect.succeed(EMPTY_MODEL_OUTPUT_COSTS)),
+    ),
+  );
 }
 
 interface Props {

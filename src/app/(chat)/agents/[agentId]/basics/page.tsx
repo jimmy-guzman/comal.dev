@@ -3,11 +3,15 @@ import { cacheLife, cacheTag } from "next/cache";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import type { ModelOutputCosts } from "@/lib/model-pricing";
+
 import { AgentBasicsForm } from "@/components/agent-basics-form";
 import { appRuntime } from "@/db/runtime";
 import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
 import { ModelPricingService } from "@/lib/model-pricing";
+
+const EMPTY_MODEL_OUTPUT_COSTS: ModelOutputCosts = {};
 
 async function fetchAgent(agentId: string, userId: string) {
   "use cache";
@@ -28,7 +32,14 @@ async function fetchModelOutputCosts() {
   cacheTag("model-pricing");
   cacheLife("hours");
 
-  return appRuntime.runPromise(ModelPricingService.listOutputCosts());
+  return appRuntime.runPromise(
+    ModelPricingService.listOutputCosts().pipe(
+      Effect.tapError((error) => {
+        return Effect.logError("basics page model-pricing lookup failed", error);
+      }),
+      Effect.catchAll(() => Effect.succeed(EMPTY_MODEL_OUTPUT_COSTS)),
+    ),
+  );
 }
 
 interface Props {
