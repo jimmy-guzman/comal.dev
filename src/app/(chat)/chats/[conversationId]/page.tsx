@@ -78,7 +78,7 @@ export default async function ChatPage({ params }: Props) {
       initialMessages={initialMessages as AppUIMessage[]}
       modelId={conv.modelId}
       subagentTraces={subagentTraces}
-      suggestions={[]}
+      suggestions={agent?.suggestions ?? []}
     />
   );
 }

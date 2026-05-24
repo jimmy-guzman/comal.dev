@@ -338,7 +338,11 @@ export const ChatView = ({
         <ConversationContent>
           {messages.length === 0 ? (
             <ConversationEmptyState
-              description="ask anything or pick a suggestion below."
+              description={
+                suggestions.length > 0
+                  ? "ask anything or pick a suggestion below."
+                  : "ask anything to get started."
+              }
               title="Start a conversation"
             />
           ) : (
@@ -405,7 +409,7 @@ export const ChatView = ({
       </Conversation>
 
       <div className="pb-safe-or-4 flex flex-col gap-2 border-t p-4">
-        {messages.length === 0 ? (
+        {messages.length === 0 && suggestions.length > 0 ? (
           <Suggestions>
             {suggestions.map((s) => {
               return <Suggestion key={s} onClick={handleSuggestion} suggestion={s} />;

@@ -475,6 +475,45 @@ export class AgentService extends Effect.Service<AgentService>()("AgentService",
       }
     });
 
+    const updateSuggestions = Effect.fn("AgentService.updateSuggestions")(function* (
+      agentId: string,
+      userId: string,
+      suggestions: string[],
+    ) {
+      yield* Effect.annotateCurrentSpan("agentId", agentId);
+      yield* Effect.annotateCurrentSpan("userId", userId);
+
+      const outcome = yield* runMutation(() => {
+        return db.transaction(async (tx) => {
+          const rows = await tx
+            .select({ isSystem: agent.isSystem, userId: agent.userId })
+            .from(agent)
+            .where(eq(agent.id, agentId))
+            .limit(1);
+
+          const row = rows.at(0);
+
+          if (!row) return "not-found" as const;
+
+          if (row.userId !== userId || row.isSystem) return "forbidden" as const;
+
+          await tx.update(agent).set({ suggestions }).where(eq(agent.id, agentId));
+
+          return "ok" as const;
+        });
+      });
+
+      if (outcome === "not-found") {
+        yield* Effect.fail(new AgentNotFoundError({ agentId, message: "Agent not found." }));
+      }
+
+      if (outcome === "forbidden") {
+        yield* Effect.fail(
+          new ForbiddenError({ message: "You do not have access to this agent." }),
+        );
+      }
+    });
+
     const remove = Effect.fn("AgentService.delete")(function* (agentId: string) {
       yield* Effect.annotateCurrentSpan("agentId", agentId);
 
@@ -591,6 +630,7 @@ export class AgentService extends Effect.Service<AgentService>()("AgentService",
       listOwnerSubAgentEdges,
       listVersions,
       update,
+      updateSuggestions,
     };
   }),
 }) {}
