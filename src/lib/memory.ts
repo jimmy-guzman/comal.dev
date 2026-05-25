@@ -23,13 +23,11 @@ interface MemorySearchHit {
   similarity: number;
 }
 
-// eslint-disable-next-line unicorn/throw-new-error -- false positive: Schema.TaggedError is a class factory
 class MemoryCapReachedError extends Schema.TaggedError<MemoryCapReachedError>()(
   "MemoryCapReachedError",
   { cap: Schema.Number, current: Schema.Number, message: Schema.String },
 ) {}
 
-// eslint-disable-next-line unicorn/throw-new-error -- false positive: Schema.TaggedError is a class factory
 class MemoryNotFoundError extends Schema.TaggedError<MemoryNotFoundError>()("MemoryNotFoundError", {
   memoryId: Schema.String,
   message: Schema.String,
