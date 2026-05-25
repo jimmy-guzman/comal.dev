@@ -9,7 +9,7 @@ An open source web app for building private, runtime-defined AI agents. The syst
 ## Features
 
 - **Private, runtime-defined agents.** Each agent has its own system prompt, model, and tool selection. Configuration is per-user; nothing is shared. Settings sub-pages cover basics, prompt, tools, sub-agents, evals, cost, versions, and danger.
-- **Curated model picker** across OpenAI, Anthropic, Google, xAI, and DeepSeek (via OpenRouter), each tagged with a relative cost label. Pick a different model per conversation without changing the agent.
+- **Curated model picker** spanning frontier and low-cost models via OpenRouter, each tagged with a relative cost label. Pick a different model per conversation without changing the agent.
 - **Anonymous by default, GitHub sign-in for persistence.** Every visitor gets an anonymous session with full feature access; sign in with GitHub when you want conversations and agents to follow you across devices.
 - **Streaming chat.** Markdown, code, math, and mermaid render as the stream arrives. The composer accepts file uploads, pasted images, and one-click screenshot capture.
 - **Approval-gated tools.** Mark a tool as needing approval and it pauses mid-turn for one-click approve or deny. Sub-agent tools always run without approval gates so delegation doesn't stall.
@@ -107,17 +107,44 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the system overview, request flow, ag
 
 ## Tech stack
 
+**Framework**
+
 - Next.js 16
 - React 19
 - TypeScript
+
+**UI**
+
 - Tailwind CSS v4
-- shadcn/ui
-- Better Auth
+- shadcn/ui (Radix UI primitives)
+- motion (animations)
+- cmdk (command menu)
+- shiki (code highlighting)
+- streamdown (streaming markdown)
+- recharts (charts)
+- @xyflow/react (diagrams)
+
+**Data & state**
+
 - Drizzle ORM + Neon Postgres
+- Upstash Redis + Upstash Ratelimit
+- nuqs (URL state)
+- zod (schema validation)
+
+**AI**
+
 - Vercel AI SDK + OpenRouter
-- Upstash Redis
+- tokenlens (token counting)
+- effect (functional runtime)
+
+**Auth & actions**
+
+- Better Auth
 - next-safe-action
 - TanStack Form
+
+**Tooling**
+
 - Bun
 
 ## Getting started
