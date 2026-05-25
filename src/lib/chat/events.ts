@@ -102,10 +102,22 @@ const turnErrorPayloadSchema = z.object({
   statusCode: z.number().int().optional(),
 });
 
+const memoryInjectedPayloadSchema = z.object({
+  hits: z.array(
+    z.object({
+      content: z.string(),
+      id: z.string(),
+      similarity: z.number(),
+    }),
+  ),
+  query: z.string(),
+});
+
 const EVENT_PAYLOAD_SCHEMAS = {
   "assistant-turn-finish": assistantTurnFinishPayloadSchema,
   "assistant-turn-start": assistantTurnStartPayloadSchema,
   file: filePayloadSchema,
+  "memory-injected": memoryInjectedPayloadSchema,
   "reasoning-segment": reasoningSegmentPayloadSchema,
   "source-url": sourceUrlPayloadSchema,
   "step-boundary": stepBoundaryPayloadSchema,

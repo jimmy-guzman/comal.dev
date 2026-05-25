@@ -111,7 +111,16 @@ const escapeForPromptBlock = (value: string): string => {
     .replaceAll("'", "&#39;");
 };
 
-const lookupMemoryBlock = (userId: string, query: string) => {
+interface MemoryLookupResult {
+  block: string;
+  hits: { content: string; id: string; similarity: number }[];
+  query: string;
+}
+
+const lookupMemoryBlock = (
+  userId: string,
+  query: string,
+): Effect.Effect<MemoryLookupResult | null, DatabaseError | LLMError, MemoryService> => {
   return Effect.gen(function* () {
     const trimmed = query.trim();
 
@@ -142,7 +151,13 @@ const lookupMemoryBlock = (userId: string, query: string) => {
 
     const lines = hits.map((hit) => `- ${escapeForPromptBlock(hit.content)}`).join("\n");
 
-    return `<memory>\nFacts about the user from prior conversations:\n${lines}\n</memory>`;
+    return {
+      block: `<memory>\nFacts about the user from prior conversations:\n${lines}\n</memory>`,
+      hits: hits.map((hit) => {
+        return { content: hit.content, id: hit.id, similarity: hit.similarity };
+      }),
+      query: trimmed,
+    } satisfies MemoryLookupResult;
   });
 };
 
@@ -584,7 +599,7 @@ export async function POST(req: Request) {
       ? `${agent.systemPrompt}\n\nThe user's local timezone is ${timezone}.`
       : agent.systemPrompt;
 
-    const memoryBlock =
+    const memoryLookup =
       "memory-search" in agent.tools && userMessage
         ? yield* lookupMemoryBlock(user.id, stringifyText(userMessage.parts)).pipe(
             Effect.tapError((cause) => {
@@ -594,7 +609,22 @@ export async function POST(req: Request) {
           )
         : null;
 
-    const systemPrompt = memoryBlock ? `${baseSystemPrompt}\n\n${memoryBlock}` : baseSystemPrompt;
+    if (memoryLookup !== null) {
+      yield* ChatPersistService.appendChatEvent({
+        conversationId,
+        event: {
+          eventType: "memory-injected",
+          messageId: null,
+          payload: { hits: memoryLookup.hits, query: memoryLookup.query },
+          role: "assistant",
+        },
+        modelId: convModelId,
+      });
+    }
+
+    const systemPrompt = memoryLookup
+      ? `${baseSystemPrompt}\n\n${memoryLookup.block}`
+      : baseSystemPrompt;
 
     const lastMessage = validation.data.at(-1);
     const assistantMessageId = lastMessage?.role === "assistant" ? lastMessage.id : nanoid();
