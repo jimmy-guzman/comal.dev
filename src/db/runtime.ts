@@ -7,6 +7,7 @@ import { ChatStoreService } from "@/lib/chat/store";
 import { CostService } from "@/lib/cost";
 import { EvalRunnerService } from "@/lib/eval-runner";
 import { EvalService } from "@/lib/evals";
+import { MemoryService } from "@/lib/memory";
 import { ModelPricingService } from "@/lib/model-pricing";
 import { SystemAgentService } from "@/lib/system-agent";
 
@@ -20,6 +21,7 @@ const ServicesLive = Layer.mergeAll(
   CostService.Default,
   EvalService.Default,
   EvalRunnerService.Default,
+  MemoryService.Default,
   ModelPricingService.Default,
   SystemAgentService.Default,
 );

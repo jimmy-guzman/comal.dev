@@ -4,6 +4,8 @@ import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  embed,
+  embedMany,
   generateText,
   isToolUIPart,
   safeValidateUIMessages,
@@ -42,6 +44,7 @@ import {
   RateLimitCheckError,
   ValidationError,
 } from "@/lib/errors";
+import { MemoryService } from "@/lib/memory";
 import { openrouter } from "@/lib/openrouter";
 import {
   chatLimiter,
@@ -93,6 +96,75 @@ const postBodySchema = z.object({
 
 const logError = (message: string, error: unknown): void => {
   void appRuntime.runPromise(Effect.logError(message, error));
+};
+
+const MEMORY_EMBEDDING_MODEL_ID = "openai/text-embedding-3-small";
+const MEMORY_TOP_K = 5;
+const MEMORY_THRESHOLD = 0.75;
+
+const lookupMemoryBlock = (userId: string, query: string) => {
+  return Effect.gen(function* () {
+    const trimmed = query.trim();
+
+    if (trimmed.length === 0) return null;
+
+    const { embedding } = yield* Effect.tryPromise({
+      catch: (cause) => {
+        return new LLMError({
+          cause: cause instanceof Error ? cause.message : String(cause),
+          message: "Failed to embed user message for memory lookup.",
+        });
+      },
+      try: () => {
+        return embed({
+          // eslint-disable-next-line @typescript-eslint/no-deprecated -- OpenRouter SDK still uses the v4-named API
+          model: openrouter.textEmbeddingModel(MEMORY_EMBEDDING_MODEL_ID),
+          value: trimmed,
+        });
+      },
+    });
+
+    const hits = yield* MemoryService.search(userId, embedding, {
+      limit: MEMORY_TOP_K,
+      threshold: MEMORY_THRESHOLD,
+    });
+
+    if (hits.length === 0) return null;
+
+    const lines = hits.map((hit) => `- ${hit.content}`).join("\n");
+
+    return `<memory>\nFacts about the user from prior conversations:\n${lines}\n</memory>`;
+  });
+};
+
+const embedPendingMemories = (userId: string) => {
+  return Effect.gen(function* () {
+    const pending = yield* MemoryService.listPendingEmbeddings(userId);
+
+    if (pending.length === 0) return;
+
+    const { embeddings } = yield* Effect.tryPromise({
+      catch: (cause) => {
+        return new LLMError({
+          cause: cause instanceof Error ? cause.message : String(cause),
+          message: "Failed to embed pending memories.",
+        });
+      },
+      try: () => {
+        return embedMany({
+          // eslint-disable-next-line @typescript-eslint/no-deprecated -- OpenRouter SDK still uses the v4-named API
+          model: openrouter.textEmbeddingModel(MEMORY_EMBEDDING_MODEL_ID),
+          values: pending.map((row) => row.content),
+        });
+      },
+    });
+
+    const updates = pending.map((row, index) => {
+      return { embedding: embeddings[index], id: row.id };
+    });
+
+    yield* MemoryService.setEmbeddings(updates);
+  });
 };
 
 const errorToResponse = (
@@ -499,9 +571,21 @@ export async function POST(req: Request) {
       },
     });
 
-    const systemPrompt = timezone
+    const baseSystemPrompt = timezone
       ? `${agent.systemPrompt}\n\nThe user's local timezone is ${timezone}.`
       : agent.systemPrompt;
+
+    const memoryBlock =
+      agent.enableMemory && userMessage
+        ? yield* lookupMemoryBlock(user.id, stringifyText(userMessage.parts)).pipe(
+            Effect.tapError((cause) => {
+              return Effect.logError("memory auto-injection failed", cause);
+            }),
+            Effect.catchAll(() => Effect.succeed(null)),
+          )
+        : null;
+
+    const systemPrompt = memoryBlock ? `${baseSystemPrompt}\n\n${memoryBlock}` : baseSystemPrompt;
 
     const lastMessage = validation.data.at(-1);
     const assistantMessageId = lastMessage?.role === "assistant" ? lastMessage.id : nanoid();
@@ -540,6 +624,19 @@ export async function POST(req: Request) {
         }
       } catch (error) {
         logError("after() persistence failed", error);
+      }
+
+      try {
+        await appRuntime.runPromise(
+          embedPendingMemories(user.id).pipe(
+            Effect.tapError((cause) => {
+              return Effect.logError("memory embed pipeline failed", cause);
+            }),
+            Effect.catchAll(() => Effect.void),
+          ),
+        );
+      } catch (error) {
+        logError("memory embed pipeline failed", error);
       }
     });
 
@@ -626,7 +723,7 @@ export async function POST(req: Request) {
   }) satisfies Effect.Effect<
     Response,
     ChatError,
-    Auth | ChatPersistService | ChatService | ChatStoreService | Database
+    Auth | ChatPersistService | ChatService | ChatStoreService | Database | MemoryService
   >;
 
   return await appRuntime.runPromise(

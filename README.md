@@ -8,7 +8,7 @@ An open source web app for building private, runtime-defined AI agents. The syst
 
 ## Features
 
-- **Private, runtime-defined agents.** Each agent has its own system prompt, model, and tool selection. Configuration is per-user; nothing is shared. Settings sub-pages cover basics, prompt, tools, sub-agents, evals, cost, versions, and danger.
+- **Private, runtime-defined agents.** Each agent has its own system prompt, model, and tool selection. Configuration is per-user; nothing is shared. Settings sub-pages cover basics, prompt, tools, sub-agents, evals, memory, cost, versions, and danger.
 - **Curated model picker** across OpenAI, Anthropic, Google, xAI, and DeepSeek (via OpenRouter), each tagged with a relative cost label. Pick a different model per conversation without changing the agent.
 - **Anonymous by default, GitHub sign-in for persistence.** Every visitor gets an anonymous session with full feature access; sign in with GitHub when you want conversations and agents to follow you across devices.
 - **Streaming chat.** Markdown, code, math, and mermaid render as the stream arrives. The composer accepts file uploads, pasted images, and one-click screenshot capture.
@@ -30,6 +30,11 @@ An open source web app for building private, runtime-defined AI agents. The syst
   - Breakdown by model and by conversation, plus a daily trend chart.
   - Average cost per turn and cost per eval suite run.
   - 30d / 90d / all-time range toggle.
+- **Persistent user memory.** Opt-in per agent. When enabled, the agent can save facts about you (preferences, identity, context) via tools and recall them across conversations.
+  - User-scoped pool: every memory-enabled agent reads the same pool, so a fact one agent saved is visible to others.
+  - Auto-injection: before each turn, the chat route embeds the latest user message and injects the top semantic matches into the system prompt.
+  - Top-level `/memories` page lists every saved memory with its source badge, supports manual adds, deletes, and a per-user cap.
+  - Embeddings (`text-embedding-3-small`, 1536 dims, pgvector + HNSW) reuse the existing OpenRouter client; no separate provider.
 - **Hourly spend budgets.** Runaway usage stops at $5/hour for signed-in users and $1/hour for anonymous, on a sliding window. Chat-request rate limits (200/h authed, 40/h anon) sit on top.
 - **Conversations list at `/chats`** with per-agent filtering.
 - **Conversational agent management via Comal**, a system agent that creates, configures, and iterates on your agents through chat, including running their evals and inspecting traces.
@@ -71,6 +76,12 @@ Built-in tools you can attach to an agent, grouped as they appear in the registr
 ### GitHub
 
 - **GitHub read**: reads files from public GitHub repositories in batch.
+
+### Memory
+
+- **Save memory**: stores a durable fact about the user. Becomes searchable on the next turn after the after-stream embedding pass runs.
+- **Search memory**: semantic similarity search over saved memories. The chat route auto-injects matches before each turn; this tool covers targeted lookups.
+- **Delete memory**: removes a saved memory by id (for "forget X" requests or cleanup).
 
 ### TMDB
 

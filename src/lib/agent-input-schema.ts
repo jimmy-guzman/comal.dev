@@ -70,6 +70,7 @@ const toolEntrySchema = z
 export const agentInputSchema = z.object({
   defaultModelId: z.enum(MODEL_IDS),
   description: z.string().trim().max(500).optional(),
+  enableMemory: z.boolean().default(false),
   evals: z.array(evalEntrySchema),
   name: z.string().trim().min(1).max(100),
   subAgents: z.array(subAgentEntrySchema).superRefine((items, ctx) => {

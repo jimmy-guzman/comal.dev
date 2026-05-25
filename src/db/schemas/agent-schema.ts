@@ -22,6 +22,7 @@ export const agent = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     defaultModelId: text("default_model_id").notNull(),
     description: text("description"),
+    enableMemory: boolean("enable_memory").default(false).notNull(),
     id: text("id").primaryKey(),
     isSystem: boolean("is_system").default(false).notNull(),
     name: text("name").notNull(),

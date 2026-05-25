@@ -6,6 +6,7 @@ export const groups = {
   cost: { id: "cost", label: "Cost" },
   evals: { id: "evals", label: "Evals" },
   github: { id: "github", label: "GitHub" },
+  memory: { id: "memory", label: "Memory" },
   tmdb: { id: "tmdb", label: "TMDB" },
   traces: { id: "traces", label: "Traces" },
   web: { id: "web", label: "Web" },

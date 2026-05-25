@@ -23,6 +23,9 @@ import { buildEvalsRun } from "./evals/run";
 import { buildEvalsRunBatch } from "./evals/run-batch";
 import { buildEvalsUpdate } from "./evals/update";
 import { buildGithubRead } from "./github/read";
+import { buildMemoryDelete } from "./memory/delete";
+import { buildMemorySave } from "./memory/save";
+import { buildMemorySearch } from "./memory/search";
 import { buildTmdbDiscoverMovie } from "./tmdb/discover-movie";
 import { buildTmdbDiscoverTv } from "./tmdb/discover-tv";
 import { buildTmdbMovieDetails } from "./tmdb/movie-details";
@@ -61,6 +64,9 @@ const BUILDERS = {
   "evals-run-batch": buildEvalsRunBatch,
   "evals-update": buildEvalsUpdate,
   "github-read": buildGithubRead,
+  "memory-delete": buildMemoryDelete,
+  "memory-save": buildMemorySave,
+  "memory-search": buildMemorySearch,
   "tmdb-discover-movie": buildTmdbDiscoverMovie,
   "tmdb-discover-tv": buildTmdbDiscoverTv,
   "tmdb-movie-details": buildTmdbMovieDetails,

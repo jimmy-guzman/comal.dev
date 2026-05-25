@@ -35,6 +35,10 @@ const buildToolsRecord = (
     const result: ToolSet = {};
 
     for (const row of rows) {
+      if (depth > 0 && row.toolId.startsWith("memory-")) {
+        continue;
+      }
+
       const def = toolRegistry.get(row.toolId);
 
       if (!def) {
@@ -140,6 +144,7 @@ export const loadAgent = (agentId: string, userId: string, options: LoadAgentOpt
         .select({
           defaultModelId: agent.defaultModelId,
           description: agent.description,
+          enableMemory: agent.enableMemory,
           id: agent.id,
           name: agent.name,
           systemPrompt: agent.systemPrompt,
@@ -175,7 +180,7 @@ export const loadAgent = (agentId: string, userId: string, options: LoadAgentOpt
       { concurrency: "unbounded" },
     );
 
-    const toolContext: ToolContext = { userId };
+    const toolContext: ToolContext = { agentId, userId };
     const toolsRecord = yield* buildToolsRecord(toolRows, depth, toolContext);
 
     const subagentTools =
@@ -188,6 +193,7 @@ export const loadAgent = (agentId: string, userId: string, options: LoadAgentOpt
     return {
       defaultModelId: row.defaultModelId,
       description: row.description ?? "",
+      enableMemory: row.enableMemory,
       id: row.id,
       name: row.name,
       systemPrompt: row.systemPrompt,

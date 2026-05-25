@@ -104,6 +104,7 @@ export const buildAgentsCreate = (_config: unknown, context: ToolContext) => {
         AgentService.create(context.userId, {
           defaultModelId: modelId,
           description,
+          enableMemory: false,
           evals: [],
           name,
           subAgents: resolvedSubAgents,
