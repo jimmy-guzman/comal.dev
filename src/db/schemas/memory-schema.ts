@@ -1,5 +1,5 @@
-import { relations } from "drizzle-orm";
-import { index, integer, pgTable, text, timestamp, vector } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import { check, index, integer, pgTable, text, timestamp, vector } from "drizzle-orm/pg-core";
 
 import { agent } from "./agent-schema";
 import { user } from "./auth-schema";
@@ -24,16 +24,24 @@ export const memory = pgTable(
   },
 );
 
-export const userMemorySettings = pgTable("user_memory_settings", {
-  cap: integer("cap").default(500).notNull(),
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-  userId: text("user_id")
-    .primaryKey()
-    .references(() => user.id, { onDelete: "cascade" }),
-});
+export const userMemorySettings = pgTable(
+  "user_memory_settings",
+  {
+    cap: integer("cap").default(500).notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => {
+    return [
+      check("user_memory_settings_cap_range", sql`${table.cap} >= 1 AND ${table.cap} <= 10000`),
+    ];
+  },
+);
 
 export const memoryRelations = relations(memory, ({ one }) => {
   return {

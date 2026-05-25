@@ -29,13 +29,14 @@ const stripApprovalConfig = (config: unknown): unknown => {
 const buildToolsRecord = (
   rows: { config: unknown; toolId: string }[],
   depth: number,
+  enableMemory: boolean,
   context: ToolContext,
 ) => {
   return Effect.gen(function* () {
     const result: ToolSet = {};
 
     for (const row of rows) {
-      if (depth > 0 && row.toolId.startsWith("memory-")) {
+      if ((!enableMemory || depth > 0) && row.toolId.startsWith("memory-")) {
         continue;
       }
 
@@ -181,7 +182,7 @@ export const loadAgent = (agentId: string, userId: string, options: LoadAgentOpt
     );
 
     const toolContext: ToolContext = { agentId, userId };
-    const toolsRecord = yield* buildToolsRecord(toolRows, depth, toolContext);
+    const toolsRecord = yield* buildToolsRecord(toolRows, depth, row.enableMemory, toolContext);
 
     const subagentTools =
       depth < MAX_DEPTH

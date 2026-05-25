@@ -102,6 +102,15 @@ const MEMORY_EMBEDDING_MODEL_ID = "openai/text-embedding-3-small";
 const MEMORY_TOP_K = 5;
 const MEMORY_THRESHOLD = 0.75;
 
+const escapeForPromptBlock = (value: string): string => {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+};
+
 const lookupMemoryBlock = (userId: string, query: string) => {
   return Effect.gen(function* () {
     const trimmed = query.trim();
@@ -131,7 +140,7 @@ const lookupMemoryBlock = (userId: string, query: string) => {
 
     if (hits.length === 0) return null;
 
-    const lines = hits.map((hit) => `- ${hit.content}`).join("\n");
+    const lines = hits.map((hit) => `- ${escapeForPromptBlock(hit.content)}`).join("\n");
 
     return `<memory>\nFacts about the user from prior conversations:\n${lines}\n</memory>`;
   });

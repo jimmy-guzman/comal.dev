@@ -15,19 +15,19 @@ const formSchema = z.object({
 });
 
 export const MemoryAddForm = () => {
-  const { execute, isPending, result } = useAction(addMemoryAction, {
-    onSuccess: () => {
-      toast.success("memory saved");
-    },
-  });
+  const { executeAsync, isPending, result } = useAction(addMemoryAction);
 
   const form = useForm({
     defaultValues: {
       content: "",
     },
-    onSubmit: ({ formApi, value }) => {
-      execute({ content: value.content.trim() });
-      formApi.reset();
+    onSubmit: async ({ formApi, value }) => {
+      const outcome = await executeAsync({ content: value.content.trim() });
+
+      if (outcome.data) {
+        toast.success("memory saved");
+        formApi.reset();
+      }
     },
     validators: {
       onSubmit: formSchema,

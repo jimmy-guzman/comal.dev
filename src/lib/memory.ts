@@ -93,29 +93,55 @@ export class MemoryService extends Effect.Service<MemoryService>()("MemoryServic
     }) {
       yield* Effect.annotateCurrentSpan("userId", input.userId);
 
-      const cap = yield* getCap(input.userId);
-      const current = yield* countForUser(input.userId);
+      const id = nanoid();
 
-      if (current >= cap) {
+      const outcome = yield* runMutation(() => {
+        return db.transaction(async (tx) => {
+          await tx
+            .insert(userMemorySettings)
+            .values({ cap: DEFAULT_CAP, userId: input.userId })
+            .onConflictDoNothing({ target: userMemorySettings.userId });
+
+          const settings = await tx
+            .select({ cap: userMemorySettings.cap })
+            .from(userMemorySettings)
+            .where(eq(userMemorySettings.userId, input.userId))
+            .for("update")
+            .limit(1);
+
+          const cap = settings.at(0)?.cap ?? DEFAULT_CAP;
+
+          const counts = await tx
+            .select({ count: sql<number>`count(*)::int` })
+            .from(memory)
+            .where(eq(memory.userId, input.userId));
+
+          const current = counts.at(0)?.count ?? 0;
+
+          if (current >= cap) {
+            return { cap, current, kind: "cap-reached" as const };
+          }
+
+          await tx.insert(memory).values({
+            content: input.content,
+            id,
+            sourceAgentId: input.sourceAgentId,
+            userId: input.userId,
+          });
+
+          return { kind: "ok" as const };
+        });
+      });
+
+      if (outcome.kind === "cap-reached") {
         return yield* Effect.fail(
           new MemoryCapReachedError({
-            cap,
-            current,
-            message: `Memory cap reached (${current}/${cap}).`,
+            cap: outcome.cap,
+            current: outcome.current,
+            message: `Memory cap reached (${outcome.current}/${outcome.cap}).`,
           }),
         );
       }
-
-      const id = nanoid();
-
-      yield* runMutation(() => {
-        return db.insert(memory).values({
-          content: input.content,
-          id,
-          sourceAgentId: input.sourceAgentId,
-          userId: input.userId,
-        });
-      });
 
       return { id };
     });
