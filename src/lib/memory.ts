@@ -1,4 +1,4 @@
-import { and, cosineDistance, desc, eq, gte, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, cosineDistance, desc, eq, isNotNull, isNull, lte, sql } from "drizzle-orm";
 import { Effect, Schema } from "effect";
 import { nanoid } from "nanoid";
 
@@ -223,20 +223,21 @@ export class MemoryService extends Effect.Service<MemoryService>()("MemoryServic
 
       const limit = Math.min(Math.max(options.limit ?? 5, 1), 20);
       const threshold = options.threshold ?? 0.4;
-      const similarity = sql<number>`1 - (${cosineDistance(memory.embedding, embedding)})`;
+      const distance = cosineDistance(memory.embedding, embedding);
+      const maxDistance = 1 - threshold;
 
       const rows = yield* runQuery(() => {
         return db
           .select({
             content: memory.content,
             id: memory.id,
-            similarity,
+            similarity: sql<number>`1 - (${distance})`,
           })
           .from(memory)
           .where(
-            and(eq(memory.userId, userId), isNotNull(memory.embedding), gte(similarity, threshold)),
+            and(eq(memory.userId, userId), isNotNull(memory.embedding), lte(distance, maxDistance)),
           )
-          .orderBy(desc(similarity))
+          .orderBy(distance)
           .limit(limit);
       });
 
