@@ -222,7 +222,7 @@ export class MemoryService extends Effect.Service<MemoryService>()("MemoryServic
       yield* Effect.annotateCurrentSpan("userId", userId);
 
       const limit = Math.min(Math.max(options.limit ?? 5, 1), 20);
-      const threshold = options.threshold ?? 0.75;
+      const threshold = options.threshold ?? 0.4;
       const similarity = sql<number>`1 - (${cosineDistance(memory.embedding, embedding)})`;
 
       const rows = yield* runQuery(() => {

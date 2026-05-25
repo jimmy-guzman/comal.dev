@@ -100,7 +100,7 @@ const logError = (message: string, error: unknown): void => {
 
 const MEMORY_EMBEDDING_MODEL_ID = "openai/text-embedding-3-small";
 const MEMORY_TOP_K = 5;
-const MEMORY_THRESHOLD = 0.75;
+const MEMORY_THRESHOLD = 0.4;
 
 const escapeForPromptBlock = (value: string): string => {
   return value
