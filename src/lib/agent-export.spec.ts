@@ -11,7 +11,6 @@ const makeFetched = (overrides: Partial<FetchedAgent> & Pick<FetchedAgent, "id" 
     createdAt: new Date("2025-01-01T00:00:00Z"),
     defaultModelId: "anthropic/claude-haiku-4.5",
     description: null,
-    enableMemory: false,
     evals: [],
     isSystem: false,
     subAgents: [],

@@ -3,7 +3,6 @@ import type { ToolSet } from "ai";
 export interface AgentConfig {
   defaultModelId: string;
   description: string;
-  enableMemory: boolean;
   /** Stable slug used as the agentId FK in conversations and as the URL segment. */
   id: string;
   name: string;

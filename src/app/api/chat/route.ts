@@ -585,7 +585,7 @@ export async function POST(req: Request) {
       : agent.systemPrompt;
 
     const memoryBlock =
-      agent.enableMemory && userMessage
+      "memory-search" in agent.tools && userMessage
         ? yield* lookupMemoryBlock(user.id, stringifyText(userMessage.parts)).pipe(
             Effect.tapError((cause) => {
               return Effect.logError("memory auto-injection failed", cause);

@@ -40,7 +40,6 @@ interface AgentEvalInput {
 interface AgentInput {
   defaultModelId: string;
   description?: string;
-  enableMemory: boolean;
   evals: AgentEvalInput[];
   name: string;
   subAgents: AgentSubAgentInput[];
@@ -205,7 +204,6 @@ export class AgentService extends Effect.Service<AgentService>()("AgentService",
           await tx.insert(agent).values({
             defaultModelId: input.defaultModelId,
             description: input.description,
-            enableMemory: input.enableMemory,
             id,
             name: input.name,
             systemPrompt: input.systemPrompt,
@@ -327,7 +325,6 @@ export class AgentService extends Effect.Service<AgentService>()("AgentService",
           const input = patch({
             defaultModelId: row.defaultModelId,
             description: row.description ?? undefined,
-            enableMemory: row.enableMemory,
             evals: evals.map((evalRow) => {
               return {
                 ...evalRow,
@@ -380,7 +377,6 @@ export class AgentService extends Effect.Service<AgentService>()("AgentService",
             .set({
               defaultModelId: input.defaultModelId,
               description: input.description,
-              enableMemory: input.enableMemory,
               name: input.name,
               systemPrompt: input.systemPrompt,
             })
