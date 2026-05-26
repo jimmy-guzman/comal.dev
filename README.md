@@ -107,13 +107,13 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the system overview, request flow, ag
 
 ## Tech stack
 
-**Framework**
+### Framework
 
 - Next.js 16
 - React 19
 - TypeScript
 
-**UI**
+### UI
 
 - Tailwind CSS v4
 - shadcn/ui (Radix UI primitives)
@@ -124,26 +124,26 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the system overview, request flow, ag
 - recharts (charts)
 - @xyflow/react (diagrams)
 
-**Data & state**
+### Data & state
 
 - Drizzle ORM + Neon Postgres
 - Upstash Redis + Upstash Ratelimit
 - nuqs (URL state)
 - zod (schema validation)
 
-**AI**
+### AI
 
 - Vercel AI SDK + OpenRouter
 - tokenlens (token counting)
 - effect (functional runtime)
 
-**Auth & actions**
+### Auth & actions
 
 - Better Auth
 - next-safe-action
 - TanStack Form
 
-**Tooling**
+### Tooling
 
 - Bun
 
