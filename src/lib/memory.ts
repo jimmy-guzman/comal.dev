@@ -9,6 +9,14 @@ import { Database, runMutation, runQuery } from "@/db/service";
 const DEFAULT_CAP = 500;
 const MAX_CAP = 10_000;
 
+export const DEFAULT_MEMORY_THRESHOLD = 0.4;
+export const DEFAULT_MEMORY_TOP_K = 5;
+export const MEMORY_LIST_PAGE_SIZE = 200;
+
+const sanitizeMemoryContent = (content: string): string => {
+  return content.replaceAll("</memory>", "");
+};
+
 export interface MemoryListItem {
   content: string;
   createdAt: Date;
@@ -80,7 +88,8 @@ export class MemoryService extends Effect.Service<MemoryService>()("MemoryServic
           .from(memory)
           .leftJoin(agent, eq(agent.id, memory.sourceAgentId))
           .where(eq(memory.userId, userId))
-          .orderBy(desc(memory.createdAt));
+          .orderBy(desc(memory.createdAt))
+          .limit(MEMORY_LIST_PAGE_SIZE);
       });
     });
 
@@ -121,7 +130,7 @@ export class MemoryService extends Effect.Service<MemoryService>()("MemoryServic
           }
 
           await tx.insert(memory).values({
-            content: input.content,
+            content: sanitizeMemoryContent(input.content),
             id,
             sourceAgentId: input.sourceAgentId,
             userId: input.userId,
@@ -219,8 +228,8 @@ export class MemoryService extends Effect.Service<MemoryService>()("MemoryServic
     ) {
       yield* Effect.annotateCurrentSpan("userId", userId);
 
-      const limit = Math.min(Math.max(options.limit ?? 5, 1), 20);
-      const threshold = options.threshold ?? 0.4;
+      const limit = Math.min(Math.max(options.limit ?? DEFAULT_MEMORY_TOP_K, 1), 20);
+      const threshold = options.threshold ?? DEFAULT_MEMORY_THRESHOLD;
       const distance = cosineDistance(memory.embedding, embedding);
       const maxDistance = 1 - threshold;
 
