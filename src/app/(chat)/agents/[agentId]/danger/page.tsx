@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { DeleteAgentButton } from "@/components/delete-agent-button";
+import { ResyncSystemAgentButton } from "@/components/resync-system-agent-button";
 import { Button } from "@/components/ui/button";
 import { appRuntime } from "@/db/runtime";
 import { AgentService } from "@/lib/agents";
@@ -43,6 +44,21 @@ export default async function AgentDangerPage({ params }: Props) {
         <h2 className="text-xl font-semibold">danger zone</h2>
         <p className="text-muted-foreground text-sm">irreversible actions for this agent.</p>
       </div>
+
+      {agent.isSystem ? (
+        <div className="border-destructive/30 rounded-none border p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-medium">sync to latest</p>
+              <p className="text-muted-foreground text-sm">
+                brings this agent up to the latest built-in name, model, prompt, suggestions, and
+                tools.
+              </p>
+            </div>
+            <ResyncSystemAgentButton />
+          </div>
+        </div>
+      ) : null}
 
       <div className="border-destructive/30 rounded-none border p-4">
         <div className="flex items-center justify-between gap-4">
