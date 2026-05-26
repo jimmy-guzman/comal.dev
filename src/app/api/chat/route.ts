@@ -631,7 +631,10 @@ export async function POST(req: Request) {
         Effect.tapError((cause) => {
           return Effect.logError("memory-injected event write failed", cause);
         }),
-        Effect.catchAll(() => Effect.void),
+        Effect.catchTags({
+          DatabaseError: () => Effect.void,
+          ValidationError: () => Effect.void,
+        }),
       );
     }
 
