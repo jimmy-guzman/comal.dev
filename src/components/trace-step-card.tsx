@@ -57,6 +57,9 @@ const eventLabel = (step: TraceStep) => {
     case "file": {
       return "file";
     }
+    case "memory-injected": {
+      return "memory injected";
+    }
     case "reasoning-segment": {
       return "reasoning";
     }
@@ -110,6 +113,28 @@ const extractTextPreview = (payload: unknown): null | string => {
   }
 
   if (typeof p.message === "string") return p.message;
+
+  if (Array.isArray(p.hits)) {
+    const hits = p.hits.filter((hit): hit is Record<string, unknown> => {
+      return typeof hit === "object" && hit !== null;
+    });
+
+    if (hits.length > 0) {
+      const summary = hits
+        .map((hit) => {
+          const content = typeof hit.content === "string" ? hit.content : "";
+          const similarity = typeof hit.similarity === "number" ? hit.similarity.toFixed(2) : "?";
+
+          return `${content} (${similarity})`;
+        })
+        .join(" · ");
+
+      const prefix = `${hits.length} hit${hits.length === 1 ? "" : "s"}: `;
+      const joined = prefix + summary;
+
+      return joined.length > 200 ? `${joined.slice(0, 200)}...` : joined;
+    }
+  }
 
   if (Array.isArray(p.parts)) {
     const textParts = (p.parts as unknown[])

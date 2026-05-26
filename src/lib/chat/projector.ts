@@ -302,6 +302,7 @@ export const projectMessages = (events: ChatEventRow[]): UIMessage[] => {
       }
 
       case "assistant-turn-finish":
+      case "memory-injected":
       case "turn-aborted": {
         continue;
       }

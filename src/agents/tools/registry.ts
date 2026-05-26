@@ -21,6 +21,9 @@ import { evalsRunBatchMeta } from "./evals/run-batch.meta";
 import { evalsRunMeta } from "./evals/run.meta";
 import { evalsUpdateMeta } from "./evals/update.meta";
 import { githubReadMeta } from "./github/read.meta";
+import { memoryDeleteMeta } from "./memory/delete.meta";
+import { memorySaveMeta } from "./memory/save.meta";
+import { memorySearchMeta } from "./memory/search.meta";
 import { groups } from "./meta";
 import { tmdbDiscoverMovieMeta } from "./tmdb/discover-movie.meta";
 import { tmdbDiscoverTvMeta } from "./tmdb/discover-tv.meta";
@@ -60,6 +63,9 @@ const metadata = Object.freeze([
   Object.freeze(evalsRunMeta),
   Object.freeze(evalsUpdateMeta),
   Object.freeze(githubReadMeta),
+  Object.freeze(memoryDeleteMeta),
+  Object.freeze(memorySaveMeta),
+  Object.freeze(memorySearchMeta),
   Object.freeze(tmdbDiscoverMovieMeta),
   Object.freeze(tmdbDiscoverTvMeta),
   Object.freeze(tmdbMovieDetailsMeta),

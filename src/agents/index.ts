@@ -175,7 +175,7 @@ export const loadAgent = (agentId: string, userId: string, options: LoadAgentOpt
       { concurrency: "unbounded" },
     );
 
-    const toolContext: ToolContext = { userId };
+    const toolContext: ToolContext = { agentId, userId };
     const toolsRecord = yield* buildToolsRecord(toolRows, depth, toolContext);
 
     const subagentTools =
