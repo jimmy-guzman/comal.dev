@@ -39,9 +39,9 @@ export default async function ToolsPage({ searchParams }: Props) {
         <span aria-hidden className="min-w-22" />
       </div>
 
-      <ToolsFilter
-        groups={tools.groups().map((g) => ({ id: g.id, label: g.label }))}
-      />
+      <ToolsFilter groups={tools.groups().map((g) => {
+        return { id: g.id, label: g.label };
+      })} />
 
       {grouped.length === 0 ? (
         <p className="text-muted-foreground text-sm">no tools match.</p>
