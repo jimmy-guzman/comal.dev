@@ -11,6 +11,16 @@ export const resyncSystemAgentAction = authClient.action(async ({ ctx }) => {
   const exit = await appRuntime.runPromiseExit(SystemAgentService.resync(ctx.auth.user.id));
 
   if (Exit.isFailure(exit)) {
+    const { cause } = exit;
+
+    if (
+      cause._tag === "Fail" &&
+      (cause.error._tag === "UnknownToolError" ||
+        cause.error._tag === "SystemAgentProvisioningError")
+    ) {
+      throw cause.error;
+    }
+
     throw new Error("Failed to resync system agent.");
   }
 
