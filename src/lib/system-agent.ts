@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { nanoid } from "nanoid";
 
 import { agent, agentTool } from "@/db/schemas/agent-schema";
-import { Database, runQuery } from "@/db/service";
+import { Database, runMutation, runQuery } from "@/db/service";
 import { SystemAgentProvisioningError, UnknownToolError } from "@/lib/errors";
 
 import { tools as toolRegistry } from "../agents/tools/registry";
@@ -130,6 +130,57 @@ export class SystemAgentService extends Effect.Service<SystemAgentService>()("Sy
       return row.id;
     });
 
-    return { getOrCreate };
+    const resync = Effect.fn("SystemAgentService.resync")(function* (userId: string) {
+      yield* Effect.annotateCurrentSpan("userId", userId);
+
+      yield* validateToolIds();
+
+      const outcome = yield* runMutation(() => {
+        return db.transaction(async (tx) => {
+          const rows = await tx
+            .select({ id: agent.id })
+            .from(agent)
+            .where(and(eq(agent.userId, userId), eq(agent.isSystem, true)))
+            .limit(1);
+
+          const row = rows.at(0);
+
+          if (!row) return { kind: "missing" } as const;
+
+          await tx
+            .update(agent)
+            .set({
+              defaultModelId: SYSTEM_AGENT_MODEL,
+              name: SYSTEM_AGENT_NAME,
+              suggestions: SYSTEM_AGENT_SUGGESTIONS,
+              systemPrompt: SYSTEM_AGENT_PROMPT,
+            })
+            .where(eq(agent.id, row.id));
+
+          await tx.delete(agentTool).where(eq(agentTool.agentId, row.id));
+
+          await tx.insert(agentTool).values(
+            SYSTEM_AGENT_TOOLS.map((toolId) => {
+              return { agentId: row.id, config: {}, toolId };
+            }),
+          );
+
+          return { agentId: row.id, kind: "ok" } as const;
+        });
+      });
+
+      if (outcome.kind === "missing") {
+        return yield* Effect.fail(
+          new SystemAgentProvisioningError({
+            message: "System agent has not been provisioned for this user.",
+            userId,
+          }),
+        );
+      }
+
+      return outcome.agentId;
+    });
+
+    return { getOrCreate, resync };
   }),
 }) {}
