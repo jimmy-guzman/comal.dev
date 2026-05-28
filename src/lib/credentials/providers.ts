@@ -49,3 +49,20 @@ export const credentialProviders = {
 } as const satisfies Record<string, ProviderDefinition>;
 
 export type ProviderId = keyof typeof credentialProviders;
+
+export type ApiKeyProviderId = {
+  [K in ProviderId]: (typeof credentialProviders)[K]["kind"] extends "api_key" ? K : never;
+}[ProviderId];
+
+const isApiKeyProviderId = (id: ProviderId): id is ApiKeyProviderId => {
+  return credentialProviders[id].kind === "api_key";
+};
+
+const collectApiKeyProviderIds = (): ApiKeyProviderId[] => {
+  return (Object.keys(credentialProviders) as ProviderId[]).filter(isApiKeyProviderId);
+};
+
+export const apiKeyProviderIds = collectApiKeyProviderIds() as [
+  ApiKeyProviderId,
+  ...ApiKeyProviderId[],
+];

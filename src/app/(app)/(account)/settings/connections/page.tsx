@@ -2,7 +2,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import type { ConnectionStatus } from "@/lib/credentials/service";
+import type { ApiKeyConnectionStatus, OAuthConnectionStatus } from "@/lib/credentials/service";
 
 import { ApiKeyConnectionRow } from "@/components/api-key-connection-row";
 import { OAuthConnectionRow } from "@/components/oauth-connection-row";
@@ -45,8 +45,8 @@ export default async function ConnectionsPage() {
 
   const statuses = await fetchConnections(session.user.id);
 
-  const apiKeyRows: ConnectionStatus[] = [];
-  const oauthRows: ConnectionStatus[] = [];
+  const apiKeyRows: ApiKeyConnectionStatus[] = [];
+  const oauthRows: OAuthConnectionStatus[] = [];
 
   for (const status of statuses) {
     if (status.kind === "api_key") apiKeyRows.push(status);

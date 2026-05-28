@@ -1,10 +1,10 @@
-import type { ConnectionStatus } from "@/lib/credentials/service";
+import type { OAuthConnectionStatus } from "@/lib/credentials/service";
 
 import { Badge } from "@/components/ui/badge";
 
 interface OAuthConnectionRowProps {
   isSignIn: boolean;
-  status: ConnectionStatus;
+  status: OAuthConnectionStatus;
 }
 
 export const OAuthConnectionRow = ({ isSignIn, status }: OAuthConnectionRowProps) => {

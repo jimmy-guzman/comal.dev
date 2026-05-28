@@ -2,11 +2,12 @@
 
 import { useForm } from "@tanstack/react-form";
 import { useAction } from "next-safe-action/hooks";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import type { ConnectionStatus } from "@/lib/credentials/service";
+import type { ApiKeyConnectionStatus } from "@/lib/credentials/service";
 
 import { clearCredentialAction } from "@/actions/clear-credential";
 import { setCredentialAction } from "@/actions/set-credential";
@@ -22,12 +23,13 @@ const formSchema = z.object({
 
 interface ApiKeyConnectionRowProps {
   note?: string;
-  status: ConnectionStatus;
+  status: ApiKeyConnectionStatus;
 }
 
 export const ApiKeyConnectionRow = ({ note, status }: ApiKeyConnectionRowProps) => {
   const { docsUrl } = status;
   const [isEditing, setIsEditing] = useState(false);
+  const router = useRouter();
 
   const setAction = useAction(setCredentialAction);
   const clearAction = useAction(clearCredentialAction);
@@ -44,6 +46,7 @@ export const ApiKeyConnectionRow = ({ note, status }: ApiKeyConnectionRowProps) 
         toast.success(`${status.displayName} key saved`);
         formApi.reset();
         setIsEditing(false);
+        router.refresh();
       }
     },
     validators: { onSubmit: formSchema },
@@ -54,6 +57,7 @@ export const ApiKeyConnectionRow = ({ note, status }: ApiKeyConnectionRowProps) 
 
     if (outcome.data) {
       toast.success(`${status.displayName} key cleared`);
+      router.refresh();
     }
   };
 

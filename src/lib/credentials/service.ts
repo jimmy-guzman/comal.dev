@@ -6,20 +6,40 @@ import { userCredential } from "@/db/schemas/credential-schema";
 import { Database, runMutation, runQuery } from "@/db/service";
 import { auth } from "@/lib/auth";
 
-import type { ProviderId } from "./providers";
+import type { ApiKeyProviderId, ProviderId } from "./providers";
 
 import { decryptSecret, encryptSecret } from "./crypto";
 import { credentialProviders } from "./providers";
 
-export interface ConnectionStatus {
+type OAuthProviderId = Exclude<ProviderId, ApiKeyProviderId>;
+
+export interface ApiKeyConnectionStatus {
   connectedAt: Date | null;
   displayName: string;
   docsUrl: string | undefined;
-  kind: "api_key" | "oauth";
-  providerId: ProviderId;
-  signInOnly: boolean;
+  kind: "api_key";
+  providerId: ApiKeyProviderId;
   source: "env" | "user" | null;
 }
+
+export interface OAuthConnectionStatus {
+  connectedAt: Date | null;
+  displayName: string;
+  kind: "oauth";
+  providerId: OAuthProviderId;
+  signInOnly: boolean;
+  source: "user" | null;
+}
+
+type ConnectionStatus = ApiKeyConnectionStatus | OAuthConnectionStatus;
+
+const toApiKeyEntry = (r: { providerId: string; updatedAt: Date }) => {
+  return [r.providerId, r.updatedAt] as const;
+};
+
+const toOAuthEntry = (r: { createdAt: Date; providerId: string }) => {
+  return [r.providerId, r.createdAt] as const;
+};
 
 const getOAuthAccessToken = (userId: string, providerId: ProviderId) => {
   return auth.api.getAccessToken({ body: { providerId, userId } });
@@ -34,7 +54,10 @@ const succeedNull = () => Effect.succeed(null);
 const resolveOAuthToken = (userId: string, providerId: ProviderId) => {
   const fetch = () => getOAuthAccessToken(userId, providerId);
 
-  return Effect.tryPromise(fetch).pipe(Effect.map(pickAccessToken), Effect.catchAll(succeedNull));
+  return Effect.tryPromise(fetch).pipe(
+    Effect.map(pickAccessToken),
+    Effect.catchTag("UnknownException", succeedNull),
+  );
 };
 
 export class Credentials extends Effect.Service<Credentials>()("Credentials", {
@@ -144,58 +167,59 @@ export class Credentials extends Effect.Service<Credentials>()("Credentials", {
         { concurrency: "unbounded" },
       );
 
-      const apiKeyByProvider = new Map(
-        apiKeyRows.map((r) => [r.providerId, r.updatedAt]),
-      );
-      const oauthByProvider = new Map(
-        oauthRows.map((r) => [r.providerId, r.createdAt]),
-      );
+      const apiKeyByProvider = new Map(apiKeyRows.map(toApiKeyEntry));
+      const oauthByProvider = new Map(oauthRows.map(toOAuthEntry));
 
-      const statuses: ConnectionStatus[] = Object.entries(credentialProviders).map(
-        ([providerId, provider]) => {
-          const id = providerId as ProviderId;
+      const allIds = Object.keys(credentialProviders) as ProviderId[];
 
-          if (provider.kind === "oauth") {
-            const connectedAt = oauthByProvider.get(providerId) ?? null;
+      const buildApiKeyStatus = (id: ApiKeyProviderId): ApiKeyConnectionStatus => {
+        const provider = credentialProviders[id];
+        const userConnectedAt = apiKeyByProvider.get(id);
 
-            return {
-              connectedAt,
-              displayName: provider.displayName,
-              docsUrl: undefined,
-              kind: "oauth",
-              providerId: id,
-              signInOnly: provider.signInOnly,
-              source: connectedAt ? "user" : null,
-            };
-          }
-
-          const userConnectedAt = apiKeyByProvider.get(providerId);
-
-          if (userConnectedAt) {
-            return {
-              connectedAt: userConnectedAt,
-              displayName: provider.displayName,
-              docsUrl: provider.docsUrl,
-              kind: "api_key",
-              providerId: id,
-              signInOnly: false,
-              source: "user",
-            };
-          }
-
-          const envValue = provider.getEnvFallback();
-
+        if (userConnectedAt) {
           return {
-            connectedAt: null,
+            connectedAt: userConnectedAt,
             displayName: provider.displayName,
             docsUrl: provider.docsUrl,
             kind: "api_key",
             providerId: id,
-            signInOnly: false,
-            source: envValue ? "env" : null,
+            source: "user",
           };
-        },
-      );
+        }
+
+        const envValue = provider.getEnvFallback();
+
+        return {
+          connectedAt: null,
+          displayName: provider.displayName,
+          docsUrl: provider.docsUrl,
+          kind: "api_key",
+          providerId: id,
+          source: envValue ? "env" : null,
+        };
+      };
+
+      const buildOAuthStatus = (id: OAuthProviderId): OAuthConnectionStatus => {
+        const provider = credentialProviders[id];
+        const connectedAt = oauthByProvider.get(id) ?? null;
+
+        return {
+          connectedAt,
+          displayName: provider.displayName,
+          kind: "oauth",
+          providerId: id,
+          signInOnly: provider.signInOnly,
+          source: connectedAt ? "user" : null,
+        };
+      };
+
+      const isApiKeyId = (id: ProviderId): id is ApiKeyProviderId => {
+        return credentialProviders[id].kind === "api_key";
+      };
+
+      const statuses: ConnectionStatus[] = allIds.map((id) => {
+        return isApiKeyId(id) ? buildApiKeyStatus(id) : buildOAuthStatus(id);
+      });
 
       return statuses;
     });
