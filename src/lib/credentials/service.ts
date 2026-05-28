@@ -49,14 +49,16 @@ const pickAccessToken = (result: Awaited<ReturnType<typeof getOAuthAccessToken>>
   return result.accessToken;
 };
 
-const succeedNull = () => Effect.succeed(null);
+const logAndSucceedNull = (error: unknown) => {
+  return Effect.logWarning("Failed to resolve OAuth access token", error).pipe(Effect.as(null));
+};
 
 const resolveOAuthToken = (userId: string, providerId: ProviderId) => {
   const fetch = () => getOAuthAccessToken(userId, providerId);
 
   return Effect.tryPromise(fetch).pipe(
     Effect.map(pickAccessToken),
-    Effect.catchTag("UnknownException", succeedNull),
+    Effect.catchTag("UnknownException", logAndSucceedNull),
   );
 };
 

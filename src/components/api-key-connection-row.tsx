@@ -57,6 +57,8 @@ export const ApiKeyConnectionRow = ({ note, status }: ApiKeyConnectionRowProps) 
 
     if (outcome.data) {
       toast.success(`${status.displayName} key cleared`);
+      form.reset();
+      setIsEditing(false);
       router.refresh();
     }
   };
