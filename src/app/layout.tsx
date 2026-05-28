@@ -2,6 +2,7 @@ import "./globals.css";
 
 import type { Metadata, Viewport } from "next";
 
+import { ThemeProvider } from "next-themes";
 import { JetBrains_Mono } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
@@ -78,17 +79,20 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      className={cn("dark", "h-svh", "antialiased", "font-mono", jetbrainsMono.variable)}
+      className={cn("h-svh", "antialiased", "font-mono", jetbrainsMono.variable)}
       lang="en"
+      suppressHydrationWarning
     >
       <body className="flex h-full min-h-0 flex-col">
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
-        <NuqsAdapter>
-          <TooltipProvider>
-            <div className="flex min-h-0 flex-1 flex-col">{children}</div>
-          </TooltipProvider>
-          <Toaster />
-        </NuqsAdapter>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <NuqsAdapter>
+            <TooltipProvider>
+              <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+            </TooltipProvider>
+            <Toaster />
+          </NuqsAdapter>
+        </ThemeProvider>
       </body>
     </html>
   );

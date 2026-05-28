@@ -2,7 +2,7 @@
 
 import { useQueryState } from "nuqs";
 
-import { chatSearchParams } from "@/app/(chat)/chats/search-params";
+import { chatSearchParams } from "@/app/(app)/(chat)/chats/search-params";
 import { Button } from "@/components/ui/button";
 
 interface Agent {

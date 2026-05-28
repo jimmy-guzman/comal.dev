@@ -33,7 +33,7 @@ An open source web app for building private, runtime-defined AI agents. The syst
 - **Persistent user memory.** Attach the three memory tools (`memory-save`, `memory-search`, `memory-delete`) to any agent that should remember facts about you across conversations.
   - User-scoped pool: every agent with the tools attached reads the same pool, so a fact one agent saved is visible to others.
   - Auto-injection: when `memory-search` is attached, the chat route pre-embeds the latest user message and prepends the top semantic matches to the system prompt, saving the model a tool-call round trip.
-  - Top-level `/memories` page lists every saved memory with its source badge, supports manual adds, deletes, and a per-user cap.
+  - Top-level `/memories` page lists every saved memory with its source badge and supports manual adds and deletes; the per-user cap lives at `/settings/memory`.
   - Embeddings (`text-embedding-3-small`, 1536 dims, pgvector + HNSW) reuse the existing OpenRouter client; no separate provider.
 - **Hourly spend budgets.** Runaway usage stops at $5/hour for signed-in users and $1/hour for anonymous, on a sliding window. Chat-request rate limits (200/h authed, 40/h anon) sit on top.
 - **Conversations list at `/chats`** with per-agent filtering.

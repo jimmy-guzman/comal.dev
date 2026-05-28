@@ -4,7 +4,7 @@ import { Suspense } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { ConversationsProvider } from "@/components/conversations-provider";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { appRuntime } from "@/db/runtime";
 import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
@@ -59,17 +59,12 @@ async function SidebarAsync({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function ChatLayout({ children }: { children: React.ReactNode }) {
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider defaultOpen={false}>
       <Suspense>
         <SidebarAsync>
-          <SidebarInset>
-            <div className="pt-safe-or-2 ps-safe-or-2 absolute start-0 top-0 z-20">
-              <SidebarTrigger className="bg-background/80 border supports-backdrop-filter:backdrop-blur-sm" />
-            </div>
-            {children}
-          </SidebarInset>
+          <SidebarInset>{children}</SidebarInset>
         </SidebarAsync>
       </Suspense>
     </SidebarProvider>
