@@ -144,12 +144,12 @@ export class Credentials extends Effect.Service<Credentials>()("Credentials", {
         { concurrency: "unbounded" },
       );
 
-      const apiKeyByProvider = new Map(apiKeyRows.map((r) => {
-        return [r.providerId, r.updatedAt];
-      }));
-      const oauthByProvider = new Map(oauthRows.map((r) => {
-        return [r.providerId, r.createdAt];
-      }));
+      const apiKeyByProvider = new Map(
+        apiKeyRows.map((r) => [r.providerId, r.updatedAt]),
+      );
+      const oauthByProvider = new Map(
+        oauthRows.map((r) => [r.providerId, r.createdAt]),
+      );
 
       const statuses: ConnectionStatus[] = Object.entries(credentialProviders).map(
         ([providerId, provider]) => {
