@@ -32,6 +32,8 @@ export default async function ToolsPage({ searchParams }: Props) {
     })
     .filter(({ items }) => items.length > 0);
 
+  const groupOptions = tools.groups().map((g) => ({ id: g.id, label: g.label }));
+
   return (
     <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex items-center justify-between gap-4">
@@ -39,9 +41,7 @@ export default async function ToolsPage({ searchParams }: Props) {
         <span aria-hidden className="min-w-22" />
       </div>
 
-      <ToolsFilter groups={tools.groups().map((g) => {
-        return { id: g.id, label: g.label };
-      })} />
+      <ToolsFilter groups={groupOptions} />
 
       {grouped.length === 0 ? (
         <p className="text-muted-foreground text-sm">no tools match.</p>
