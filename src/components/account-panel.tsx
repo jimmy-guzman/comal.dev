@@ -43,7 +43,15 @@ export const AccountPanel = ({ email, image, isAnonymous, name }: Props) => {
     setPending(true);
 
     try {
-      await authClient.signOut();
+      const { error } = await authClient.signOut();
+
+      if (error) {
+        toast.error(error.message ?? "couldn't sign out. please try again.");
+        setPending(false);
+
+        return;
+      }
+
       router.push("/sign-in");
     } catch {
       toast.error("couldn't sign out. please try again.");
