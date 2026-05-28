@@ -1,9 +1,9 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { MemoryAddForm } from "@/components/memory-add-form";
-import { MemoryCapForm } from "@/components/memory-cap-form";
 import { MemoryList } from "@/components/memory-list";
 import { appRuntime } from "@/db/runtime";
 import { auth } from "@/lib/auth";
@@ -57,15 +57,14 @@ export default async function MemoriesPage() {
           facts agents have saved about you, plus anything you add manually. agents need the memory
           tools attached to read or write here.
         </p>
-      </div>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium">cap</h2>
-        <MemoryCapForm initialCap={cap} />
         <p className="text-muted-foreground text-xs">
-          using {count} of {cap}.
+          using {count} of {cap}.{" "}
+          <Link className="hover:text-foreground underline" href="/settings/memory">
+            change cap
+          </Link>
+          .
         </p>
-      </section>
+      </div>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-medium">add</h2>
