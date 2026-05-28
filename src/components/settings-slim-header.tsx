@@ -24,9 +24,6 @@ const SECTIONS = [
   { href: "/settings/appearance", label: "appearance", segment: "appearance" },
 ] satisfies SectionLink[];
 
-const linkClassName =
-  "relative bg-transparent text-muted-foreground hover:bg-transparent hover:text-foreground focus:bg-transparent focus:text-foreground data-active:bg-transparent data-active:text-foreground after:absolute after:inset-x-2 after:-bottom-px after:h-0.5 after:bg-foreground after:opacity-0 after:transition-opacity data-active:after:opacity-100";
-
 export const SettingsSlimHeader = () => {
   const segment = useSelectedLayoutSegment() ?? "account";
 
@@ -37,11 +34,7 @@ export const SettingsSlimHeader = () => {
           {SECTIONS.map((section) => {
             return (
               <NavigationMenuItem key={section.segment}>
-                <NavigationMenuLink
-                  active={section.segment === segment}
-                  asChild
-                  className={linkClassName}
-                >
+                <NavigationMenuLink active={section.segment === segment} asChild>
                   <Link href={section.href}>{section.label}</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
