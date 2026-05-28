@@ -10,4 +10,5 @@ export const tmdbTrendingMoviesMeta = {
   group: "tmdb",
   id: "tmdb-trending-movies",
   name: "TMDB trending movies",
+  requiredConnection: "tmdb",
 } satisfies ToolMetadata<NoConfigShape>;

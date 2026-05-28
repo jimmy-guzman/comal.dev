@@ -21,7 +21,7 @@ import { AgentNotFoundError, LLMError, ValidationError } from "@/lib/errors";
 import { toolCallAssertionSchema } from "@/lib/eval-input-schema";
 import { isStringScorer, scoreEval, scoreEvalLLM, scoreToolCall } from "@/lib/eval-scorer";
 import { EvalService } from "@/lib/evals";
-import { openrouter } from "@/lib/openrouter";
+import { openrouterForUser } from "@/lib/openrouter";
 
 const MAX_OUTPUT_TOKENS = 2048;
 
@@ -61,6 +61,8 @@ export class EvalRunnerService extends Effect.Service<EvalRunnerService>()("Eval
             parts: [{ text: evalRow.input, type: "text" }],
           },
         });
+
+        const openrouter = yield* openrouterForUser(userId);
 
         const output = yield* Effect.tryPromise({
           catch: (cause) => {

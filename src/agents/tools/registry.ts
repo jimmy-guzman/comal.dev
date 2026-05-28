@@ -102,7 +102,7 @@ const groupedList = Object.freeze(
 );
 
 export const tools = {
-  get: (id: string) => byId.get(id),
+  get: (id: string): ToolMetadata | undefined => byId.get(id),
   groups: () => groupList,
   list: () => metadata,
   listByGroup: () => groupedList,

@@ -5,6 +5,7 @@ import { ChatService } from "@/lib/chat";
 import { ChatPersistService } from "@/lib/chat/persist-stream";
 import { ChatStoreService } from "@/lib/chat/store";
 import { CostService } from "@/lib/cost";
+import { Credentials } from "@/lib/credentials/service";
 import { EvalRunnerService } from "@/lib/eval-runner";
 import { EvalService } from "@/lib/evals";
 import { MemoryService } from "@/lib/memory";
@@ -19,6 +20,7 @@ const ServicesLive = Layer.mergeAll(
   ChatStoreService.Default,
   ChatPersistService.Default,
   CostService.Default,
+  Credentials.Default,
   EvalService.Default,
   EvalRunnerService.Default,
   MemoryService.Default,

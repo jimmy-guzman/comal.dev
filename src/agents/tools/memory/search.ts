@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { appRuntime } from "@/db/runtime";
 import { MemoryService } from "@/lib/memory";
-import { openrouter } from "@/lib/openrouter";
+import { platformOpenrouter } from "@/lib/openrouter";
 
 import type { ToolContext } from "../types";
 
@@ -17,7 +17,7 @@ export const buildMemorySearch = (_config: unknown, context: ToolContext) => {
       try {
         const { embedding } = await embed({
           // eslint-disable-next-line @typescript-eslint/no-deprecated -- OpenRouter SDK still uses the v4-named API
-          model: openrouter.textEmbeddingModel(EMBEDDING_MODEL_ID),
+          model: platformOpenrouter.textEmbeddingModel(EMBEDDING_MODEL_ID),
           value: query,
         });
 

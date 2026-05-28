@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
-type Segment = "account" | "appearance" | "memory";
+type Segment = "account" | "appearance" | "connections" | "memory";
 
 interface SectionLink {
   href: `/settings/${Segment}`;
@@ -21,6 +21,7 @@ interface SectionLink {
 
 const SECTIONS = [
   { href: "/settings/account", label: "account", segment: "account" },
+  { href: "/settings/connections", label: "connections", segment: "connections" },
   { href: "/settings/memory", label: "memory", segment: "memory" },
   { href: "/settings/appearance", label: "appearance", segment: "appearance" },
 ] satisfies SectionLink[];

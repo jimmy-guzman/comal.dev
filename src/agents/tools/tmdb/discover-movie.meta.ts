@@ -10,4 +10,5 @@ export const tmdbDiscoverMovieMeta = {
   group: "tmdb",
   id: "tmdb-discover-movie",
   name: "TMDB discover movies",
+  requiredConnection: "tmdb",
 } satisfies ToolMetadata<NoConfigShape>;

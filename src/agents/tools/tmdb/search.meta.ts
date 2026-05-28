@@ -10,4 +10,5 @@ export const tmdbSearchMeta = {
   group: "tmdb",
   id: "tmdb-search",
   name: "TMDB search",
+  requiredConnection: "tmdb",
 } satisfies ToolMetadata<NoConfigShape>;

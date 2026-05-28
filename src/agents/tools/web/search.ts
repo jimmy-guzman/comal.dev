@@ -1,16 +1,28 @@
 import { tool } from "ai";
 import { z } from "zod";
 
+import type { ToolContext } from "../types";
+
 import { formatResultsAsMarkdown } from "./search-providers/format";
 import { tavilyProvider } from "./search-providers/tavily";
 import { webSearchMeta } from "./search.meta";
 
-const webSearch = (needsApproval: boolean) => {
+const webSearch = (needsApproval: boolean, context: ToolContext) => {
   return tool({
     description:
       "Search the web for current information. Returns a markdown list of titles, URLs, and snippets. Use `web-fetch` to retrieve the full content of a specific result if needed.",
     execute: async ({ maxResults, query }) => {
-      const data = await tavilyProvider.search({ maxResults, query });
+      const apiKey = await context.getCredential("tavily");
+
+      if (!apiKey) {
+        return {
+          error:
+            "Tavily is not configured for this user. Ask the user to set their Tavily API key at /settings/connections, or contact the platform admin.",
+          query,
+        };
+      }
+
+      const data = await tavilyProvider.search({ apiKey, maxResults, query });
 
       return { content: formatResultsAsMarkdown(data), query };
     },
@@ -27,8 +39,8 @@ const webSearch = (needsApproval: boolean) => {
   });
 };
 
-export const buildWebSearch = (config: unknown, _context: unknown) => {
+export const buildWebSearch = (config: unknown, context: ToolContext) => {
   const { needsApproval } = webSearchMeta.configSchema.parse(config);
 
-  return webSearch(needsApproval);
+  return webSearch(needsApproval, context);
 };

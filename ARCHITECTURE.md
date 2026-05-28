@@ -104,6 +104,7 @@ erDiagram
   user ||--o{ conversation : owns
   user ||--o{ memory : owns
   user ||--o| user_memory_settings : cap
+  user ||--o{ user_credential : "byo api keys"
   agent ||--o{ agent_tool : "selected tools"
   agent ||--o{ agent_subagent : "parent / child links"
   agent ||--o{ agent_version : snapshots
@@ -116,7 +117,7 @@ erDiagram
   conversation ||--o{ chat_event : "event log"
 ```
 
-`chat_event` is the append-only conversation log, keyed by `(conversation_id, sequence)`. `agent_version` rows are immutable config snapshots. `model_pricing` is a standalone lookup keyed by model id. The `memory` table holds a per-user pool with a `vector(1536)` embedding column and an HNSW + `vector_cosine_ops` index for cosine-similarity lookup; `source_agent_id` is nullable so user-added rows survive their agent being deleted. `user_memory_settings` holds the per-user cap (default 500) and is upserted on first save. The `user` table and the rest of the auth tables (`session`, `account`, `organization`, and so on) are owned by Better Auth.
+`chat_event` is the append-only conversation log, keyed by `(conversation_id, sequence)`. `agent_version` rows are immutable config snapshots. `model_pricing` is a standalone lookup keyed by model id. The `memory` table holds a per-user pool with a `vector(1536)` embedding column and an HNSW + `vector_cosine_ops` index for cosine-similarity lookup; `source_agent_id` is nullable so user-added rows survive their agent being deleted. `user_memory_settings` holds the per-user cap (default 500) and is upserted on first save. `user_credential` holds per-user BYO API keys for the api-key providers (`openrouter`, `tavily`, `tmdb`), encrypted with AES-256-GCM using a key derived from `BETTER_AUTH_SECRET`; the composite primary key `(user_id, provider_id)` enforces one row per provider per user. The `user` table and the rest of the auth tables (`session`, `account`, `organization`, and so on) are owned by Better Auth; OAuth tokens stay in `account` and are read through `Credentials.get` alongside `user_credential` so tool builders have one resolver to call.
 
 ## Invariants & patterns
 

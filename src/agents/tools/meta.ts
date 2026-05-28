@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { ProviderId } from "@/lib/credentials/providers";
+
 export const groups = {
   agents: { id: "agents", label: "Agents" },
   core: { id: "core", label: "Core" },
@@ -23,6 +25,7 @@ export interface ToolMetadata<TConfig extends z.ZodRawShape = z.ZodRawShape> {
   group: ToolGroupId;
   id: string;
   name: string;
+  requiredConnection?: ProviderId;
 }
 
 export const deepFreeze = <T>(value: T): T => {

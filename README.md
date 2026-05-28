@@ -35,6 +35,10 @@ An open source web app for building private, runtime-defined AI agents. The syst
   - Auto-injection: when `memory-search` is attached, the chat route pre-embeds the latest user message and prepends the top semantic matches to the system prompt, saving the model a tool-call round trip.
   - Top-level `/memories` page lists every saved memory with its source badge and supports manual adds and deletes; the per-user cap lives at `/settings/memory`.
   - Embeddings (`text-embedding-3-small`, 1536 dims, pgvector + HNSW) reuse the existing OpenRouter client; no separate provider.
+- **Bring your own keys.** Set per-user API keys at `/settings/connections` for OpenRouter, Tavily, and TMDB; the platform default key is used when you haven't set one.
+  - OpenRouter BYO: when set, every chat completion and sub-agent run hits your OpenRouter account instead of the platform's. Embeddings, title generation, and the eval judge stay on the platform key.
+  - Tool gating: a tool that declares `requiredConnection` (e.g. `tavily`, `tmdb`) is hidden from the model when no key is available, so the agent never tries to use a tool it can't authenticate.
+  - Encryption at rest: keys are stored AES-256-GCM encrypted in `user_credential`, keyed off `BETTER_AUTH_SECRET`.
 - **Hourly spend budgets.** Runaway usage stops at $5/hour for signed-in users and $1/hour for anonymous, on a sliding window. Chat-request rate limits (200/h authed, 40/h anon) sit on top.
 - **Conversations list at `/chats`** with per-agent filtering.
 - **Conversational agent management via Comal**, a system agent that creates, configures, and iterates on your agents through chat, including running their evals and inspecting traces.

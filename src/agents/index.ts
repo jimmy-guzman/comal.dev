@@ -3,8 +3,10 @@ import type { Tool, ToolSet } from "ai";
 import { and, desc, eq } from "drizzle-orm";
 import { Effect } from "effect";
 
+import { appRuntime } from "@/db/runtime";
 import { agent, agentSubagent, agentTool, agentVersion } from "@/db/schemas/agent-schema";
 import { Database, runQuery } from "@/db/service";
+import { Credentials } from "@/lib/credentials/service";
 import { AgentNotFoundError } from "@/lib/errors";
 import { SUBAGENT_PREFIX } from "@/lib/subagent-prefix";
 
@@ -30,6 +32,7 @@ const buildToolsRecord = (
   rows: { config: unknown; toolId: string }[],
   depth: number,
   context: ToolContext,
+  connectedProviders: ReadonlySet<string>,
 ) => {
   return Effect.gen(function* () {
     const result: ToolSet = {};
@@ -39,6 +42,13 @@ const buildToolsRecord = (
 
       if (!def) {
         yield* Effect.logWarning(`unknown tool id "${row.toolId}", skipping`);
+        continue;
+      }
+
+      if (def.requiredConnection && !connectedProviders.has(def.requiredConnection)) {
+        yield* Effect.logDebug(
+          `tool "${row.toolId}" filtered: missing connection "${def.requiredConnection}"`,
+        );
         continue;
       }
 
@@ -175,8 +185,16 @@ export const loadAgent = (agentId: string, userId: string, options: LoadAgentOpt
       { concurrency: "unbounded" },
     );
 
-    const toolContext: ToolContext = { agentId, userId };
-    const toolsRecord = yield* buildToolsRecord(toolRows, depth, toolContext);
+    const connectedProviders = yield* Credentials.connectedProviderIds(userId);
+
+    const toolContext: ToolContext = {
+      agentId,
+      getCredential: (providerId) => {
+        return appRuntime.runPromise(Credentials.get(userId, providerId));
+      },
+      userId,
+    };
+    const toolsRecord = yield* buildToolsRecord(toolRows, depth, toolContext, connectedProviders);
 
     const subagentTools =
       depth < MAX_DEPTH

@@ -9,7 +9,7 @@ import type { ChatStreamContext } from "@/lib/chat/stream-context";
 
 import { appRuntime } from "@/db/runtime";
 import { persistChatStream } from "@/lib/chat/persist-stream";
-import { openrouter } from "@/lib/openrouter";
+import { openrouterForUser } from "@/lib/openrouter";
 
 import { loadAgent } from "./index";
 
@@ -98,6 +98,8 @@ export const buildSubagentTool = ({
       const child = await appRuntime.runPromise(
         loadAgent(link.childAgentId, ownerId, { depth: childDepth, sandbox }),
       );
+
+      const openrouter = await appRuntime.runPromise(openrouterForUser(ownerId));
 
       const agent = new ToolLoopAgent({
         instructions: child.systemPrompt,
