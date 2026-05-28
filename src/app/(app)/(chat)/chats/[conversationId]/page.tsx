@@ -7,6 +7,7 @@ import type { AppUIMessage } from "@/lib/app-ui-message";
 import type { ModelOutputCosts } from "@/lib/model-pricing";
 
 import { ChatView } from "@/components/chat-view";
+import { FloatingSidebarTrigger } from "@/components/floating-sidebar-trigger";
 import { appRuntime } from "@/db/runtime";
 import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
@@ -89,18 +90,21 @@ export default async function ChatPage({ params }: Props) {
   const subagentTraces = projectSubagentTraces(conv.events);
 
   return (
-    <ChatView
-      agentId={resolvedAgent.id}
-      agentName={resolvedAgent.name}
-      agents={agents.map((a) => {
-        return { id: a.id, isSystem: a.isSystem, name: a.name };
-      })}
-      conversationId={conversationId}
-      initialMessages={initialMessages as AppUIMessage[]}
-      modelId={conv.modelId}
-      modelOutputCosts={modelOutputCosts}
-      subagentTraces={subagentTraces}
-      suggestions={resolvedAgent.suggestions}
-    />
+    <>
+      <FloatingSidebarTrigger />
+      <ChatView
+        agentId={resolvedAgent.id}
+        agentName={resolvedAgent.name}
+        agents={agents.map((a) => {
+          return { id: a.id, isSystem: a.isSystem, name: a.name };
+        })}
+        conversationId={conversationId}
+        initialMessages={initialMessages as AppUIMessage[]}
+        modelId={conv.modelId}
+        modelOutputCosts={modelOutputCosts}
+        subagentTraces={subagentTraces}
+        suggestions={resolvedAgent.suggestions}
+      />
+    </>
   );
 }

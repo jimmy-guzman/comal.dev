@@ -5,9 +5,10 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { chatSearchParamsCache } from "@/app/(chat)/chats/search-params";
+import { chatSearchParamsCache } from "@/app/(app)/(chat)/chats/search-params";
 import { ChatsFilter } from "@/components/chats-filter";
 import { ConversationList } from "@/components/conversation-list";
+import { FloatingSidebarTrigger } from "@/components/floating-sidebar-trigger";
 import { Button } from "@/components/ui/button";
 import { appRuntime } from "@/db/runtime";
 import { AgentService } from "@/lib/agents";
@@ -53,32 +54,35 @@ export default async function ChatsPage({ searchParams }: Props) {
   });
 
   return (
-    <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">chats</h1>
-        <Button asChild size="sm">
-          <Link href="/chats/new">new chat</Link>
-        </Button>
+    <>
+      <FloatingSidebarTrigger />
+      <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-semibold">chats</h1>
+          <Button asChild size="sm">
+            <Link href="/chats/new">new chat</Link>
+          </Button>
+        </div>
+
+        <ChatsFilter agents={agents.map((a) => ({ id: a.id, name: a.name }))} />
+
+        {filtered.length === 0 ? (
+          <p className="text-muted-foreground text-sm">
+            {agentFilter === null ? "no conversations yet." : "no conversations with this agent."}
+          </p>
+        ) : (
+          <ConversationList
+            conversations={filtered.map((c) => {
+              return {
+                agentName: c.agentName,
+                createdAt: c.createdAt,
+                id: c.id,
+                title: c.title,
+              };
+            })}
+          />
+        )}
       </div>
-
-      <ChatsFilter agents={agents.map((a) => ({ id: a.id, name: a.name }))} />
-
-      {filtered.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          {agentFilter === null ? "no conversations yet." : "no conversations with this agent."}
-        </p>
-      ) : (
-        <ConversationList
-          conversations={filtered.map((c) => {
-            return {
-              agentName: c.agentName,
-              createdAt: c.createdAt,
-              id: c.id,
-              title: c.title,
-            };
-          })}
-        />
-      )}
-    </div>
+    </>
   );
 }

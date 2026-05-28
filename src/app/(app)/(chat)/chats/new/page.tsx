@@ -7,8 +7,9 @@ import { redirect } from "next/navigation";
 
 import type { ModelOutputCosts } from "@/lib/model-pricing";
 
-import { chatSearchParamsCache } from "@/app/(chat)/chats/search-params";
+import { chatSearchParamsCache } from "@/app/(app)/(chat)/chats/search-params";
 import { ChatView } from "@/components/chat-view";
+import { FloatingSidebarTrigger } from "@/components/floating-sidebar-trigger";
 import { appRuntime } from "@/db/runtime";
 import { AgentService } from "@/lib/agents";
 import { auth } from "@/lib/auth";
@@ -78,17 +79,20 @@ export default async function NewChatPage({ searchParams }: Props) {
   const resolvedAgent = agent ?? agents[0];
 
   return (
-    <ChatView
-      agentId={resolvedAgent.id}
-      agentName={resolvedAgent.name}
-      agents={agents.map((a) => {
-        return { id: a.id, isSystem: a.isSystem, name: a.name };
-      })}
-      conversationId={null}
-      initialMessages={[]}
-      modelId={resolvedAgent.defaultModelId}
-      modelOutputCosts={modelOutputCosts}
-      suggestions={resolvedAgent.suggestions}
-    />
+    <>
+      <FloatingSidebarTrigger />
+      <ChatView
+        agentId={resolvedAgent.id}
+        agentName={resolvedAgent.name}
+        agents={agents.map((a) => {
+          return { id: a.id, isSystem: a.isSystem, name: a.name };
+        })}
+        conversationId={null}
+        initialMessages={[]}
+        modelId={resolvedAgent.defaultModelId}
+        modelOutputCosts={modelOutputCosts}
+        suggestions={resolvedAgent.suggestions}
+      />
+    </>
   );
 }

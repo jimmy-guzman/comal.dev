@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 
 import { TraceTimeline } from "@/components/trace-timeline";
 import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { appRuntime } from "@/db/runtime";
 import { auth } from "@/lib/auth";
 import { ChatStoreService } from "@/lib/chat/store";
@@ -42,6 +43,7 @@ export default async function TracePage({ params }: Props) {
     <div className="flex min-h-0 flex-1 flex-col">
       <main className="px-safe-or-4 min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
         <div className="bg-background sticky top-0 z-10 flex items-center gap-3 py-3">
+          <SidebarTrigger />
           <Link
             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs"
             href={

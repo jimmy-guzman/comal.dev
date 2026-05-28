@@ -9,6 +9,7 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 type Segment = "account" | "appearance" | "memory";
 
@@ -28,7 +29,8 @@ export const SettingsSlimHeader = () => {
   const segment = useSelectedLayoutSegment() ?? "account";
 
   return (
-    <header className="flex h-10 shrink-0 items-center border-b ps-12 pe-4 sm:ps-14 sm:pe-6">
+    <header className="flex h-10 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
+      <SidebarTrigger />
       <NavigationMenu viewport={false}>
         <NavigationMenuList>
           {SECTIONS.map((section) => {

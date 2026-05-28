@@ -2,7 +2,7 @@
 
 import { useQueryState } from "nuqs";
 
-import { toolSearchParams } from "@/app/(chat)/tools/search-params";
+import { toolSearchParams } from "@/app/(app)/(workspace)/tools/search-params";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 

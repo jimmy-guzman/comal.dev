@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { FloatingSidebarTrigger } from "@/components/floating-sidebar-trigger";
 import { MemoryAddForm } from "@/components/memory-add-form";
 import { MemoryList } from "@/components/memory-list";
 import { appRuntime } from "@/db/runtime";
@@ -50,36 +51,39 @@ export default async function MemoriesPage() {
   const truncated = count > MEMORY_LIST_PAGE_SIZE;
 
   return (
-    <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">memories</h1>
-        <p className="text-muted-foreground text-sm">
-          facts agents have saved about you, plus anything you add manually. agents need the memory
-          tools attached to read or write here.
-        </p>
-        <p className="text-muted-foreground text-xs">
-          using {count} of {cap}.{" "}
-          <Link className="hover:text-foreground underline" href="/settings/memory">
-            change cap
-          </Link>
-          .
-        </p>
-      </div>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium">add</h2>
-        <MemoryAddForm />
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium">all memories</h2>
-        <MemoryList memories={memories} />
-        {truncated ? (
-          <p className="text-muted-foreground text-xs">
-            showing the {MEMORY_LIST_PAGE_SIZE} most recent. older memories are still searchable.
+    <>
+      <FloatingSidebarTrigger />
+      <div className="pb-safe-or-8 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold">memories</h1>
+          <p className="text-muted-foreground text-sm">
+            facts agents have saved about you, plus anything you add manually. agents need the
+            memory tools attached to read or write here.
           </p>
-        ) : null}
-      </section>
-    </div>
+          <p className="text-muted-foreground text-xs">
+            using {count} of {cap}.{" "}
+            <Link className="hover:text-foreground underline" href="/settings/memory">
+              change cap
+            </Link>
+            .
+          </p>
+        </div>
+
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-medium">add</h2>
+          <MemoryAddForm />
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-medium">all memories</h2>
+          <MemoryList memories={memories} />
+          {truncated ? (
+            <p className="text-muted-foreground text-xs">
+              showing the {MEMORY_LIST_PAGE_SIZE} most recent. older memories are still searchable.
+            </p>
+          ) : null}
+        </section>
+      </div>
+    </>
   );
 }
