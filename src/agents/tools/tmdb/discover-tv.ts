@@ -2,7 +2,8 @@ import { tool } from "ai";
 import { z } from "zod";
 
 import { discoverTv } from "@/clients/tmdb";
-import { env } from "@/env";
+
+import type { ToolContext } from "../types";
 
 const isoDate = z
   .string()
@@ -31,72 +32,83 @@ const sortByEnum = z.enum([
   "name.desc",
 ]);
 
-const tmdbDiscoverTv = tool({
-  description:
-    "Discover TV series on TMDB by combining filters: sort order, genre ids, first-air year, first-air date range, and original language. Use `tmdb-search` first if you only have a name; use this when the user describes criteria (e.g. 'Japanese anime that started after 2020').",
-  execute: async ({
-    firstAirDateGte,
-    firstAirDateLte,
-    firstAirDateYear,
-    page,
-    sortBy,
-    withGenres,
-    withOriginalLanguage,
-  }) => {
-    const { data, error } = await discoverTv({
-      auth: () => `Bearer ${env.TMDB_READ_ACCESS_TOKEN}`,
-      query: {
-        "first_air_date.gte": firstAirDateGte,
-        "first_air_date.lte": firstAirDateLte,
-        first_air_date_year: firstAirDateYear,
-        page,
-        sort_by: sortBy,
-        with_genres: withGenres,
-        with_original_language: withOriginalLanguage,
-      },
-    });
+const tmdbDiscoverTv = (context: ToolContext) => {
+  return tool({
+    description:
+      "Discover TV series on TMDB by combining filters: sort order, genre ids, first-air year, first-air date range, and original language. Use `tmdb-search` first if you only have a name; use this when the user describes criteria (e.g. 'Japanese anime that started after 2020').",
+    execute: async ({
+      firstAirDateGte,
+      firstAirDateLte,
+      firstAirDateYear,
+      page,
+      sortBy,
+      withGenres,
+      withOriginalLanguage,
+    }) => {
+      const token = await context.getCredential("tmdb");
 
-    if (error || !data) {
-      throw new Error(`TMDB discover TV failed: ${JSON.stringify(error ?? "no data")}`);
-    }
+      if (!token) {
+        return {
+          error:
+            "TMDB is not configured for this user. Ask the user to set their TMDB read access token at /settings/connections, or contact the platform admin.",
+        };
+      }
 
-    return data;
-  },
-  inputSchema: z
-    .object({
-      firstAirDateGte: isoDate.optional().describe("Lower bound on first air date (YYYY-MM-DD)."),
-      firstAirDateLte: isoDate.optional().describe("Upper bound on first air date (YYYY-MM-DD)."),
-      firstAirDateYear: z
-        .number()
-        .int()
-        .min(1880)
-        .max(2100)
-        .optional()
-        .describe("Filter by first-air year."),
-      page: z.number().int().min(1).max(500).default(1).describe("Page number (1-500)."),
-      sortBy: sortByEnum
-        .default("popularity.desc")
-        .describe("Sort order. Defaults to popularity.desc."),
-      withGenres: z
-        .string()
-        .optional()
-        .describe("Comma-separated (AND) or pipe-separated (OR) TMDB genre ids."),
-      withOriginalLanguage: z
-        .string()
-        .optional()
-        .describe("ISO-639-1 original language code (e.g. 'ja')."),
-    })
-    .refine(
-      ({ firstAirDateGte, firstAirDateLte }) => {
-        return !firstAirDateGte || !firstAirDateLte || firstAirDateGte <= firstAirDateLte;
-      },
-      {
-        message: "firstAirDateGte must be on or before firstAirDateLte.",
-        path: ["firstAirDateGte"],
-      },
-    ),
-});
+      const { data, error } = await discoverTv({
+        auth: () => `Bearer ${token}`,
+        query: {
+          "first_air_date.gte": firstAirDateGte,
+          "first_air_date.lte": firstAirDateLte,
+          first_air_date_year: firstAirDateYear,
+          page,
+          sort_by: sortBy,
+          with_genres: withGenres,
+          with_original_language: withOriginalLanguage,
+        },
+      });
 
-export const buildTmdbDiscoverTv = (_config: unknown, _context: unknown) => {
-  return tmdbDiscoverTv;
+      if (error || !data) {
+        throw new Error(`TMDB discover TV failed: ${JSON.stringify(error ?? "no data")}`);
+      }
+
+      return data;
+    },
+    inputSchema: z
+      .object({
+        firstAirDateGte: isoDate.optional().describe("Lower bound on first air date (YYYY-MM-DD)."),
+        firstAirDateLte: isoDate.optional().describe("Upper bound on first air date (YYYY-MM-DD)."),
+        firstAirDateYear: z
+          .number()
+          .int()
+          .min(1880)
+          .max(2100)
+          .optional()
+          .describe("Filter by first-air year."),
+        page: z.number().int().min(1).max(500).default(1).describe("Page number (1-500)."),
+        sortBy: sortByEnum
+          .default("popularity.desc")
+          .describe("Sort order. Defaults to popularity.desc."),
+        withGenres: z
+          .string()
+          .optional()
+          .describe("Comma-separated (AND) or pipe-separated (OR) TMDB genre ids."),
+        withOriginalLanguage: z
+          .string()
+          .optional()
+          .describe("ISO-639-1 original language code (e.g. 'ja')."),
+      })
+      .refine(
+        ({ firstAirDateGte, firstAirDateLte }) => {
+          return !firstAirDateGte || !firstAirDateLte || firstAirDateGte <= firstAirDateLte;
+        },
+        {
+          message: "firstAirDateGte must be on or before firstAirDateLte.",
+          path: ["firstAirDateGte"],
+        },
+      ),
+  });
+};
+
+export const buildTmdbDiscoverTv = (_config: unknown, context: ToolContext) => {
+  return tmdbDiscoverTv(context);
 };

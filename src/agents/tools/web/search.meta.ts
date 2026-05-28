@@ -10,4 +10,5 @@ export const webSearchMeta = {
   group: "web",
   id: "web-search",
   name: "Web search",
+  requiredConnection: "tavily",
 } satisfies ToolMetadata<ApprovalConfigShape>;

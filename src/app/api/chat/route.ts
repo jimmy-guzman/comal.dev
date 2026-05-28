@@ -23,6 +23,7 @@ import type { Database } from "@/db/service";
 import type { AppUIMessage } from "@/lib/app-ui-message";
 import type { ChatEventRow } from "@/lib/chat/projector";
 import type { ChatStreamContext } from "@/lib/chat/stream-context";
+import type { Credentials } from "@/lib/credentials/service";
 import type {
   AgentNotFoundError,
   ConversationNotFoundError,
@@ -45,7 +46,7 @@ import {
   ValidationError,
 } from "@/lib/errors";
 import { DEFAULT_MEMORY_THRESHOLD, DEFAULT_MEMORY_TOP_K, MemoryService } from "@/lib/memory";
-import { openrouter } from "@/lib/openrouter";
+import { openrouterForUser, platformOpenrouter } from "@/lib/openrouter";
 import {
   chatLimiter,
   chatLimiterAnon,
@@ -127,7 +128,7 @@ const lookupMemoryBlock = (
       try: () => {
         return embed({
           // eslint-disable-next-line @typescript-eslint/no-deprecated -- OpenRouter SDK still uses the v4-named API
-          model: openrouter.textEmbeddingModel(MEMORY_EMBEDDING_MODEL_ID),
+          model: platformOpenrouter.textEmbeddingModel(MEMORY_EMBEDDING_MODEL_ID),
           value: trimmed,
         });
       },
@@ -175,7 +176,7 @@ const embedPendingMemories = (userId: string) => {
       try: () => {
         return embedMany({
           // eslint-disable-next-line @typescript-eslint/no-deprecated -- OpenRouter SDK still uses the v4-named API
-          model: openrouter.textEmbeddingModel(MEMORY_EMBEDDING_MODEL_ID),
+          model: platformOpenrouter.textEmbeddingModel(MEMORY_EMBEDDING_MODEL_ID),
           values: pending.map((row) => row.content),
         });
       },
@@ -327,7 +328,7 @@ const generateTitleEffect = (
       },
       try: () => {
         return generateText({
-          model: openrouter(modelId),
+          model: platformOpenrouter(modelId),
           prompt: `Summarize the following user message in 4 to 6 words. Return only the title, no punctuation, no quotes.\n\nUser: ${userText}`,
         });
       },
@@ -650,6 +651,8 @@ export async function POST(req: Request) {
       modelId: convModelId,
     } satisfies ChatStreamContext;
 
+    const openrouter = yield* openrouterForUser(user.id);
+
     const result = streamText({
       experimental_context: streamContext,
       messages: modelMessages,
@@ -778,7 +781,13 @@ export async function POST(req: Request) {
   }) satisfies Effect.Effect<
     Response,
     ChatError,
-    Auth | ChatPersistService | ChatService | ChatStoreService | Database | MemoryService
+    | Auth
+    | ChatPersistService
+    | ChatService
+    | ChatStoreService
+    | Credentials
+    | Database
+    | MemoryService
   >;
 
   return await appRuntime.runPromise(

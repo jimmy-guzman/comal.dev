@@ -11,5 +11,9 @@ export interface SearchProviderResult {
 
 export interface SearchProvider {
   name: string;
-  search(input: { maxResults: number; query: string }): Promise<SearchProviderResult>;
+  search(input: {
+    apiKey: string;
+    maxResults: number;
+    query: string;
+  }): Promise<SearchProviderResult>;
 }

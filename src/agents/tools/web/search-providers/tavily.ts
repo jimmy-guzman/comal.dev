@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { env } from "@/env";
-
 import type { SearchProvider, SearchProviderResult } from "./types";
 
 const tavilyResultSchema = z.object({
@@ -16,10 +14,10 @@ const tavilyResultSchema = z.object({
 
 export const tavilyProvider = {
   name: "tavily",
-  search: async ({ maxResults, query }): Promise<SearchProviderResult> => {
+  search: async ({ apiKey, maxResults, query }): Promise<SearchProviderResult> => {
     const response = await fetch("https://api.tavily.com/search", {
       body: JSON.stringify({
-        api_key: env.TAVILY_API_KEY,
+        api_key: apiKey,
         max_results: maxResults,
         query,
         search_depth: "basic",

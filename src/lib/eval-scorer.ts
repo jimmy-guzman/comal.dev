@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { ToolCallAssertion } from "@/lib/eval-input-schema";
 
 import { JUDGE_MODEL_ID } from "@/lib/eval-input-schema";
-import { openrouter } from "@/lib/openrouter";
+import { platformOpenrouter } from "@/lib/openrouter";
 import { SUBAGENT_PREFIX } from "@/lib/subagent-prefix";
 
 export type StringScorer = "contains" | "exact" | "levenshtein";
@@ -156,7 +156,7 @@ export const scoreEvalLLM = async (
 ): Promise<{ rationale: string; score: number }> => {
   const result = await generateText({
     messages: [{ content: buildJudgePrompt(input, output, expected), role: "user" }],
-    model: openrouter(JUDGE_MODEL_ID),
+    model: platformOpenrouter(JUDGE_MODEL_ID),
     output: Output.object({ schema: judgeResponseSchema }),
     system: JUDGE_SYSTEM_PROMPT,
   });
